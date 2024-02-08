@@ -12,8 +12,11 @@ struct Record * getrecords(Catalog catalog){
         printf("Invalid input try again: ");
         scanf("%d",tablenumber);
     }
-    Table table=Catalog->tables[tablenumber];
-    Record * returnrecords=table->records;
+    
+    Table table=(Table)malloc(sizeof(struct Table));
+    table=Catalog->tables[tablenumber];
+    Record * returnrecords=(Record *)calloc(MAX_NUM_RECORDS, sizeof(Record))
+    returnrecords=table->records;
     return returnrecords;
 }
 
