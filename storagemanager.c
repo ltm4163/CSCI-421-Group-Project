@@ -3,12 +3,12 @@
 #include <string.h>
 #include "catalog.h"
 
-struct Record * getrecords(Catalog catalog)
-{
+
+struct Record * getrecords(Catalog catalog){
     int tablenumber;
     printf("Enter a table number: ");
     scanf("%d", &tablenumber);
-    while(tablenumber < 0 && tablenumber >= sizeof(catalog->tables)){
+    while(tablenumber < 0 || tablenumber >= sizeof(catalog->tables)){
         printf("Invalid input try again: ");
         scanf("%d",tablenumber);
     }
@@ -17,7 +17,6 @@ struct Record * getrecords(Catalog catalog)
     return returnrecords;
 }
 
-void insertrecord()
-{
+void insertrecord(Table table, Record record){
 
 }
