@@ -13,6 +13,12 @@ struct Catalog {
     struct BufferPool* bufferPool;
 };
 
+struct Attribute {
+    char name[MAX_NAME_SIZE];
+    char type[20];
+    // Add constraints or other things. Maybe size
+};
+
 struct Table {
     struct Attribute attributes[MAX_NUM_ATTRIBUTES];
     char name[MAX_NAME_SIZE];
@@ -34,12 +40,6 @@ struct BufferPool{
 struct Page {
     struct Record records[MAX_NUM_RECORDS];
     char data[MAX_PAGE_SIZE];
-};
-
-struct Attribute {
-    char name[MAX_NAME_SIZE];
-    char type[20];
-    // Add constraints or other things. Maybe size
 };
 
 
