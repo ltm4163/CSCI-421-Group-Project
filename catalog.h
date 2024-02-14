@@ -10,36 +10,36 @@ typedef struct Catalog {
     struct Table* tables;
     int tableCount;
     struct BufferPool* bufferPool;
-};
+} Catalog;
 
 typedef struct Table {
-    struct Attribute attributes[MAX_NUM_ATTRIBUTES];
+    struct Attribute* attributes[MAX_NUM_ATTRIBUTES];
     char name[MAX_NAME_SIZE];
     int recordCount;
     int currentPage;
-};
+} Table;
 
 typedef struct Record {
     int id;
     char name[MAX_NAME_SIZE];
 
-};
+} Record;
 
 typedef struct BufferPool{
     struct Page* pages;
     int pageCount;
-};
+} BufferPool;
 
 typedef struct Page {
     struct Record records[MAX_NUM_RECORDS];
     char data[MAX_PAGE_SIZE];
-};
+} Page;
 
 typedef struct Attribute {
     char name[MAX_NAME_SIZE];
     char type[20];
     // Add constraints or other things. Maybe size
-};
+} Attribute;
 
 
 // Initialization Functions:
@@ -48,7 +48,7 @@ void initializeCatalog(Catalog* c);
 
 void initializeTable(Table* table);
 
-void initializeRecord(Record* record);
+// void initializeRecord(Record* record);
 
 void initializeBufferPool(BufferPool* bufferPool);
 
