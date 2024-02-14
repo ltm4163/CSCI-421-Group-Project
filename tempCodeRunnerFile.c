@@ -1,0 +1,1 @@
+strcpy(text1, "more text!");
