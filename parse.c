@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include "parse.h"
 
 // temporary struct definition. This can be removed once the catalog is working.
 // TODO the code will require modifications once catalog and storage manager are working.
@@ -12,12 +13,13 @@ typedef struct {
 } Attribute;
 
 
-void parse(FILE *s) {
+void parse() {
+	printf("here");
 	// to hold information parsed from stdin
 	char command[10];
 	char tableName[50];
 	char attributes[500];
-	
+		
 	// if something is parsed, continue
 	if(scanf("%9s", command) == 1) {
 		// case: create table
@@ -56,7 +58,16 @@ void parse(FILE *s) {
 		// case: alter table
 		// TODO implement this
 		} else if(strcmp(command, "alter") == 0) {
-			printf("alter here");
+			char opt[50];
+			scanf(" table %49s %9s %49[^;];", tableName, command, opt);
+			printf("name: %s\ncommand: %s\noptions: %s\n", tableName, command, opt);
+			
+			if(strcmp(command, "drop") == 0) {
+				// drop attribute with name opt
+				printf("dropped attribute");
+
+			} else if(strcmp(command, "add") == 0) {
+			}
 
 		} else {
 			printf("unknown command");
@@ -69,8 +80,4 @@ void parse(FILE *s) {
 
 }
 
-int main(int argc, char** argv) {
-	parse(stdin);
-	return 0;
-}
 
