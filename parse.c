@@ -1,40 +1,76 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-// Define a struct to store the parsed information
-struct Query {
-    char command[20];
-    char args[10][20];
-    int num_args;
-};
 
-int main() {
-    struct Query query;
-    query.num_args = 0;
-    char arg[30];
+// temporary struct definition. This can be removed once the catalog is working.
+// TODO the code will require modifications once catalog and storage manager are working.
+typedef struct {
+	char attributeName[50];
+	char attributeType[20];
+	char constraints[20];
 
-    int result = fscanf(stdin, "%19s table %19s", query.command, arg);
+} Attribute;
 
-    if (result == 2) {
-	char* token = strtok(arg, ",");
-	while(token != NULL) {
-	    strcpy(query.args[query.num_args], token);
-	    query.num_args++;
 
-	    token = strtok(NULL, ",");
+void parse(FILE *s) {
+	// to hold information parsed from stdin
+	char command[10];
+	char tableName[50];
+	char attributes[500];
+	
+	// if something is parsed, continue
+	if(scanf("%9s", command) == 1) {
+		// case: create table
+		// TODO make this work with the storage manager
+		if(strcmp(command, "create") == 0) {
+			scanf(" table %49[^(](%99[^)])", tableName, attributes); 
+			printf("tablename: %s\n", tableName);
+			
+			int attributeCount = 0;
+			Attribute attrList[50];
+			
+			char *tok = strtok(attributes, ",");
+			while (tok != NULL) {
+				sscanf(tok, " %49s %19s %19[^,]",
+					attrList[attributeCount].attributeName,
+                   			attrList[attributeCount].attributeType,
+                  			attrList[attributeCount].constraints);
+				attributeCount++;
+				tok = strtok(NULL, ",");
+			
+			}
+
+			for (int i = 0; i < attributeCount; i++) {
+           			 printf("Attribute %d:\n", i + 1);
+            			 printf("  Name: %s\n", attrList[i].attributeName);
+            			 printf("  Type: %s\n", attrList[i].attributeType);
+            			 printf("  Constraint: %s\n", attrList[i].constraints);
+       			 }
+		
+		// case: drop table
+		// TODO implement this
+		} else if(strcmp(command, "drop") == 0) {
+
+			printf("drop here");
+
+		// case: alter table
+		// TODO implement this
+		} else if(strcmp(command, "alter") == 0) {
+			printf("alter here");
+
+		} else {
+			printf("unknown command");
+		}
+
 	}
-	printf("Command: %s\n", query.command);
 
-        // Printing the list of arguments
-        printf("Argument List: ");
-        for (int i = 0; i < query.num_args; i++) {
-            printf("%s ", query.args[i]);
-        }
-        printf("\n");
-    } else {
-        fprintf(stderr, "Error parsing input\n");
-    }
 
-    return 0;
+
+
+}
+
+int main(int argc, char** argv) {
+	parse(stdin);
+	return 0;
 }
 
