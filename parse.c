@@ -48,10 +48,10 @@ void parse(FILE *s) {
        			 }
 		
 		// case: drop table
-		// TODO implement this
 		} else if(strcmp(command, "drop") == 0) {
-
-			printf("drop here");
+			scanf(" table %49s", tableName);
+			// call table drop method here
+			printf("drop table: %s\n", tableName);
 
 		// case: alter table
 		// TODO implement this
