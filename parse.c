@@ -14,7 +14,6 @@ typedef struct {
 
 
 void parse() {
-	printf("here");
 	// to hold information parsed from stdin
 	char command[10];
 	char tableName[50];
@@ -67,9 +66,27 @@ void parse() {
 				printf("dropped attribute");
 
 			} else if(strcmp(command, "add") == 0) {
+				// TODO implement add attribute
 			}
 
-		} else {
+		} else if(strcmp(command, "insert") == 0) {
+			// parses tablename and attributes out of command
+			scanf(" into %49s values %99[^;]s;", tableName, attributes);
+			
+			// tokenizes the input tuples
+			char *tok = strtok(attributes, ",");
+			while (tok != NULL) {
+				// TODO process and create records here
+				tok = strtok(NULL, ",");
+			}
+
+		} else if(strcmp(command, "display") == 0) {
+			// TODO implement display DDL
+
+		} else if(strcmp(command, "select") == 0) {
+			// TODO implement select DDL
+	
+		} else{
 			printf("unknown command");
 		}
 
@@ -79,5 +96,12 @@ void parse() {
 
 
 }
+
+int main(int arc, char** argv) {
+	parse();
+	return 0;
+
+}
+
 
 
