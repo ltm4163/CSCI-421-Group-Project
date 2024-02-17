@@ -12,10 +12,6 @@ void initializeCatalog(Catalog* c) {
     c -> tableCount = 0;
 }
 
-// void initializeRecord(Record* record) {
-
-// }
-
 
 // Insertion Functions:
 

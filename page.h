@@ -1,11 +1,15 @@
-#include "main.h"
+#ifndef PAGE_H
+#define PAGE_H
+#include "constants.h"
 #include "record.h"
 
 typedef struct Page {
     struct Record records[MAX_NUM_RECORDS];
-    char data[MAX_PAGE_SIZE];
+    void *data;
     int pageNumber;
     int tableNumber;
 } Page;
 
-void initializePage(Page* page, int pageNumber, int tableNumber);
+void initializePage(Page* pg, int pageNumber, int tableNumber);
+
+#endif

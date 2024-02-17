@@ -1,5 +1,5 @@
-#ifndef catalog.h
-#define catalog.h
+#ifndef CATALOG_H
+#define CATALOG_H
 #include "table.h"
 
 typedef struct Catalog {
@@ -22,4 +22,5 @@ void addRecord(Catalog* c, int pageNumber, int id, char name[MAX_NAME_SIZE]);  /
 void addPage(Catalog* c);  // How do we deal with this one?
 
 void addAttribute(Catalog* c, char name[MAX_NAME_SIZE], char type[20]);  // Add more constraints as needed
+
 #endif

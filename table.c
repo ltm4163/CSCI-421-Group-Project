@@ -1,3 +1,5 @@
+#include <stddef.h>
+#include <string.h>
 #include "table.h"
 
 void initializeTable(Table* table) {

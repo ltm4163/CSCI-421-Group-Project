@@ -1,3 +1,5 @@
+#ifndef BUFFERPOOL_H
+#define BUFFERPOOL_H
 #include "page.h"
 
 typedef struct BufferPool{
@@ -5,8 +7,10 @@ typedef struct BufferPool{
     int pageCount;
 } BufferPool;
 
-void initializeBufferPool(BufferPool* bufferPool);
+void initializeBufferPool(BufferPool* bP);
 
 // Search functions:
 
-void findPage(BufferPool* bufferPool, int pageNumber);  // Do we want to implement this to search for data instead?
+void findPage(BufferPool* bP, int pageNumber);  // Do we want to implement this to search for data instead?
+
+#endif

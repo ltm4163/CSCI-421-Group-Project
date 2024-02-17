@@ -3,11 +3,17 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include "main.h"
+#include "storagemanager.h"
+#include "catalog.h"
+#include "bufferpool.h"
+#include "constants.h"
 
-void initializeDatabase(const char* dbLocation, int pageSize, int bufferSize);
+Catalog *cat;
+BufferPool *pool;
 
 int main(int argc, char* argv[]) {
-    if (argc != 4) {
+    /*if (argc != 4) {
         fprintf(stderr, "Usage: %s <db loc> <page size> <buffer size>\n", argv[0]);
         return 1;
     }
@@ -21,6 +27,50 @@ int main(int argc, char* argv[]) {
 
     // Main logic
 
+    return 0;*/
+
+    // FILE *fp;
+    // char *text = (char*)malloc(55);
+    // strcpy(text,"sample. asjknwq testing lots of text please please ahh");
+    // int ex = 55;
+    // printf("Int: %d\n", ex);
+    // printf("Text size: %d\n", 55);
+    // printf("Text: %s\n", text);
+    // fp = fopen("test.bin","wb");
+    // fwrite(&ex, sizeof(ex), 1, fp);
+    // fwrite(text, ex, 1, fp);
+    // //free(text);
+
+    // char *text1 = (char*)malloc(11);
+    // strcpy(text1, "more text!");
+    // int ex1 = 11;
+    // printf("Int: %d\n", ex1);
+    // printf("Text size: %d\n", 11);
+    // printf("Text: %s\n", text1);
+    // fwrite(&ex1, sizeof(ex1), 1, fp);
+    // fwrite(text1, ex1, 1, fp);
+
+    // FILE *fp;
+    // char *text = (char*)malloc(MAX_PAGE_SIZE);
+    // strcpy(text,"sample. asjknwq testing lots of text please please ahh");
+    // printf("Text: %s\n", text);
+    // fp = fopen("tables/5.bin","wb");
+    // fwrite(text, MAX_PAGE_SIZE, 1, fp);
+
+    // char *text1 = (char*)malloc(MAX_PAGE_SIZE);
+    // strcpy(text1, "more text!");
+    // printf("Text: %s\n", text1);
+    // fwrite(text1, MAX_PAGE_SIZE, 1, fp);
+    // getPage(5, 2);
+    // fclose(fp);
+
+    MAX_PAGE_SIZE = 4096;
+    cat= (Catalog*)malloc(sizeof(Catalog));
+    initializeCatalog(cat);
+    BufferPool *pool = (BufferPool*)malloc(sizeof(BufferPool));
+    initializeBufferPool(pool);
+    Page *pg = getPage(5, 2);
+    pool->pages = pg;
     return 0;
 }
 
@@ -28,5 +78,13 @@ void initializeDatabase(const char* dbLocation, int pageSize, int bufferSize) {
     printf("Initializing database at %s with page size %d and buffer size %d\n", dbLocation, pageSize, bufferSize);
     // do stuff here...
 
+}
+
+Catalog *getCatalog() { //returns catalog variable to other files
+    return cat;
+}
+
+BufferPool *getBufferPool() { //returns buffer pool variable to other files
+    return pool;
 }
 

@@ -1,4 +1,6 @@
-#include "main.h"
+#ifndef RECORD_H
+#define RECORD_H
+#include "constants.h"
 
 typedef struct Record {
     int id;
@@ -6,4 +8,6 @@ typedef struct Record {
     char* data;
 } Record;
 
-// void initializeRecord(Record* record);
+// void initializeRecord(Record* rec);
+
+#endif

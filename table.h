@@ -1,4 +1,6 @@
-#include "main.h"
+#ifndef TABLE_H
+#define TABLE_H
+#include "constants.h"
 
 typedef struct Table {
     struct Attribute* attributes[MAX_NUM_ATTRIBUTES];
@@ -7,4 +9,6 @@ typedef struct Table {
     int currentPage;
 } Table;
 
-void initializeTable(Table* table);
+void initializeTable(Table* tab);
+
+#endif

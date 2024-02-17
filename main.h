@@ -1,11 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "storagemanager.h"
+#include "catalog.h"
+#include "bufferpool.h"
 
-#define MAX_PAGE_SIZE 4096  // bytes
-#define MAX_NUM_RECORDS 100  // Can change
-#define MAX_NUM_ATTRIBUTES 50  // Can also change
-#define MAX_NAME_SIZE 50  // "   "
-
-Catalog *getCatalog();
-BufferPool *getBufferPool();
+void initializeDatabase(const char* dbLocation, int pageSize, int bufferSize);
+Catalog *getCatalog(); //returns catalog variable to other files
+BufferPool *getBufferPool(); //returns buffer pool variable to other files
