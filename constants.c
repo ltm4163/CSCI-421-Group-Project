@@ -1,4 +1,10 @@
+// Default constant values
+int maxPageSize = 42;
+int maxBufferSize = 10;
+
+// Update constants
+// User input dictates pageSize/bufferSize
 void updateValues(int pageSize, int bufferSize) {
-    MAX_PAGE_SIZE(42);
-    MAX_BUFFER_SIZE(10);
+    maxPageSize = pageSize;
+    maxBufferSize = bufferSize;
 }
