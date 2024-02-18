@@ -64,7 +64,7 @@ int main(int argc, char* argv[]) {
     // getPage(5, 2);
     // fclose(fp);
 
-    MAX_PAGE_SIZE = 4096;
+    //MAX_PAGE_SIZE = 4096;
     cat= (Catalog*)malloc(sizeof(Catalog));
     initializeCatalog(cat);
     BufferPool *pool = (BufferPool*)malloc(sizeof(BufferPool));
