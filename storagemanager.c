@@ -10,34 +10,63 @@
 Catalog *catalog;
 BufferPool *bPool;
 
+// Reads the desired page from hardware
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "bufferpool.h"
+#include "storagemanager.h"
+#include "attribute.h"
+#include "constraint.h"
+#include "main.h"
+
+Catalog *catalog;
+BufferPool *bPool;
+
 Page* getPage(int tableNumber, int pageNumber) { //read desired page from hardware
     char file_dest[15];
     sprintf(file_dest, "tables/%d.bin", tableNumber);
-    //printf("dest: %s\n", file_dest);
-    FILE *file = fopen(file_dest, "rb+");
-    //printf("File name: %d.bin\n", tableNumber);
 
+    FILE *file = fopen(file_dest, "rb+");
     if (file == NULL) {
         printf("Error opening the file.\n");
-        return;
+        return NULL; // Return NULL to indicate failure
     }
 
-    int address = (pageNumber-1)*MAX_PAGE_SIZE;
-    char page_buffer[MAX_PAGE_SIZE];
+    int address = (pageNumber-1) * MAX_PAGE_SIZE;
+    char *page_buffer = (char *)malloc(MAX_PAGE_SIZE); // Allocate memory for the page buffer
+    if (page_buffer == NULL) {
+        printf("Memory allocation failed for page buffer.\n");
+        fclose(file); // Make sure to close the file before returning
+        return NULL;
+    }
+
     fseek(file, address, SEEK_SET);
     fread(page_buffer, MAX_PAGE_SIZE, 1, file);
     fclose(file);
 
     Page *p = (Page*)malloc(sizeof(Page));
     if (p == NULL) {
-        printf("Memory allocation failed.\n");
-        return;
+        printf("Memory allocation failed for Page.\n");
+        free(page_buffer); // Clean up previously allocated buffer
+        return NULL;
     }
     initializePage(p, pageNumber, tableNumber);
-    p->data = (void*)malloc(MAX_PAGE_SIZE);
-    strcpy(p->data, page_buffer);
-    printf("Text: %s\n", p->data);
+    p->data = page_buffer; // Directly assign the allocated buffer
+    // Ensure the data is null-terminated before treating it as a string
+    page_buffer[MAX_PAGE_SIZE - 1] = '\0';
+    printf("Text: %s\n", (char *)p->data); // Cast to char* for printing
     return p;
+}
+
+// retrieves catalog initiated in main.c
+void initCatalog() { 
+    catalog = getCatalog();
+}
+
+// retrieves buffer pool initiated in main.c
+void initBuffer() { 
+    bPool = getBufferPool();
 }
 
 
@@ -53,12 +82,3 @@ Page* getPage(int tableNumber, int pageNumber) { //read desired page from hardwa
         
 //     }
 //     return;
-// }
-
-void initCatalog() { //retreives catalog initiated in main.c
-    catalog = getCatalog();
-}
-
-void initBuffer() { //retreives buffer pool initiated in main.c
-    bPool = getBufferPool();
-}
