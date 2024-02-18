@@ -11,7 +11,7 @@ void buf_reset(Buffer buf);
 void buf_put(Buffer buf, Page page);
 
 // adds data, doesn't add if buffer is full
-void buf_putr(Buffer buf, Page page);
+int buf_putr(Buffer buf, Page page);
 
 // gets a page from a buffer
 Page buf_get(Buffer buf, Page *page);
