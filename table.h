@@ -2,13 +2,13 @@
 #define TABLE_H
 #include "constants.h"
 
-typedef struct Table {
+typedef struct TableSchema {
     struct Attribute* attributes[MAX_NUM_ATTRIBUTES];
     char name[MAX_NAME_SIZE];
-    int recordCount;
-    int currentPage;
-} Table;
+    int tableNumber;
+    int numPages;
+} TableSchema;
 
-void initializeTable(Table* tab);
+void initializeTable(TableSchema* tab);
 
 #endif

@@ -4,14 +4,15 @@
 #include "constraint.h"
 #include "constants.h"
 
-typedef struct Attribute {
+typedef struct AttributeSchema {
     char name[MAX_NAME_SIZE];
     char type[20];
     bool unique;
     bool nonNull;
     bool primarKey;
-} Attribute;
+    int size;
+} AttributeSchema;
 
-void initializeAttribute(Attribute* attr);
+void initializeAttribute(AttributeSchema* attr);
 
 #endif

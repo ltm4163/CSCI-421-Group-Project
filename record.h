@@ -3,9 +3,7 @@
 #include "constants.h"
 
 typedef struct Record {
-    int id;
-    char name[MAX_NAME_SIZE];
-    char* data;
+    void* data;
 } Record;
 
 // void initializeRecord(Record* rec);

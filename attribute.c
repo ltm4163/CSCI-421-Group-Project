@@ -1,5 +1,5 @@
 #include "attribute.h"
 
-void initializeAttribute(Attribute* attribute) {
+void initializeAttribute(AttributeSchema* attribute) {
 
 }
