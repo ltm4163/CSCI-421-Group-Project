@@ -11,6 +11,22 @@
 Catalog *catalog;
 BufferPool *bPool;
 
+struct Record * getrecords(Catalog catalog){
+    int tablenumber;
+    printf("Enter a table number: ");
+    scanf("%d", &tablenumber);
+    while(tablenumber < 0 || tablenumber >= sizeof(catalog->tables)){
+        printf("Invalid input try again: ");
+        scanf("%d",tablenumber);
+    }
+    
+    TableSchema table=(TableSchema)malloc(sizeof(TableSchema));
+    table=catalog->tables[tablenumber];
+    Record * returnrecords=(Record *)calloc(MAX_NUM_RECORDS, sizeof(Record))
+    returnrecords=table->records;
+    return returnrecords;
+}
+
 //addRecord inserts a record to a certain table of a catalog
 void addRecord(Catalog* c, Record record, int tableNumber){
     Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
