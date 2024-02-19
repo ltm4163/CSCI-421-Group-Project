@@ -71,6 +71,46 @@ int main(int argc, char* argv[]) {
     initializeBufferPool(pool);
     Page *pg = getPage(5, 2);
     pool->pages = pg;
+
+
+    // Go into a loop asking for user commands
+    // The 'quit' command terminates the loop
+    char *buffer = NULL;
+    size_t buffsize;
+    ssize_t read = 0;
+    const char *exits = "exit";
+
+    while (1) {
+        printf("Enter a command: ");
+
+        read = getline(&buffer, &buffsize, stdin);
+        if (read == -1) {
+            printf("Failure found from getline()\n");
+            exit(EXIT_FAILURE);
+        }
+
+        if (read > 0 && buffer[read-1] == '\n') {
+            buffer[read-1] = '\0';
+        }
+
+        if (!*buffer || strcmp(buffer, exits) == 0) {
+            break;
+        }
+
+        printf("%zu characters were read.\n", read);
+        printf("You typed: '%s' \n", buffer);
+
+        free(buffer);
+        buffer = NULL;
+    }
+
+
+
+
+
+
+
+
     return 0;
 }
 
