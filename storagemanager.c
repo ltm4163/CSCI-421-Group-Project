@@ -60,18 +60,16 @@ void addRecord(Catalog* c, Record record, int tableNumber){
         for(int j = 0; j < size-1; j++){
             min_index=j;
             for(int k = j+1; k < size; k++){
-                if(compare(c, tableNumber, pg->records[k], pg->records->[min_index])){
+                if(pg->records[k] < pg->records[min_index]){
                     min_index=k;
-                    struct Record *temprec=(struct Record *)malloc(sizeof(struct Record));
-                    temprec=pg->records[min_index];
-                    pg->records[min_index]=pg->records[j];
-                    pg->records[j]=temprec;
+                    
                 }
-                else{
-                    break;
-                }
+                
             }
-            break;
+            struct Record *temprec=(struct Record *)malloc(sizeof(struct Record));
+            temprec=pg->records[min_index];
+            pg->records[min_index]=pg->records[j];
+            pg->records[j]=temprec;
 
         }
         if(sizeof(pg->records)==MAX_NUM_RECORDS){
@@ -79,35 +77,6 @@ void addRecord(Catalog* c, Record record, int tableNumber){
             splitpage(bPool,pg, newpg);
         }
     }
-}
-bool compare(Catalog *cat, int tableNumber, Record *record_k, Record *min_record){
-    bool inserted = false;
-    TableSchema * table =(struct TableSchema *)malloc(sizeof(TableSchema));
-    table=cat->tables[tableNumber];
-    for (int i = 0; i < sizeof(table->attributes) / sizeof(table->attributes[0]); i++) {
-        AttributeSchema *attribute=(struct AttributeSchema *)malloc(sizeof(AttributeSchema));
-        attribute=table->attributes[i];
-        if(attribute->primarKey==TRUE){
-            if(strcmp(attribute->type, "int")==1){
-                if(record_k->data[0] < min_record->data[0]){
-                    if(attribute->nonNull==true && attribute->unique==true && strcmp(record_k->data[1], min_record->data[1])!=0){
-                        inserted=true;
-                        return inserted;
-                    }
-                }
-            }
-            if(strcmp(attribute->type, "char")){
-                if(strcmp(record_k->data[1], min_record->data[1])==-1){
-                    if(attribute->nonNull==true && attribute->unique==true){
-                        inserted=true;
-                        return inserted;
-                    }
-                }
-                }
-
-            }
-        }
-    return inserted;
 }
     
 
