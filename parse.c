@@ -6,12 +6,17 @@
 #include "attribute.h"
 #include "table.h"
 
+// to hold information parsed from stdin
+char command[10];
+char table_name[50];
+char attributes[500];
+
 /*	
 * Method: ParseAttribute
 * Helper function to parse attribute input
 *
 * @param char* attributes: string consisting of attribute input
-* 							Ex: (foo int primarykey, bar string notnull)
+* 							Ex: (foo int primarykey unique, bar string notnull)
 * @return returns a list of attribute schemas 
 */
 AttributeSchema* ParseAttribute(char* attributes) {
@@ -64,51 +69,41 @@ AttributeSchema* ParseAttribute(char* attributes) {
 	return attribute_arr;
 }
 
-TableSchema* ParseTable(char* table_name, char* attributes) {
-	int attributeCount = 0;
-	AttributeSchema attributes_parsed[MAX_NUM_ATTRIBUTES];
-
-	TableSchema* table = malloc(sizeof(table));
+/*
+* Method: ParseTable
+* Helper function to parse table info
+*
+* @return returns a table struct
+*/
+TableSchema* ParseTable() {
+	// allocates size of a table
+	TableSchema* table = Malloc(sizeof(table));
 	initializeTable(table);
 
-	// sets thename of the table
+	// parses name of table and attributes
+	scanf(" table %49[^(](%99[^)])", table_name, attributes); 
+
+	// set the name of the table
 	strcpy(table->name, table_name);
 
-	// TODO implenment parsing for attributes
-	// Can be taken from main parse
+	// parses attributes
+	AttributeSchema * attributes_parsed = malloc(sizeof(AttributeSchema) * MAX_NUM_ATTRIBUTES);
+	attributes_parsed = ParseAttribute(attributes);
+	table->attributes = attributes_parsed;
 
-	return NULL;
+
+	return table;
 }
 
 
 void parse() {
-	// to hold information parsed from stdin
-	char command[10];
-	char table_name[50];
-	char attributes[500];
 		
 	// if something is parsed, continue
 	if(scanf("%9s", command) == 1) {
 		// case: create table
-		// TODO make this work with the storage manager
 		if(strcmp(command, "create") == 0) {
-			scanf(" table %49[^(](%99[^)])", table_name, attributes); 
-			printf("tablename: %s\n", table_name);
-			
-			TableSchema* table = Malloc(sizeof(table));
-			table = ParseTable(table_name, attributes);
-
-			char *tok = strtok(attributes, ",");
-			while (tok != NULL) {
-				sscanf(tok, " %49s %19s %19[^,]",
-					attrList[attributeCount].attributeName,
-                   			attrList[attributeCount].attributeType,
-                  			attrList[attributeCount].constraints);
-				attributeCount++;
-				tok = strtok(NULL, ",");
-			
-			}
-		
+			TableSchema* table = ParseTable();
+			// TODO send this somewhere
 		// case: drop table
 		} else if(strcmp(command, "drop") == 0) {
 			scanf(" table %49s", table_name);
