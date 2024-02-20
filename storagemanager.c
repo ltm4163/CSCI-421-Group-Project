@@ -60,20 +60,36 @@ void addRecord(Catalog* c, Record record, int tableNumber){
 // Convert page data into records using table schema
 void createRecords(Page *page, int tableNumber) {
     TableSchema table = catalog->tables[tableNumber];
-    for (int i = 0; i < page->numRecords; i++) { //iterates through all pages in buffer
+    int pageOffset = sizeof(int); //uses for knowing where next record starts in page
+    for (int i = 0; i < page->numRecords; i++) { //iterates through all records in page
         Record *rec = (Record*)malloc(sizeof(Record));
-        for (int j = 0; j < sizeof(table.attributes)/sizeof(AttributeSchema); j++) { //iterates through all attributes in table
-            AttributeSchema *attr = table.attributes[j*sizeof(AttributeSchema)];
+        rec->data = (void*)malloc(MAX_PAGE_SIZE);
+        int recordOffset = pageOffset; //used for knowing where next attribute starts in record
+        for (int j = 0; j < table.numAttributes; j++) { //iterates through all attributes in table
+            AttributeSchema *attr = &table.attributes[j];
             char *attrType = attr->type;
-            void *attrValue; //value of attribute to be written to record struct
             int sizeToRead = attr->size; //used to tell fread how much data to read from page.data
             if (strcmp(attrType, "varchar") == 0) { //if type is varchar, read int that tells length of varchar
-                fread(&sizeToRead, 4, 1, page->data);
-                fwrite(&sizeToRead, 4, 1, rec->data);
+                memcpy(&sizeToRead, page->data+recordOffset, sizeof(int));
+                memcpy(rec->data+recordOffset, &sizeToRead, sizeof(int));
+                recordOffset += sizeof(int);
             }
-            fread(attrValue, sizeToRead, 1, page->data);
-            fwrite(attrValue, sizeToRead, 1, rec->data); //write data to record.data
+            void *attrValue = (void*)malloc(sizeToRead); //value of attribute to be written to record struct
+            memcpy(attrValue, page->data+recordOffset, sizeToRead);
+            memcpy(rec->data+recordOffset, attrValue, sizeToRead); //write data to record.data
+            // if (strcmp(attrType, "int") == 0)
+            // {
+            //     printf("rec_int: %d\n", (int)attrValue);
+            // }
+            // else {
+            //     printf("rec_text: %s\n", (char*)attrValue);
+            // }
+            
+            recordOffset += sizeToRead;
         }
+        rec->data = (void*)realloc(rec->data, recordOffset-pageOffset); //cut size of record.data down to size of data stored
+        rec->size = recordOffset-pageOffset;
+        pageOffset += recordOffset;
         page->records[i] = rec;
     }
 }
@@ -97,7 +113,7 @@ Page* getPage(int tableNumber, int pageNumber) {
         return NULL;
     }
 
-    fseek(file, address+4, SEEK_SET); //start reading from location of page in file (skip numPages)
+    fseek(file, address, SEEK_SET); //start reading from location of page in file
     fread(page_buffer, MAX_PAGE_SIZE, 1, file);
     fclose(file);
 
@@ -111,19 +127,20 @@ Page* getPage(int tableNumber, int pageNumber) {
     p->data = page_buffer; //set data to data read from file
     int numRecords;
     memcpy(&numRecords, page_buffer, sizeof(int));
-    char *example = (char*)malloc(numRecords);
-    memcpy(example, page_buffer+sizeof(int), numRecords);
-    example[numRecords] = '\0';
-    bool *flag = (bool)malloc(sizeof(bool));
-    memcpy(&flag, page_buffer+sizeof(int)+numRecords, sizeof(bool));
-    printf(flag);
-    printf("Test: %s\n", (char*)example);
+    int int1;
+    memcpy(&int1, page_buffer+sizeof(int), sizeof(int));
+    char *example = (char*)malloc(11);
+    memcpy(example, page_buffer+(2*sizeof(int)), 11);
+    // example[10] = '\0';
+    // bool *flag = (bool)malloc(sizeof(bool));
+    // memcpy(&flag, page_buffer+sizeof(int)+numRecords, sizeof(bool));
+    // printf(flag);
     printf("numRecords: %d\n", numRecords);
+    printf("int1: %d\n", int1);
+    printf("Test: %s\n", (char*)example);
     p->numRecords = numRecords;
     createRecords(p, tableNumber);
-
-    printf("Page text: %s\n", (char *)p->data); // Casts to char* for printing
-    printf("Record text: %s\n", (char*)p->records[pageNumber]->data);
+    printf("created records");
     return p;
 }
 
@@ -144,7 +161,7 @@ Record getRecord(int tableNumber, void* primaryKey) {
     TableSchema table = catalog->tables[tableNumber*sizeof(TableSchema)]; //assuming table numbers will start at 0 and not 1
     AttributeSchema pK; //primary key
     for (int i = 0; i < MAX_NUM_ATTRIBUTES/sizeof(AttributeSchema); i++) { //set pK to primary key attribute of table
-        AttributeSchema *attr = table.attributes[i*sizeof(AttributeSchema)];
+        AttributeSchema *attr = &table.attributes[i*sizeof(AttributeSchema)];
         if (attr->primaryKey == true)
         {
             break;

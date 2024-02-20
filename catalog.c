@@ -8,7 +8,7 @@
 // Initialization Functions:
 
 void initializeCatalog(Catalog* c) {
-    c -> tables = NULL;
+    c -> tables = (TableSchema*)malloc(sizeof(TableSchema));
 }
 
 

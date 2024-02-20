@@ -8,6 +8,7 @@
 #include "catalog.h"
 #include "bufferpool.h"
 #include "constants.h"
+#include "attribute.h"
 
 Catalog *cat;
 BufferPool *pool;
@@ -39,21 +40,18 @@ int main(int argc, char* argv[]) {
     // printf("Text: %s\n", text);
     // memcpy(toWrite, &ex, 4);
     // memcpy(toWrite+4, text, ex);
-    fp = fopen("tables/5.bin","wb");
+    fp = fopen("tables/0.bin","wb");
     // fwrite(toWrite, MAX_PAGE_SIZE, 1, fp);
     // //free(text);
 
-    void *toWrite1 = (void*)malloc(MAX_PAGE_SIZE);
-    char *text1 = (char*)malloc(11);
+    void *toWrite1 = malloc(MAX_PAGE_SIZE);
+    char *text1 = malloc(11);
     strcpy(text1, "more text!");
-    int ex1 = sizeof(text1);
-    bool flag = true;
-    printf("Int: %d\n", ex1);
-    printf("Text size: %d\n", 11);
-    printf("Text: %s\n", text1);
-    memcpy(toWrite1, &ex1, 4);
-    memcpy(toWrite1+4, text1, ex1);
-    memcpy(toWrite1+4+ex1, &flag, sizeof(bool));
+    int int1 = 5;
+    int numRecords = 1;
+    memcpy(toWrite1, &numRecords, sizeof(int));
+    memcpy(toWrite1+sizeof(int), &int1, sizeof(int));
+    memcpy(toWrite1+(2*sizeof(int)), text1, 11);
     fwrite(toWrite1, MAX_PAGE_SIZE, 1, fp);
     fclose(fp);
 
@@ -77,8 +75,23 @@ int main(int argc, char* argv[]) {
     BufferPool *pool = (BufferPool*)malloc(sizeof(BufferPool));
     initializeBufferPool(pool);
     initializeStorageManager();
-    Page *pg = getPage(5, 0);
-    pool->pages = pg;
+
+    TableSchema *table = (TableSchema*)malloc(sizeof(TableSchema));
+    initializeTable(table, 2);
+    AttributeSchema *attr1 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
+    initializeAttribute(attr1, "num", "int", false, false, true, sizeof(int));
+    AttributeSchema *attr2 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
+    initializeAttribute(attr2, "words", "char", false, false, false, 11);
+    table->attributes[0] = *attr1;
+    table->attributes[1] = *attr2;
+    table->tableNumber = 0;
+    cat->tables[0] = *table;
+    Page *pg = getPage(0, 0);
+    pool->pages[0] = *pg;
+    Record *rec = pool->pages[0].records[0];
+    int final;
+    memcpy(&final, rec->data, sizeof(int));
+    printf("final: %d\n", final);
 
 
     // Go into a loop asking for user commands
