@@ -9,8 +9,8 @@ typedef struct AttributeSchema {
     char type[20];
     bool unique;
     bool nonNull;
-    bool primarKey;
-    int size;
+    bool primaryKey;
+    int size; //size of attr type
 } AttributeSchema;
 
 void initializeAttribute(AttributeSchema* attr);

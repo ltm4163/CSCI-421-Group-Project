@@ -2,11 +2,10 @@
 #include <string.h>
 #include "table.h"
 
-void initializeTable(Table* table) {
+void initializeTable(TableSchema* table) {
     for (int i = 0; i < MAX_NUM_ATTRIBUTES; ++i) {
         table->attributes[i] = NULL;
     }
     strcpy(table->name, "");
-    table->recordCount = 0;
-    table->currentPage = 0;
+    table->numPages = 0;
 }

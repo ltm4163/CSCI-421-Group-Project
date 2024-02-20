@@ -11,42 +11,21 @@
 Catalog *catalog;
 BufferPool *bPool;
 
-struct Record * getrecords(Catalog catalog){
-    int tablenumber;
-    printf("Enter a table number: ");
-    scanf("%d", &tablenumber);
-    while(tablenumber < 0 || tablenumber >= sizeof(catalog->tables)){
-        printf("Invalid input try again: ");
-        scanf("%d",tablenumber);
-    }
-    
-    TableSchema table=(TableSchema)malloc(sizeof(TableSchema));
-    table=catalog->tables[tablenumber];
-    Record * returnrecords=(Record *)calloc(MAX_NUM_RECORDS, sizeof(Record))
-    returnrecords=table->records;
-    return returnrecords;
-}
-
 //addRecord inserts a record to a certain table of a catalog
 void addRecord(Catalog* c, Record record, int tableNumber){
     Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
-    if(bPool->pageCount==0){ //if no pages in buffer, check table file
-        char file_dest[15];
-        sprintf(file_dest, "tables/%d.bin", tableNumber); //set file_dest variable to name of table file
-        //printf("dest: %s\n", file_dest);
-        FILE *file = fopen(file_dest, "rb+");
-        if (file == NULL) { //if file doesn't exist, create new page and add to buffer (maybe create file?)
+    if(c->tables[tableNumber].numPages==0){ //if no pages table
             Page *page=(Page*)malloc(sizeof(Page));
             initializePage(page, 0, tableNumber, true);
             pages[0]=*page;
             page->records[0] = &record;
             bPool->pages = pages;
             return NULL;
-        }
-
-        //implementation for if file exists and has pages:
     }
+
+    // if(bPool->pageCount==0){ //if no pages in buffer, check table file
     
+    // }
     pages=bPool->pages;
     int min_index;
     bool inserted = false;
@@ -56,7 +35,7 @@ void addRecord(Catalog* c, Record record, int tableNumber){
         if (pg->tableNumber != tableNumber) { //skip page if not in desired table
             continue;
         }
-        int size=sizeof(pg->records)/sizeof(pg->records[0]);
+        int size=sizeof(pg->records)/sizeof(*pg->records[0]);
         for(int j = 0; j < size-1; j++){
             min_index=j;
             for(int k = j+1; k < size; k++){
@@ -70,10 +49,10 @@ void addRecord(Catalog* c, Record record, int tableNumber){
             pg->records[j]=temprec;
 
         }
-        inserted=TRUE;
+        inserted=true;
         if(sizeof(pg->records)==MAX_NUM_RECORDS){
             struct Page *newpg=(struct Page*)malloc(sizeof(struct Page));
-            splitpage(pg, newpage);
+            splitpage(pg, newpg);
         }
     }
 }
@@ -110,8 +89,8 @@ Page* getPage(int tableNumber, int pageNumber) {
         return NULL; // NULL indicates failure!!!
     }
 
-    int address = (pageNumber) * MAX_PAGE_SIZE; //location of page in file
-    char *page_buffer = (char *)malloc(MAX_PAGE_SIZE);
+    int address = pageNumber * MAX_PAGE_SIZE; //location of page in file
+    void *page_buffer = (void *)malloc(MAX_PAGE_SIZE);
     if (page_buffer == NULL) {
         printf("Memory allocation failed for page buffer.\n");
         fclose(file); // Closes file
@@ -131,12 +110,20 @@ Page* getPage(int tableNumber, int pageNumber) {
     initializePage(p, pageNumber, tableNumber, false);
     p->data = page_buffer; //set data to data read from file
     int numRecords;
-    fread(&numRecords, 4, 1, page_buffer);
+    memcpy(&numRecords, page_buffer, sizeof(int));
+    char *example = (char*)malloc(numRecords);
+    memcpy(example, page_buffer+sizeof(int), numRecords);
+    example[numRecords] = '\0';
+    bool *flag = (bool)malloc(sizeof(bool));
+    memcpy(&flag, page_buffer+sizeof(int)+numRecords, sizeof(bool));
+    printf(flag);
+    printf("Test: %s\n", (char*)example);
+    printf("numRecords: %d\n", numRecords);
     p->numRecords = numRecords;
+    createRecords(p, tableNumber);
 
-    // Ensure the data is null-terminated before treating it as a string
-    page_buffer[MAX_PAGE_SIZE - 1] = '\0';
-    printf("Text: %s\n", (char *)p->data); // Casts to char* for printing
+    printf("Page text: %s\n", (char *)p->data); // Casts to char* for printing
+    printf("Record text: %s\n", (char*)p->records[pageNumber]->data);
     return p;
 }
 
@@ -158,7 +145,7 @@ Record getRecord(int tableNumber, void* primaryKey) {
     AttributeSchema pK; //primary key
     for (int i = 0; i < MAX_NUM_ATTRIBUTES/sizeof(AttributeSchema); i++) { //set pK to primary key attribute of table
         AttributeSchema *attr = table.attributes[i*sizeof(AttributeSchema)];
-        if (attr->primarKey == true)
+        if (attr->primaryKey == true)
         {
             break;
         }
