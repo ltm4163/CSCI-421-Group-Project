@@ -9,8 +9,4 @@ typedef struct BufferPool{
 
 void initializeBufferPool(BufferPool* bP);
 
-// Search functions:
-
-void findPage(BufferPool* bP, int tableNumber, int pageNumber);  // Do we want to implement this to search for data instead?
-
 #endif

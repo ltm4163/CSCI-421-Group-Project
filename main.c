@@ -29,26 +29,33 @@ int main(int argc, char* argv[]) {
 
     return 0;*/
 
-    // FILE *fp;
+    FILE *fp;
+    // void *toWrite = (void*)malloc(MAX_PAGE_SIZE);
     // char *text = (char*)malloc(55);
     // strcpy(text,"sample. asjknwq testing lots of text please please ahh");
-    // int ex = 55;
+    // int ex = sizeof(text);
     // printf("Int: %d\n", ex);
     // printf("Text size: %d\n", 55);
     // printf("Text: %s\n", text);
-    // fp = fopen("test.bin","wb");
-    // fwrite(&ex, sizeof(ex), 1, fp);
-    // fwrite(text, ex, 1, fp);
+    // memcpy(toWrite, &ex, 4);
+    // memcpy(toWrite+4, text, ex);
+    fp = fopen("tables/5.bin","wb");
+    // fwrite(toWrite, MAX_PAGE_SIZE, 1, fp);
     // //free(text);
 
-    // char *text1 = (char*)malloc(11);
-    // strcpy(text1, "more text!");
-    // int ex1 = 11;
-    // printf("Int: %d\n", ex1);
-    // printf("Text size: %d\n", 11);
-    // printf("Text: %s\n", text1);
-    // fwrite(&ex1, sizeof(ex1), 1, fp);
-    // fwrite(text1, ex1, 1, fp);
+    void *toWrite1 = (void*)malloc(MAX_PAGE_SIZE);
+    char *text1 = (char*)malloc(11);
+    strcpy(text1, "more text!");
+    int ex1 = sizeof(text1);
+    bool flag = true;
+    printf("Int: %d\n", ex1);
+    printf("Text size: %d\n", 11);
+    printf("Text: %s\n", text1);
+    memcpy(toWrite1, &ex1, 4);
+    memcpy(toWrite1+4, text1, ex1);
+    memcpy(toWrite1+4+ex1, &flag, sizeof(bool));
+    fwrite(toWrite1, MAX_PAGE_SIZE, 1, fp);
+    fclose(fp);
 
     // FILE *fp;
     // char *text = (char*)malloc(MAX_PAGE_SIZE);
@@ -69,7 +76,8 @@ int main(int argc, char* argv[]) {
     initializeCatalog(cat);
     BufferPool *pool = (BufferPool*)malloc(sizeof(BufferPool));
     initializeBufferPool(pool);
-    Page *pg = getPage(5, 2);
+    initializeStorageManager();
+    Page *pg = getPage(5, 0);
     pool->pages = pg;
 
 
@@ -80,29 +88,29 @@ int main(int argc, char* argv[]) {
     ssize_t read = 0;
     const char *exits = "exit";
 
-    while (1) {
-        printf("Enter a command: ");
+    // while (1) {
+    //     printf("Enter a command: ");
 
-        read = getline(&buffer, &buffsize, stdin);
-        if (read == -1) {
-            printf("Failure found from getline()\n");
-            exit(EXIT_FAILURE);
-        }
+    //     read = getline(&buffer, &buffsize, stdin);
+    //     if (read == -1) {
+    //         printf("Failure found from getline()\n");
+    //         exit(EXIT_FAILURE);
+    //     }
 
-        if (read > 0 && buffer[read-1] == '\n') {
-            buffer[read-1] = '\0';
-        }
+    //     if (read > 0 && buffer[read-1] == '\n') {
+    //         buffer[read-1] = '\0';
+    //     }
 
-        if (!*buffer || strcmp(buffer, exits) == 0) {
-            break;
-        }
+    //     if (!*buffer || strcmp(buffer, exits) == 0) {
+    //         break;
+    //     }
 
-        printf("%zu characters were read.\n", read);
-        printf("You typed: '%s' \n", buffer);
+    //     printf("%zu characters were read.\n", read);
+    //     printf("You typed: '%s' \n", buffer);
 
-        free(buffer);
-        buffer = NULL;
-    }
+    //     free(buffer);
+    //     buffer = NULL;
+    // }
 
 
 
