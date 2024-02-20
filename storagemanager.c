@@ -28,7 +28,7 @@ void addRecord(Catalog* c, Record record, int tableNumber){
     // }
     pages=bPool->pages;
     int min_index;
-    bool inserted = false;
+    
     for(int i = 0; i < bPool->pageCount; i++){ //iterate through pages in buffer
         struct Page *pg=(Page *)malloc(sizeof(Page));
         pg=&bPool->pages[i*sizeof(Page)];
@@ -41,7 +41,9 @@ void addRecord(Catalog* c, Record record, int tableNumber){
             for(int k = j+1; k < size; k++){
                 if(pg->records[k] < pg->records[min_index]){
                     min_index=k;
+                    
                 }
+                
             }
             struct Record *temprec=(struct Record *)malloc(sizeof(struct Record));
             temprec=pg->records[min_index];
@@ -55,6 +57,31 @@ void addRecord(Catalog* c, Record record, int tableNumber){
             splitpage(pg, newpg);
         }
     }
+}
+    
+
+
+void splitpage(BufferPool*bp, Page *currentpg, Page *newpage){
+    int sizerecords=sizeof(currentpg->records)/(sizeof(currentpg->records[0]))
+    Record * firsthalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
+    Record * secondhalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
+    firsthalf=currentpg->records;
+    secondhalf=currentpg->records + sizerecords/2;
+    *currentpg->records=firsthalf;
+    *newpage->records=secondhalf;
+    int pos=0;
+    for(int b=0; b < sizeof(bp->pages)/sizeof(bp->pages[0]); b++){
+        if(currentpg==bp->pages[b]){
+            pos=b;
+        }
+    }
+    int numberpgs=sizeof(bp->pages)/sizeof(bp->pages[0])
+    for(int n=numberpgs-1; n >= pos; n--){
+        bp->pages[n]=bp->pages[n-1]
+    }
+    bp->pages[pos-1]=newpage;
+    
+
 }
 
 // Convert page data into records using table schema
