@@ -12,6 +12,7 @@ char command[10];
 char table_name[50];
 char attributes[500];
 int num_attributes;
+AttributeSchema attribute_arr[MAX_NUM_ATTRIBUTES];
 
 /*	
 * Method: ParseAttribute
@@ -21,19 +22,18 @@ int num_attributes;
 * 							Ex: (foo int primarykey unique, bar string notnull)
 * @return returns a list of attribute schemas 
 */
-AttributeSchema* ParseAttribute(char* attributes) {
+void ParseAttribute(char* attributes) {
 	int attribute_count = 0;
 	char *ptr1, *ptr2;
 	// holds name of attribute
-	char* name[MAX_NAME_SIZE];
+	char name[MAX_NAME_SIZE];
 	// holds type of attribute
-	char* type[MAX_NAME_SIZE];
+	char type[MAX_NAME_SIZE];
 	// size of type
 	int size = 0;
 	// holds contraints, this must be PARSED 
-	char* constraints[MAX_NAME_SIZE];
+	char constraints[MAX_NAME_SIZE];
 	// list of attributes to return
-	AttributeSchema* attribute_arr[MAX_NUM_ATTRIBUTES];
 
 	// uses strtok_r so for nested parsing 
 	char* attr_tok = strtok_r(attributes, ",", &ptr1);
@@ -56,7 +56,7 @@ AttributeSchema* ParseAttribute(char* attributes) {
 			size = 4;
 		} else if(strcmp(type, "double") == 0) {
 			size = 8;
-		} else if(srcmp(type, "boolean") == 0) {
+		} else if(strcmp(type, "boolean") == 0) {
 			size = 1;
 		} else {
 			int size;
@@ -80,15 +80,13 @@ AttributeSchema* ParseAttribute(char* attributes) {
 
 		initializeAttribute(cur_attribute, name, type, unique, nonNull, primaryKey, size);
 		// adds attribute to array
-		attribute_arr[attribute_count] = cur_attribute;
+		attribute_arr[attribute_count] = *cur_attribute;
 		// increments count
 		attribute_count++;
 		// gets next attribute
 		attr_tok = strtok_r(NULL, ",", &ptr1);
 	}
 	num_attributes = attribute_count;
-
-	return attribute_arr;
 }
 
 /*
@@ -99,16 +97,15 @@ AttributeSchema* ParseAttribute(char* attributes) {
 */
 TableSchema* ParseTable() {
 	// allocates size of a table
-	TableSchema* table = Malloc(sizeof(table));
+	TableSchema* table = malloc(sizeof(table));
 
 	// parses name of table and attributes
 	scanf(" table %49[^(](%99[^)])", table_name, attributes); 
 
 	// parses attributes
-	AttributeSchema * attributes_parsed = malloc(sizeof(AttributeSchema) * MAX_NUM_ATTRIBUTES);
-	attributes_parsed = ParseAttribute(attributes);
+	ParseAttribute(attributes);
 
-	initializeTable(table, num_attributes, table_name, attributes);
+	initializeTable(table, num_attributes, table_name, attribute_arr);
 
 	return table;
 }
