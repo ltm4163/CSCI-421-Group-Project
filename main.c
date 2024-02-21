@@ -60,9 +60,12 @@ int main(int argc, char* argv[]) {
     // 0 = false, 1 = true
     int shouldExit = 0;
     
-    while(!shouldExit) {
+    char inputLine[1024]; // Buffer to store user input
+
+    while (1) {
         printf("JottQL> ");
-        shouldExit = parse();
+        if (fgets(inputLine, sizeof(inputLine), stdin) == NULL) break; // Check for EOF or error
+        if (parse(inputLine)) break; // Exit loop if parse returns 1 (quit command)
     }
 
     return 0;

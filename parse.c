@@ -106,79 +106,173 @@ TableSchema* ParseTable() {
 	return table;
 }
 
-
-int parse() {
-	Catalog* catalog = getCatalog();
-		
-   
+void handleCreateCommand(char* inputLine) {
+    // Example for parsing a simplified "create table" command
+    char tableName[MAX_NAME_SIZE];
+    char attributes[500]; // Adjust size as needed
     
-	// if something is parsed, continue
-	if(scanf("%9s", command) == 1) {
-        
-        // Quit
+    if (sscanf(inputLine, "create table %s %[^\n]", tableName, attributes) == 2) {
+        // Now you have tableName and a string of attributes to be parsed further
+        // You can pass these to another function to parse attributes and create the table
+//        TableSchema* table = ParseTable();
+//        addTable(catalog, table);
+    } else {
+        printf("Invalid create table command.\n");
+        printf("ERROR\n\n");
+    }
+}
+
+void handleDropCommand(char* inputLine) {
+    
+}
+
+void handleInsertCommand(char* inputLine) {
+    
+}
+
+void handleSelectCommand(char* inputLine) {
+    
+}
+
+int parse(char* inputLine) {
+    Catalog* catalog = getCatalog();
+    char command[10];
+
+    // Use sscanf to extract the first command word from the input line
+    if (sscanf(inputLine, "%9s", command) > 0) {
+        // Quit command
         if (strcmp(command, "<quit>") == 0) {
-            // TODO: ALL OF THIS!
             printf("\nSafely shutting down the database...\n");
             printf("Purging page buffer...\n");
             printf("Saving catalog...\n\n");
             printf("Exiting the database...\n\n");
-
-            return 1;
+            return 1; // Indicates program should exit
         }
         
-		// case: create table
-		if(strcmp(command, "create") == 0) {
-			TableSchema* table = ParseTable();
-			addTable(catalog, table);
+        // Create table command
+        if (strcmp(command, "create") == 0) {
+            // Directly pass the whole input line to a function that can parse "create" commands
+            // This function needs to be implemented to parse the rest of the line for table creation details
+            handleCreateCommand(inputLine);
+        }
+        // Drop table command
+        else if (strcmp(command, "drop") == 0) {
+            // Similar to "create", pass the whole input line to a dedicated function for "drop" commands
+            handleDropCommand(inputLine);
+        }
+        // Insert command
+        else if (strcmp(command, "insert") == 0) {
+            // Pass the whole input line to handle "insert" commands
+            handleInsertCommand(inputLine);
+        }
+        // Display command
+        else if (strcmp(command, "display") == 0) {
+            // Directly use displayCatalog function or pass inputLine for more complex display logic
+            displayCatalog(catalog);
+        }
+        // Select command
+        else if (strcmp(command, "select") == 0) {
+            // Handle select commands, possibly needing to parse conditions and table names from inputLine
+            handleSelectCommand(inputLine);
+        } else {
+            printf("Unknown command\n");
+        }
 
-		// case: drop table
-		} else if(strcmp(command, "drop") == 0) {
-			scanf(" table %49s", table_name);
-			// call table drop method here
-			dropTable(catalog, table_name);
+        return 0; // Indicates to continue receiving commands
+    }
 
-		// case: alter table
-		// TODO implement this
-		} else if(strcmp(command, "alter") == 0) {
-			char opt[50];
-			scanf(" table %49s %9s %49[^;];", table_name, command, opt);
-			printf("name: %s\ncommand: %s\noptions: %s\n", table_name, command, opt);
-			
-			if(strcmp(command, "drop") == 0) {
-				// drop attribute with name opt
-				printf("dropped attribute");
-
-			} else if(strcmp(command, "add") == 0) {
-				// TODO implement add attribute
-			}
-
-		} else if(strcmp(command, "insert") == 0) {
-			// parses tablename and attributes out of command
-			scanf(" into %49s values %99[^;]s;", table_name, attributes);
-			
-			// tokenizes the input tuples
-			char *tok = strtok(attributes, ",");
-			while (tok != NULL) {
-				// TODO process and create records here
-				tok = strtok(NULL, ",");
-			}
-
-		}
-        /*
-         BUG FIX: This needs to take in commands that are longer than "display", such as "display info foo;"
-         */
-        else if(strcmp(command, "display") == 0) {
-			displayCatalog(catalog);
-
-		} else if(strcmp(command, "select") == 0) {
-			// TODO implement select DDL
-	
-		} else{
-            printf("unknown command\n");
-            printf("ERROR\n\n");
-		}
-        
-        return 0;
-	}
-    return 0;
+    return 0; // Default return if no command is parsed
 }
+
+
+
+
+//int parse() {
+//	Catalog* catalog = getCatalog();
+//		
+//   
+//    
+//	// if something is parsed, continue
+//	if(scanf("%9s", command) == 1) {
+//        
+//        // Quit
+//        if (strcmp(command, "<quit>") == 0) {
+//            // TODO: ALL OF THIS!
+//            printf("\nSafely shutting down the database...\n");
+//            printf("Purging page buffer...\n");
+//            printf("Saving catalog...\n\n");
+//            printf("Exiting the database...\n\n");
+//
+//            return 1;
+//        }
+//        
+//		// case: create table
+//		if(strcmp(command, "create") == 0) {
+//			TableSchema* table = ParseTable();
+//			addTable(catalog, table);
+//
+//		// case: drop table
+//		} else if(strcmp(command, "drop") == 0) {
+//			scanf(" table %49s", table_name);
+//			// call table drop method here
+//			dropTable(catalog, table_name);
+//
+//		// case: alter table
+//		// TODO implement this
+//		} else if(strcmp(command, "alter") == 0) {
+//			char opt[50];
+//			scanf(" table %49s %9s %49[^;];", table_name, command, opt);
+//			printf("name: %s\ncommand: %s\noptions: %s\n", table_name, command, opt);
+//			
+//			if(strcmp(command, "drop") == 0) {
+//				// drop attribute with name opt
+//				printf("dropped attribute");
+//
+//			} else if(strcmp(command, "add") == 0) {
+//				// TODO implement add attribute
+//			}
+//
+//		} 
+//        /*
+//         BUG FIX: This needs to take in commands that are longer than "insert", such as "insert into foo values (1 "foo");"
+//         */
+//        else if(strcmp(command, "insert") == 0) {
+//			// parses tablename and attributes out of command
+//			scanf(" into %49s values %99[^;]s;", table_name, attributes);
+//			
+//			// tokenizes the input tuples
+//			char *tok = strtok(attributes, ",");
+//			while (tok != NULL) {
+//				// TODO: process and create records here
+//                // TODO: Appropriate error handling if the operation fails
+//				tok = strtok(NULL, ",");
+//			}
+//            
+//		}
+//        /*
+//         BUG FIX: This needs to take in commands that are longer than "display", such as "display info foo;"
+//         */
+//        else if(strcmp(command, "display") == 0) {
+//			displayCatalog(catalog);
+//
+//		} 
+//        
+//        /*
+//         BUG FIX: This needs to take in commands that are longer than "select", such as "select * from foo;"
+//         */
+//        else if(strcmp(command, "select") == 0) {
+//			// TODO: implement select DDL
+//            
+//            // Show these error statements if select fails
+//            printf("No such table <tableName>\n");
+//            printf("ERROR\n\n");
+//	
+//		} else{
+//            printf("unknown command\n");
+//            printf("ERROR\n\n");
+//		}
+//        
+//        return 0;
+//	}
+//    return 0;
+//}
