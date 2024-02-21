@@ -170,11 +170,6 @@ void parse() {
 
 }
 
-int main(int arc, char** argv) {
-	parse();
-	return 0;
-
-}
 
 
 
