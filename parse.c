@@ -47,7 +47,7 @@ void ParseAttribute(char* attributes) {
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
 
 		// parses name, type, and constraints 
-		sscanf(attr_tok, " %50s %19s %19[^,]", name, type, constraints);
+		sscanf(attr_tok, " %50s %19s %19[^,)]", name, type, constraints);
 
 		// for type size
 		if(strcmp(type, "integer") == 0) {
@@ -131,9 +131,11 @@ void handleCreateCommand(char* inputLine) {
         strncpy(attributes, startPos, sizeof(attributes) - 1);
 
         TableSchema* table = ParseTable(tableName, attributes);
-        if (table != NULL) {
+        if (table != NULL && hasPrimaryKey(table)) {
             addTable(catalog, table);
             printf("SUCCESS\n\n", tableName);
+        } else if (!hasPrimaryKey(table)) {
+            printf("No primary key defined\nFAILURE");
         } else {
             printf("Failed to create table '%s'.\n", tableName);
         }

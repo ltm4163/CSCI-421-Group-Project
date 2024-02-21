@@ -20,3 +20,13 @@ void displayTable(TableSchema* table) {
 
     }
 }
+
+
+bool hasPrimaryKey(TableSchema* table) { 
+    for(int i = 0; i < table->numAttributes; i++) {
+        if(table->attributes[i].primaryKey) {
+            return true;
+        }
+    }
+    return false;
+}
