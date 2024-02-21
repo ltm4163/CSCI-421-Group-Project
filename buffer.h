@@ -2,7 +2,7 @@
 #define PARSE_H_
 
 // buffer struct
-typdef struct buffer_t Buffer;
+typedef struct Buffer Buffer;
 
 // resets the buffer
 void buf_reset(Buffer buf);
