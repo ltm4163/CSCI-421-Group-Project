@@ -92,7 +92,7 @@ int buf_putr(Buffer* buf, Page data) {
 }
 
 // gets an element from the buffer
-Page *buf_get(Buffer* buf, Page* data) {
+int buf_get(Buffer* buf, Page* data) {
 	if(!buf_empty(buf)) {
 		*data = buf->buffer[buf->tail];
 		re_pointer(buf);
