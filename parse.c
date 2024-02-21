@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include "parse.h"
 #include "attribute.h"
 #include "table.h"
@@ -91,36 +92,56 @@ void ParseAttribute(char* attributes) {
 *
 * @return returns a table struct
 */
-TableSchema* ParseTable() {
-	// allocates size of a table
-	TableSchema* table = malloc(sizeof(table));
+TableSchema* ParseTable(char* tableName, char* attributes) {
+    printf("ParseTable\n");
 
-	// parses name of table and attributes
-	scanf(" table %49[^(](%99[^)])", table_name, attributes); 
+    TableSchema* table = malloc(sizeof(TableSchema));
+    if (!table) {
+        fprintf(stderr, "Memory allocation failed\n");
+        return NULL;
+    }
 
-	// parses attributes
-	ParseAttribute(attributes);
+    printf("Table name: %s, Attributes: %s\n", tableName, attributes);
+    
+    ParseAttribute(attributes);
+    initializeTable(table, num_attributes, tableName, attribute_arr);
 
-	initializeTable(table, num_attributes, table_name, attribute_arr);
-
-	return table;
+    return table;
 }
 
+// TODO: Return 'No primary key defined' if there is no primary key
+// Right now it returns nothing...
 void handleCreateCommand(char* inputLine) {
-    // Example for parsing a simplified "create table" command
-    char tableName[MAX_NAME_SIZE];
-    char attributes[500]; // Adjust size as needed
+    Catalog* catalog = getCatalog();
+    // Find the position of the first '(' which marks the start of attributes
+    char* startPos = strchr(inputLine, '(');
     
-    if (sscanf(inputLine, "create table %s %[^\n]", tableName, attributes) == 2) {
-        // Now you have tableName and a string of attributes to be parsed further
-        // You can pass these to another function to parse attributes and create the table
-//        TableSchema* table = ParseTable();
-//        addTable(catalog, table);
+    if (startPos != NULL && startPos - inputLine < MAX_NAME_SIZE) {
+        // Extract table name
+        char tableName[MAX_NAME_SIZE] = {0};
+        strncpy(tableName, inputLine + strlen("create table "), startPos - (inputLine + strlen("create table ")));
+
+        for (int i = strlen(tableName) - 1; i >= 0 && isspace((unsigned char)tableName[i]); i--) {
+            tableName[i] = '\0';
+        }
+
+        // Get other attributes
+        char attributes[500] = {0}; // Ensure this buffer is sufficiently large
+        strncpy(attributes, startPos, sizeof(attributes) - 1);
+
+        TableSchema* table = ParseTable(tableName, attributes);
+        if (table != NULL) {
+            addTable(catalog, table);
+            printf("SUCCESS\n", tableName);
+        } else {
+            printf("Failed to create table '%s'.\n", tableName);
+        }
     } else {
-        printf("Invalid create table command.\n");
-        printf("ERROR\n\n");
+        printf("Invalid create table command.\nERROR\n\n");
     }
 }
+
+
 
 
 void displaySchema(Catalog* catalog) {
@@ -192,12 +213,25 @@ void handleDropCommand(char* inputLine) {
     
 }
 
+// TODO: Finish this
 void handleInsertCommand(char* inputLine) {
-    
+    // parses tablename and attributes out of command
+    scanf(" into %49s values %99[^;]s;", table_name, attributes);
+
+    // tokenizes the input tuples
+    char *tok = strtok(attributes, ",");
+    while (tok != NULL) {
+        // TODO: process and create records here
+        // TODO: Appropriate error handling if the operation fails
+        tok = strtok(NULL, ",");
+    }
 }
 
 void handleSelectCommand(char* inputLine) {
+    // TODO: implement select DDL
     
+    printf("No such < ... >");
+    printf("ERROR\n\n");
 }
 
 // TODO: Does each line of input need a ';' to be valid??
