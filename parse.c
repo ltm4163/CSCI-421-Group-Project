@@ -26,6 +26,8 @@ AttributeSchema* ParseAttribute(char* attributes) {
 	char* name[MAX_NAME_SIZE];
 	// holds type of attribute
 	char* type[MAX_NAME_SIZE];
+	// size of type
+	int size = 0;
 	// holds contraints, this must be PARSED 
 	char* constraints[MAX_NAME_SIZE];
 	// list of attributes to return
@@ -43,6 +45,19 @@ AttributeSchema* ParseAttribute(char* attributes) {
 		// puts name and type into attribute
 		strcpy(cur_attribute->name, name);
 		strcpy(cur_attribute->type, type);
+
+		// for type size
+		if(strcmp(type, "integer") == 0) {
+			size = 4;
+		} else if(strcmp(type, "double") == 0) {
+			size = 8;
+		} else if(srcmp(type, "boolean") == 0) {
+			size = 1;
+		} else {
+			int size;
+			scanf(type, "%10s[^(](%d)", type, size);
+			// TODO unfinished
+		}
 
 		// tokenizes constraints
 		char* const_tok = strtok_r(constraints, " ", &ptr2);
