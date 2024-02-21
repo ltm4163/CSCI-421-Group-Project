@@ -107,11 +107,25 @@ TableSchema* ParseTable() {
 }
 
 
-void parse() {
+int parse() {
 	Catalog* catalog = getCatalog();
 		
+   
+    
 	// if something is parsed, continue
 	if(scanf("%9s", command) == 1) {
+        
+        // Quit
+        if (strcmp(command, "<quit>") == 0) {
+            // TODO: ALL OF THIS!
+            printf("\nSafely shutting down the database...\n");
+            printf("Purging page buffer...\n");
+            printf("Saving catalog...\n\n");
+            printf("Exiting the database...\n\n");
+
+            return 1;
+        }
+        
 		// case: create table
 		if(strcmp(command, "create") == 0) {
 			TableSchema* table = ParseTable();
@@ -156,16 +170,11 @@ void parse() {
 			// TODO implement select DDL
 	
 		} else{
-			printf("unknown command");
+            printf("unknown command\n");
+            printf("ERROR\n\n");
 		}
-
+        
+        return 0;
 	}
-
-
-
-
+    return 0;
 }
-
-
-
-
