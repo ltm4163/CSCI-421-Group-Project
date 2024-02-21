@@ -12,74 +12,74 @@ Catalog *catalog;
 BufferPool *bPool;
 
 //addRecord inserts a record to a certain table of a catalog
-void addRecord(Catalog* c, Record record, int tableNumber){
-    Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
-    if(c->tables[tableNumber].numPages==0){ //if no pages table
-            Page *page=(Page*)malloc(sizeof(Page));
-            initializePage(page, 0, tableNumber, true);
-            pages[0]=*page;
-            page->records[0] = &record;
-            bPool->pages = pages;
-            return NULL;
-    }
+// void addRecord(Catalog* c, Record record, int tableNumber){
+//     Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
+//     if(c->tables[tableNumber].numPages==0){ //if no pages table
+//             Page *page=(Page*)malloc(sizeof(Page));
+//             initializePage(page, 0, tableNumber, true);
+//             pages[0]=*page;
+//             page->records[0] = &record;
+//             bPool->pages = pages;
+//             return NULL;
+//     }
 
-    // if(bPool->pageCount==0){ //if no pages in buffer, check table file
+//     // if(bPool->pageCount==0){ //if no pages in buffer, check table file
     
-    // }
-    pages=bPool->pages;
-    int min_index;
+//     // }
+//     pages=bPool->pages;
+//     int min_index;
     
-    for(int i = 0; i < bPool->pageCount; i++){ //iterate through pages in buffer
-        struct Page *pg=(Page *)malloc(sizeof(Page));
-        pg=&bPool->pages[i*sizeof(Page)];
-        if (pg->tableNumber != tableNumber) { //skip page if not in desired table
-            continue;
-        }
-        int size=sizeof(pg->records)/sizeof(*pg->records[0]);
-        for(int j = 0; j < size-1; j++){
-            min_index=j;
-            for(int k = j+1; k < size; k++){
-                if(pg->records[k] < pg->records[min_index]){
-                    min_index=k;
+//     for(int i = 0; i < bPool->pageCount; i++){ //iterate through pages in buffer
+//         struct Page *pg=(Page *)malloc(sizeof(Page));
+//         pg=&bPool->pages[i*sizeof(Page)];
+//         if (pg->tableNumber != tableNumber) { //skip page if not in desired table
+//             continue;
+//         }
+//         int size=sizeof(pg->records)/sizeof(*pg->records[0]);
+//         for(int j = 0; j < size-1; j++){
+//             min_index=j;
+//             for(int k = j+1; k < size; k++){
+//                 if(pg->records[k] < pg->records[min_index]){
+//                     min_index=k;
                     
-                }
+//                 }
                 
-            }
-            struct Record *temprec=(struct Record *)malloc(sizeof(struct Record));
-            temprec=pg->records[min_index];
-            pg->records[min_index]=pg->records[j];
-            pg->records[j]=temprec;
+//             }
+//             struct Record *temprec=(struct Record *)malloc(sizeof(struct Record));
+//             temprec=pg->records[min_index];
+//             pg->records[min_index]=pg->records[j];
+//             pg->records[j]=temprec;
 
-        }
-        inserted=true;
-        if(sizeof(pg->records)==MAX_NUM_RECORDS){
-            struct Page *newpg=(struct Page*)malloc(sizeof(struct Page));
-            splitpage(pg, newpg);
-        }
-    }
-}
+//         }
+//         inserted=true;
+//         if(sizeof(pg->records)==MAX_NUM_RECORDS){
+//             struct Page *newpg=(struct Page*)malloc(sizeof(struct Page));
+//             splitpage(pg, newpg);
+//         }
+//     }
+// }
     
 
 
 void splitpage(BufferPool*bp, Page *currentpg, Page *newpage){
-    int sizerecords=sizeof(currentpg->records)/(sizeof(currentpg->records[0]))
-    Record * firsthalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
-    Record * secondhalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
+    int sizerecords=sizeof(currentpg->records)/(sizeof(currentpg->records[0]));
+    Record *firsthalf=(Record*)malloc(sizerecords/2 * sizeof(Record));
+    Record *secondhalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
     firsthalf=currentpg->records;
     secondhalf=currentpg->records + sizerecords/2;
     *currentpg->records=firsthalf;
     *newpage->records=secondhalf;
     int pos=0;
     for(int b=0; b < sizeof(bp->pages)/sizeof(bp->pages[0]); b++){
-        if(currentpg==bp->pages[b]){
+        if(currentpg == &bp->pages[b]){
             pos=b;
         }
     }
-    int numberpgs=sizeof(bp->pages)/sizeof(bp->pages[0])
+    int numberpgs=sizeof(bp->pages)/sizeof(bp->pages[0]);
     for(int n=numberpgs-1; n >= pos; n--){
-        bp->pages[n]=bp->pages[n-1]
+        bp->pages[n]=bp->pages[n-1];
     }
-    bp->pages[pos-1]=newpage;
+    bp->pages[pos-1]=&newpage;
     
 
 }
