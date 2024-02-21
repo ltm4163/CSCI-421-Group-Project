@@ -47,10 +47,6 @@ void ParseAttribute(char* attributes) {
 		// parses name, type, and constraints 
 		sscanf(attr_tok, " %50s %19s %19[^,]", name, type, constraints);
 
-		// puts name and type into attribute
-		strcpy(cur_attribute->name, name);
-		strcpy(cur_attribute->type, type);
-
 		// for type size
 		if(strcmp(type, "integer") == 0) {
 			size = 4;
@@ -70,7 +66,7 @@ void ParseAttribute(char* attributes) {
 		while(const_tok != NULL) {
 			if(strcmp(const_tok, "notnull") == 0) {
 				nonNull = true;
-			} else if (strcmp(const_tok, "primaryKey") == 0) {
+			} else if (strcmp(const_tok, "primarykey") == 0) {
 				primaryKey = true;
 			} else if(strcmp(const_tok, "unique") == 0) {
 				unique = true;
@@ -119,6 +115,7 @@ void parse() {
 		// case: create table
 		if(strcmp(command, "create") == 0) {
 			TableSchema* table = ParseTable();
+			displayTable(table);
 			// TODO send this somewhere
 		// case: drop table
 		} else if(strcmp(command, "drop") == 0) {
