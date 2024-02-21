@@ -14,7 +14,9 @@ void initializeCatalog(Catalog* c, int count);
 
 // Insertion Functions:
 
-void addTable(Catalog* c, char name[MAX_NAME_SIZE]);  // recordCount and currentPage initialized as 0
+void addTable(Catalog* c, TableSchema* table);  // recordCount and currentPage initialized as 0
+
+void dropTable(Catalog* c, char name[MAX_NAME_SIZE]);
 
 void addPage(Catalog* c);  // How do we deal with this one?
 

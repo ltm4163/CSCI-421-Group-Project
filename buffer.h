@@ -15,6 +15,7 @@ typedef struct Buffer {
 
 } Buffer;
 
+Buffer *buf_init(Page* data, size_t size);
 // resets the buffer
 void buf_reset(Buffer *buf);
 
