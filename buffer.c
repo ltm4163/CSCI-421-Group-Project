@@ -1,16 +1,8 @@
 #include "buffer.h"
 #include "page.h"
 #include <stddef.h>
-
-// structure to hold the buffer
-typedef struct buffer {
-	Page* buffer;
-	size_t head;
-	size_t tail;
-	size_t max;
-	bool full;
-
-} Buffer;
+#include <stdio.h>
+#include <stdlib.h>
 
 // init the buffer
 Buffer *buf_init(Page* data, size_t size) {
@@ -100,10 +92,10 @@ int buf_putr(Buffer* buf, Page data) {
 }
 
 // gets an element from the buffer
-buf_get(Buffer* buf, Page* data) {
+int buf_get(Buffer* buf, Page* data) {
 	if(!buf_empty(buf)) {
 		*data = buf->buffer[buf->tail];
-		retreat_pointer(buf);
+		re_pointer(buf);
 		return 0;
 	}
 

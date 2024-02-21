@@ -2,16 +2,17 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parse.h"
-#include "main.h"
 #include "attribute.h"
 #include "table.h"
 #include "catalog.h"
+#include "main.h"
 
 // to hold information parsed from stdin
 char command[10];
-char table_name[50];
+char table_name[MAX_NAME_SIZE];
 char attributes[500];
 int num_attributes;
+AttributeSchema attribute_arr[MAX_NUM_ATTRIBUTES];
 
 /*	
 * Method: ParseAttribute
@@ -21,19 +22,18 @@ int num_attributes;
 * 							Ex: (foo int primarykey unique, bar string notnull)
 * @return returns a list of attribute schemas 
 */
-AttributeSchema* ParseAttribute(char* attributes) {
+void ParseAttribute(char* attributes) {
 	int attribute_count = 0;
 	char *ptr1, *ptr2;
 	// holds name of attribute
-	char* name[MAX_NAME_SIZE];
+	char name[MAX_NAME_SIZE];
 	// holds type of attribute
-	char* type[MAX_NAME_SIZE];
+	char type[MAX_NAME_SIZE];
 	// size of type
 	int size = 0;
 	// holds contraints, this must be PARSED 
-	char* constraints[MAX_NAME_SIZE];
+	char constraints[MAX_NAME_SIZE];
 	// list of attributes to return
-	AttributeSchema* attribute_arr[MAX_NUM_ATTRIBUTES];
 
 	// uses strtok_r so for nested parsing 
 	char* attr_tok = strtok_r(attributes, ",", &ptr1);
@@ -47,16 +47,12 @@ AttributeSchema* ParseAttribute(char* attributes) {
 		// parses name, type, and constraints 
 		sscanf(attr_tok, " %50s %19s %19[^,]", name, type, constraints);
 
-		// puts name and type into attribute
-		strcpy(cur_attribute->name, name);
-		strcpy(cur_attribute->type, type);
-
 		// for type size
 		if(strcmp(type, "integer") == 0) {
 			size = 4;
 		} else if(strcmp(type, "double") == 0) {
 			size = 8;
-		} else if(srcmp(type, "boolean") == 0) {
+		} else if(strcmp(type, "boolean") == 0) {
 			size = 1;
 		} else {
 			int size;
@@ -70,7 +66,7 @@ AttributeSchema* ParseAttribute(char* attributes) {
 		while(const_tok != NULL) {
 			if(strcmp(const_tok, "notnull") == 0) {
 				nonNull = true;
-			} else if (strcmp(const_tok, "primaryKey") == 0) {
+			} else if (strcmp(const_tok, "primarykey") == 0) {
 				primaryKey = true;
 			} else if(strcmp(const_tok, "unique") == 0) {
 				unique = true;
@@ -80,15 +76,13 @@ AttributeSchema* ParseAttribute(char* attributes) {
 
 		initializeAttribute(cur_attribute, name, type, unique, nonNull, primaryKey, size);
 		// adds attribute to array
-		attribute_arr[attribute_count] = cur_attribute;
+		attribute_arr[attribute_count] = *cur_attribute;
 		// increments count
 		attribute_count++;
 		// gets next attribute
 		attr_tok = strtok_r(NULL, ",", &ptr1);
 	}
 	num_attributes = attribute_count;
-
-	return attribute_arr;
 }
 
 /*
@@ -99,16 +93,15 @@ AttributeSchema* ParseAttribute(char* attributes) {
 */
 TableSchema* ParseTable() {
 	// allocates size of a table
-	TableSchema* table = Malloc(sizeof(table));
+	TableSchema* table = malloc(sizeof(table));
 
 	// parses name of table and attributes
 	scanf(" table %49[^(](%99[^)])", table_name, attributes); 
 
 	// parses attributes
-	AttributeSchema * attributes_parsed = malloc(sizeof(AttributeSchema) * MAX_NUM_ATTRIBUTES);
-	attributes_parsed = ParseAttribute(attributes);
+	ParseAttribute(attributes);
 
-	initializeTable(table, num_attributes, table_name, attributes);
+	initializeTable(table, num_attributes, table_name, attribute_arr);
 
 	return table;
 }
@@ -122,12 +115,13 @@ void parse() {
 		// case: create table
 		if(strcmp(command, "create") == 0) {
 			TableSchema* table = ParseTable();
-			// TODO send this somewhere
+			addTable(catalog, table);
+
 		// case: drop table
 		} else if(strcmp(command, "drop") == 0) {
 			scanf(" table %49s", table_name);
 			// call table drop method here
-			printf("drop table: %s\n", table_name);
+			dropTable(catalog, table_name);
 
 		// case: alter table
 		// TODO implement this
@@ -156,7 +150,7 @@ void parse() {
 			}
 
 		} else if(strcmp(command, "display") == 0) {
-			// TODO implement display DDL
+			displayCatalog(catalog);
 
 		} else if(strcmp(command, "select") == 0) {
 			// TODO implement select DDL

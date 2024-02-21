@@ -1,5 +1,7 @@
-extern int maxPageSize;
-extern int maxBufferSize;
+#include <stddef.h>
+
+extern size_t maxPageSize;
+extern size_t maxBufferSize;
 void updateValues(int pageSize, int bufferSize);
 
 

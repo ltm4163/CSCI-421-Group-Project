@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "constraint.h"
 #include "constants.h"
+#include <stdio.h>
 
 typedef struct AttributeSchema {
     char name[MAX_NAME_SIZE];
@@ -14,5 +15,7 @@ typedef struct AttributeSchema {
 } AttributeSchema;
 
 void initializeAttribute(AttributeSchema* attr, char *name, char *type, bool unique, bool nonNull, bool pK, int size);
+
+void displayAttribute(AttributeSchema* attr);
 
 #endif
