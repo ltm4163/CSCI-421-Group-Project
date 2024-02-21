@@ -163,7 +163,11 @@ int parse() {
 				tok = strtok(NULL, ",");
 			}
 
-		} else if(strcmp(command, "display") == 0) {
+		}
+        /*
+         BUG FIX: This needs to take in commands that are longer than "display", such as "display info foo;"
+         */
+        else if(strcmp(command, "display") == 0) {
 			displayCatalog(catalog);
 
 		} else if(strcmp(command, "select") == 0) {

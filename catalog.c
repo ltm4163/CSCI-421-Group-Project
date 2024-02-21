@@ -65,6 +65,11 @@ void displayCatalog(Catalog* c) {
     for(int i = 0; i < c->tableCount; i++) {
         displayTable(&(c->tables[i]));
     }
+    
+    if(c->tableCount == 0) {
+        printf("No such table\n");  // TODO: Do I need to include table name?
+        printf("ERROR\n\n");
+    }
 }
 
 void writeCatalogToFile(Catalog* c, char* pathname) {
