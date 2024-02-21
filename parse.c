@@ -123,7 +123,7 @@ void handleCreateCommand(char* inputLine) {
 }
 
 
-void displaySchema() {
+void displaySchema(Catalog* catalog) {
     // Expected output:
 
     /*
@@ -162,8 +162,30 @@ void displaySchema() {
     printf("Page Size: \n");
     printf("Buffer Size: \n");
     
-    // TODO: Get all schemas/tables
-    printf("\n");
+    // if (catalog has tables) {
+    //   TODO: Iterate through catalog->tables and display each
+    // } else {
+        printf("\nNo tables to display\n");
+        printf("SUCCESS\n\n");
+    // }
+}
+
+// Find the correct table in the catalog and print it's info
+void displayTableInfo(Catalog* catalog, char* tableName) {
+    bool found = false;
+    for (int i = 0; i < catalog->tableCount; i++) {
+        if (strcmp(catalog->tables[i].name, tableName) == 0) {
+            found = true;
+            printf("Table name: %s\n", tableName);
+            // TODO: Iterate through attributes and display them
+            printf("SUCCESS\n\n");
+            break;
+        }
+    }
+    if (!found) {
+        printf("No such table %s\n", tableName);
+        printf("ERROR\n\n");
+    }
 }
 
 void handleDropCommand(char* inputLine) {
@@ -182,6 +204,7 @@ void handleSelectCommand(char* inputLine) {
 int parse(char* inputLine) {
     Catalog* catalog = getCatalog();
     char command[10];
+    char nextWord[100];
 
     if (sscanf(inputLine, "%9s", command) > 0) {
         // Quit command
@@ -190,7 +213,7 @@ int parse(char* inputLine) {
             printf("Purging page buffer...\n");
             printf("Saving catalog...\n\n");
             printf("Exiting the database...\n\n");
-            return 1; // 1 = TRUE = EXIT in main()
+            return 1; // 1 = TRUE = EXIT CLI loop in main()
         }
         
         // Create table command
@@ -207,15 +230,20 @@ int parse(char* inputLine) {
         }
         // Display command
         else if (strcmp(command, "display") == 0) {
-            char nextWord[100];
-
             if (sscanf(inputLine, "display %s", nextWord) == 1) {
                 if (strcmp(nextWord, "schema") == 0) {
-                    displaySchema();
+                    displaySchema(catalog);
+                    return 0;
                 }
-            } else {
-                displayCatalog(catalog);
+                else if (strcmp(nextWord, "info") == 0) {
+                    char tableName[MAX_NAME_SIZE];
+                    if (sscanf(inputLine, "display info %s", tableName) == 1) {
+                        displayTableInfo(catalog, tableName);
+                        return 0;
+                    }
+                }
             }
+            return 0;
         }
         // Select command
         else if (strcmp(command, "select") == 0) {
