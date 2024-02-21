@@ -47,16 +47,16 @@ int main(int argc, char* argv[]) {
     int numPages = 2;
     fwrite(&numPages, sizeof(int), 1, fp);
 
-    void *toWrite1 = malloc(MAX_PAGE_SIZE);
-    char *text1 = malloc(11);
-    strcpy(text1, "more text!");
-    int int1 = 5;
-    int numRecords = 1;
-    memcpy(toWrite1, &numRecords, sizeof(int));
-    memcpy(toWrite1+sizeof(int), &int1, sizeof(int));
-    memcpy(toWrite1+(2*sizeof(int)), text1, 11);
-    fwrite(toWrite1, MAX_PAGE_SIZE, 1, fp);
-    fclose(fp);
+  //  void *toWrite1 = malloc(MAX_PAGE_SIZE);
+  //  char *text1 = malloc(11);
+  //  strcpy(text1, "more text!");
+  //  int int1 = 5;
+  //  int numRecords = 1;
+  //  memcpy(toWrite1, &numRecords, sizeof(int));
+  //  memcpy(toWrite1+sizeof(int), &int1, sizeof(int));
+  //  memcpy(toWrite1+(2*sizeof(int)), text1, 11);
+  //  fwrite(toWrite1, MAX_PAGE_SIZE, 1, fp);
+  //  fclose(fp);
 
     // FILE *fp;
     // char *text = (char*)malloc(MAX_PAGE_SIZE);
@@ -74,7 +74,7 @@ int main(int argc, char* argv[]) {
 
     //MAX_PAGE_SIZE = 4096;
     cat= (Catalog*)malloc(sizeof(Catalog));
-    initializeCatalog(cat);
+    initializeCatalog(cat, 1);
     BufferPool *pool = (BufferPool*)malloc(sizeof(BufferPool));
     initializeBufferPool(pool);
     initializeStorageManager();
@@ -139,11 +139,11 @@ int main(int argc, char* argv[]) {
     return 0;
 }
 
-void initializeDatabase(const char* dbLocation, int pageSize, int bufferSize) {
-    printf("Initializing database at %s with page size %d and buffer size %d\n", dbLocation, pageSize, bufferSize);
+//void initializeDatabase(const char* dbLocation, int pageSize, int bufferSize) {
+//    printf("Initializing database at %s with page size %d and buffer size %d\n", dbLocation, pageSize, bufferSize);
     // do stuff here...
 
-}
+//}
 
 Catalog *getCatalog() { //returns catalog variable to other files
     return cat;

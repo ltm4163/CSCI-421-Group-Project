@@ -169,26 +169,26 @@ Page findPage(int tableNumber, int pageNumber) {
 }
 
 //get record from table
-Record getRecord(int tableNumber, void* primaryKey) {
-    TableSchema table = catalog->tables[tableNumber*sizeof(TableSchema)]; //assuming table numbers will start at 0 and not 1
-    AttributeSchema pK; //primary key
-    for (int i = 0; i < MAX_NUM_ATTRIBUTES/sizeof(AttributeSchema); i++) { //set pK to primary key attribute of table
-        AttributeSchema *attr = &table.attributes[i*sizeof(AttributeSchema)];
-        if (attr->primaryKey == true)
-        {
-            break;
-        }
-    }
-    for (int i = 0; i < table.numPages; i++) { //find ith page in table
-        Page page;
-        page = findPage(tableNumber, i); //look for page in buffer
-        if (&page == NULL) { //read in page i of table from hardware if not in buffer pool
-            page = *getPage(tableNumber, i);
-        }
-    }
-    
-    return;
-}
+//Record getRecord(int tableNumber, void* primaryKey) {
+//    TableSchema table = catalog->tables[tableNumber*sizeof(TableSchema)]; //assuming table numbers will start at 0 and not 1
+//    AttributeSchema pK; //primary key
+//    for (int i = 0; i < MAX_NUM_ATTRIBUTES/sizeof(AttributeSchema); i++) { //set pK to primary key attribute of table
+//        AttributeSchema *attr = &table.attributes[i*sizeof(AttributeSchema)];
+//        if (attr->primaryKey == true)
+//        {
+//            break;
+//        }
+//    }
+//    for (int i = 0; i < table.numPages; i++) { //find ith page in table
+//        Page page;
+//        page = findPage(tableNumber, i); //look for page in buffer
+//        if (&page == NULL) { //read in page i of table from hardware if not in buffer pool
+//            page = *getPage(tableNumber, i);
+//        }
+//   }
+//    
+//    return;
+//}
 
 // Retrieves catalog initiated in main.c
 void initCatalog() { //retreives catalog initiated in main.c

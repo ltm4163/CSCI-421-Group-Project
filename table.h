@@ -13,4 +13,6 @@ typedef struct TableSchema {
 
 void initializeTable(TableSchema* table, int numAttributes, char *name, AttributeSchema *attributes);
 
+void displayTable(TableSchema* table);
+
 #endif
