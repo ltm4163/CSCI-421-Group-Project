@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include "constraint.h"
 #include "constants.h"
+#include <stdio.h>
 
 typedef struct AttributeSchema {
     char name[MAX_NAME_SIZE];
