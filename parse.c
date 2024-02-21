@@ -122,6 +122,50 @@ void handleCreateCommand(char* inputLine) {
     }
 }
 
+
+void displaySchema() {
+    // Expected output:
+
+    /*
+     DB location: /home/csci421/project/db
+     Page Size: 4096
+     Buffer Size: 10
+
+     No tables to display
+     SUCCESS
+     */
+
+    /*
+     DB location: /home/csci421/project/db
+     Page Size: 4096
+     Buffer Size: 25
+
+     Tables:
+
+     Table name: foo
+     Table schema:
+         num:integer primarykey
+     Pages: 1
+     Records: 3
+
+     Table name: bar
+     Table schema:
+         x:double primarykey
+         y:char(5)
+     Pages: 0
+     Records: 0
+     SUCCESS
+     */
+    
+    // TODO: Store the following as constants and display their values
+    printf("\nDB location: \n");
+    printf("Page Size: \n");
+    printf("Buffer Size: \n");
+    
+    // TODO: Get all schemas/tables
+    printf("\n");
+}
+
 void handleDropCommand(char* inputLine) {
     
 }
@@ -134,11 +178,11 @@ void handleSelectCommand(char* inputLine) {
     
 }
 
+// TODO: Does each line of input need a ';' to be valid??
 int parse(char* inputLine) {
     Catalog* catalog = getCatalog();
     char command[10];
 
-    // Use sscanf to extract the first command word from the input line
     if (sscanf(inputLine, "%9s", command) > 0) {
         // Quit command
         if (strcmp(command, "<quit>") == 0) {
@@ -146,42 +190,44 @@ int parse(char* inputLine) {
             printf("Purging page buffer...\n");
             printf("Saving catalog...\n\n");
             printf("Exiting the database...\n\n");
-            return 1; // Indicates program should exit
+            return 1; // 1 = TRUE = EXIT in main()
         }
         
         // Create table command
         if (strcmp(command, "create") == 0) {
-            // Directly pass the whole input line to a function that can parse "create" commands
-            // This function needs to be implemented to parse the rest of the line for table creation details
             handleCreateCommand(inputLine);
         }
         // Drop table command
         else if (strcmp(command, "drop") == 0) {
-            // Similar to "create", pass the whole input line to a dedicated function for "drop" commands
             handleDropCommand(inputLine);
         }
         // Insert command
         else if (strcmp(command, "insert") == 0) {
-            // Pass the whole input line to handle "insert" commands
             handleInsertCommand(inputLine);
         }
         // Display command
         else if (strcmp(command, "display") == 0) {
-            // Directly use displayCatalog function or pass inputLine for more complex display logic
-            displayCatalog(catalog);
+            char nextWord[100];
+
+            if (sscanf(inputLine, "display %s", nextWord) == 1) {
+                if (strcmp(nextWord, "schema") == 0) {
+                    displaySchema();
+                }
+            } else {
+                displayCatalog(catalog);
+            }
         }
         // Select command
         else if (strcmp(command, "select") == 0) {
-            // Handle select commands, possibly needing to parse conditions and table names from inputLine
             handleSelectCommand(inputLine);
         } else {
             printf("Unknown command\n");
         }
 
-        return 0; // Indicates to continue receiving commands
+        return 0;
     }
 
-    return 0; // Default return if no command is parsed
+    return 0;
 }
 
 
