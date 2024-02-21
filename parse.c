@@ -5,6 +5,7 @@
 #include "main.h"
 #include "attribute.h"
 #include "table.h"
+#include "catalog.h"
 
 // to hold information parsed from stdin
 char command[10];
@@ -112,6 +113,7 @@ TableSchema* ParseTable() {
 
 
 void parse() {
+	Catalog* catalog = getCatalog();
 		
 	// if something is parsed, continue
 	if(scanf("%9s", command) == 1) {
