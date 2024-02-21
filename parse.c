@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include "parse.h"
-#include "main.h"
 #include "attribute.h"
 #include "table.h"
 #include "catalog.h"
+#include "main.h"
 
 // to hold information parsed from stdin
 char command[10];
-char table_name[50];
+char table_name[MAX_NAME_SIZE];
 char attributes[500];
 int num_attributes;
 AttributeSchema attribute_arr[MAX_NUM_ATTRIBUTES];
