@@ -26,7 +26,7 @@ void buf_put(Buffer *buf, Page page);
 int buf_putr(Buffer *buf, Page page);
 
 // gets a page from a buffer
-Page *buf_get(Buffer *buf, Page *page);
+int buf_get(Buffer *buf, Page *page);
 
 // checks if the buffer is empty
 bool buf_empty(Buffer *buf);
