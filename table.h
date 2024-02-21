@@ -11,6 +11,6 @@ typedef struct TableSchema {
     int numAttributes;
 } TableSchema;
 
-void initializeTable(TableSchema* tab, int numAttributes);
+void initializeTable(TableSchema* table, int numAttributes, char *name, AttributeSchema *attributes);
 
 #endif
