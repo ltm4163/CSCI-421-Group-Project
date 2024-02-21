@@ -15,6 +15,6 @@ typedef struct AttributeSchema {
 
 void initializeAttribute(AttributeSchema* attr, char *name, char *type, bool unique, bool nonNull, bool pK, int size);
 
-void display(AttributeSchema* attr);
+void displayAttribute(AttributeSchema* attr);
 
 #endif

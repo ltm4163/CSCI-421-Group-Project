@@ -10,7 +10,7 @@ void initializeAttribute(AttributeSchema* attr, char *name, char *type, bool uni
     attr->size = size;
 }
 
-void display(AttributeSchema *attr) {
+void displayAttribute(AttributeSchema *attr) {
     printf("%s ", attr->name);
 
     if(strcmp(attr->type, "char") == 0 || strcmp(attr->type, "varchar")) {
@@ -20,5 +20,5 @@ void display(AttributeSchema *attr) {
     if(attr->unique) { printf("unique "); }
     if(attr->nonNull) { printf("notNull "); }
     if(attr->primaryKey) { printf("primaryKey"); }
-    
+
 }
