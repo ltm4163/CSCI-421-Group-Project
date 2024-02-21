@@ -26,7 +26,30 @@ void addTable(Catalog* c, TableSchema* table) {
 }  // recordCount and currentPage initialized as 0
 
 void dropTable(Catalog* c, char name[MAX_NAME_SIZE]) {
-    
+    int tableIndex = -1;
+
+    for(int i = 0; i < c->tableCount; i++) {
+        if(strcmp(c->tables[i].name, name) == 0) {
+            tableIndex = i;
+            break;
+        }
+    }
+
+    if(tableIndex != -1) {
+        for(int i = tableIndex; i < c->tableCount - 1; i++) {
+            c->tables[i] = c->tables[i+1];
+        }
+
+        c->tableCount--;
+
+        TableSchema* newTables = realloc(c->tables, c->tableCount * sizeof(TableSchema));
+
+        if(newTables != NULL || c->tableCount == 0) {
+            c->tables = newTables;
+        } else {
+            fprintf(stderr, "Table '%s' not found in catalog\n", name);
+        }
+    }
 }
 
 void addPage(Catalog* c) {
