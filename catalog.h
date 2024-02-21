@@ -3,13 +3,14 @@
 #include "table.h"
 
 typedef struct Catalog {
-    struct TableSchema* tables;
+    TableSchema* tables;
+    int tableCount;
 } Catalog;
 
 
 // Initialization Functions:
 
-void initializeCatalog(Catalog* c);
+void initializeCatalog(Catalog* c, int count);
 
 // Insertion Functions:
 
@@ -18,5 +19,7 @@ void addTable(Catalog* c, char name[MAX_NAME_SIZE]);  // recordCount and current
 void addPage(Catalog* c);  // How do we deal with this one?
 
 void addAttribute(Catalog* c, char name[MAX_NAME_SIZE], char type[20]);  // Add more constraints as needed
+
+void displayCatalog(Catalog* c);
 
 #endif

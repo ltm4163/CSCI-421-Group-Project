@@ -7,8 +7,9 @@
 
 // Initialization Functions:
 
-void initializeCatalog(Catalog* c) {
+void initializeCatalog(Catalog* c, int count) {
     c -> tables = (TableSchema*)malloc(sizeof(TableSchema));
+    c->tableCount = count;
 }
 
 
@@ -25,3 +26,7 @@ void addPage(Catalog* c) {
 void addAttribute(Catalog* c, char name[MAX_NAME_SIZE], char type[20]) {
 
 }  // Add more constraints as needed
+
+void displayCatalog(Catalog* c) {
+
+}
