@@ -11,6 +11,7 @@
 char command[10];
 char table_name[50];
 char attributes[500];
+int num_attributes;
 
 /*	
 * Method: ParseAttribute
@@ -37,6 +38,9 @@ AttributeSchema* ParseAttribute(char* attributes) {
 	// uses strtok_r so for nested parsing 
 	char* attr_tok = strtok_r(attributes, ",", &ptr1);
 	while(attr_tok != NULL) {
+		bool unique = false;
+		bool primaryKey = false;
+		bool nonNull = false;
 		// current attribute being parsed
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
 
@@ -65,15 +69,16 @@ AttributeSchema* ParseAttribute(char* attributes) {
 		// loops through constraints, flips constraint flag if constraint found
 		while(const_tok != NULL) {
 			if(strcmp(const_tok, "notnull") == 0) {
-				cur_attribute->nonNull = true;
+				nonNull = true;
 			} else if (strcmp(const_tok, "primaryKey") == 0) {
-				cur_attribute->primaryKey = true;
+				primaryKey = true;
 			} else if(strcmp(const_tok, "unique") == 0) {
-				cur_attribute->unique = true;
-			} else { printf("Constraint %s does not exist", const_tok) }
+				unique = true;
+			} else { printf("Constraint %s does not exist", const_tok); }
 			const_tok = strtok_r(NULL, " ", &ptr2);
 		}
 
+		initializeAttribute(cur_attribute, name, type, unique, nonNull, primaryKey, size);
 		// adds attribute to array
 		attribute_arr[attribute_count] = cur_attribute;
 		// increments count
@@ -81,6 +86,7 @@ AttributeSchema* ParseAttribute(char* attributes) {
 		// gets next attribute
 		attr_tok = strtok_r(NULL, ",", &ptr1);
 	}
+	num_attributes = attribute_count;
 
 	return attribute_arr;
 }
@@ -94,19 +100,15 @@ AttributeSchema* ParseAttribute(char* attributes) {
 TableSchema* ParseTable() {
 	// allocates size of a table
 	TableSchema* table = Malloc(sizeof(table));
-	initializeTable(table);
 
 	// parses name of table and attributes
 	scanf(" table %49[^(](%99[^)])", table_name, attributes); 
 
-	// set the name of the table
-	strcpy(table->name, table_name);
-
 	// parses attributes
 	AttributeSchema * attributes_parsed = malloc(sizeof(AttributeSchema) * MAX_NUM_ATTRIBUTES);
 	attributes_parsed = ParseAttribute(attributes);
-	table->attributes = attributes_parsed;
 
+	initializeTable(table, num_attributes, table_name, attributes);
 
 	return table;
 }
