@@ -160,7 +160,10 @@ Page* getPage(int tableNumber, int pageNumber) {
 Page *findPage(int tableNumber, int pageNumber) {
     Page *page = (Page*)malloc(sizeof(Page));
     for (int j = 0; j < buf_size(bPool); j++) {
-        page = buf_get(bPool, page);
+        if (buf_get(bPool, page) == -1) {
+            printf("No pages in buffer\n");
+            return NULL;
+        }
         if (page->tableNumber == tableNumber && page->pageNumber == pageNumber) {
             return page;
         }
