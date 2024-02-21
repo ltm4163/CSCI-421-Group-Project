@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "bufferpool.h"
+#include "buffer.h"
 #include "storagemanager.h"
 #include "attribute.h"
 #include "constraint.h"
 #include "main.h"
 
 Catalog *catalog;
-BufferPool *bPool;
+Buffer *bPool;
 
 Page *getRecords(int tableNumber) {
     Page *pages = (Page*)malloc(sizeof(Page)*1000); //1000 is placeholder value
@@ -157,11 +157,11 @@ Page* getPage(int tableNumber, int pageNumber) {
 }
 
 //look for page in buffer pool
-Page findPage(int tableNumber, int pageNumber) {
-    Page page;
-    for (int j = 0; j < bPool -> pageCount; j++) {
-        page = bPool -> pages[j*sizeof(Page)];
-        if (page.tableNumber == tableNumber && page.pageNumber == pageNumber) {
+Page *findPage(int tableNumber, int pageNumber) {
+    Page *page = (Page*)malloc(sizeof(Page));
+    for (int j = 0; j < buf_size(bPool); j++) {
+        page = buf_get(bPool, page);
+        if (page->tableNumber == tableNumber && page->pageNumber == pageNumber) {
             return page;
         }
     }
@@ -197,7 +197,7 @@ void initCatalog() { //retreives catalog initiated in main.c
 
 // Retrieves buffer pool initiated in main.c
 void initBuffer() {
-    bPool = getBufferPool();
+    bPool = getBuffer();
 }
 
 //retrieve buffer and catalog (call early in main)

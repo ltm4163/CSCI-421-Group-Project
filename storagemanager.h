@@ -17,7 +17,7 @@ void createRecords(Page *page, int tableNumber); // Convert page data into recor
 
 Page* getPage(int tableNumber, int pageNumber); //read desired page from hardware
 
-Page findPage(int tableNumber, int pageNumber); //look for page in buffer pool
+Page *findPage(int tableNumber, int pageNumber); //look for page in buffer pool
 
 Record getRecord(int tableNumber, void* primaryKey); //get record from table
 
