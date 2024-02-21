@@ -11,6 +11,11 @@
 Catalog *catalog;
 BufferPool *bPool;
 
+Page *getRecords(int tableNumber) {
+    Page *pages = (Page*)malloc(sizeof(Page)*1000); //1000 is placeholder value
+
+}
+
 //addRecord inserts a record to a certain table of a catalog
 // void addRecord(Catalog* c, Record record, int tableNumber){
 //     Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
@@ -61,28 +66,28 @@ BufferPool *bPool;
     
 
 
-void splitpage(BufferPool*bp, Page *currentpg, Page *newpage){
-    int sizerecords=sizeof(currentpg->records)/(sizeof(currentpg->records[0]));
-    Record *firsthalf=(Record*)malloc(sizerecords/2 * sizeof(Record));
-    Record *secondhalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
-    firsthalf=currentpg->records;
-    secondhalf=currentpg->records + sizerecords/2;
-    *currentpg->records=firsthalf;
-    *newpage->records=secondhalf;
-    int pos=0;
-    for(int b=0; b < sizeof(bp->pages)/sizeof(bp->pages[0]); b++){
-        if(currentpg == &bp->pages[b]){
-            pos=b;
-        }
-    }
-    int numberpgs=sizeof(bp->pages)/sizeof(bp->pages[0]);
-    for(int n=numberpgs-1; n >= pos; n--){
-        bp->pages[n]=bp->pages[n-1];
-    }
-    bp->pages[pos-1]=&newpage;
+// void splitpage(BufferPool*bp, Page *currentpg, Page *newpage){
+//     int sizerecords=sizeof(currentpg->records)/(sizeof(currentpg->records[0]));
+//     Record *firsthalf=(Record*)malloc(sizerecords/2 * sizeof(Record));
+//     Record *secondhalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
+//     firsthalf=currentpg->records;
+//     secondhalf=currentpg->records + sizerecords/2;
+//     *currentpg->records=firsthalf;
+//     *newpage->records=secondhalf;
+//     int pos=0;
+//     for(int b=0; b < sizeof(bp->pages)/sizeof(bp->pages[0]); b++){
+//         if(currentpg == &bp->pages[b]){
+//             pos=b;
+//         }
+//     }
+//     int numberpgs=sizeof(bp->pages)/sizeof(bp->pages[0]);
+//     for(int n=numberpgs-1; n >= pos; n--){
+//         bp->pages[n]=bp->pages[n-1];
+//     }
+//     bp->pages[pos-1]=*newpage;
     
 
-}
+// }
 
 // Convert page data into records using table schema
 void createRecords(Page *page, int tableNumber) {
@@ -104,13 +109,6 @@ void createRecords(Page *page, int tableNumber) {
             void *attrValue = (void*)malloc(sizeToRead); //value of attribute to be written to record struct
             memcpy(attrValue, page->data+recordOffset, sizeToRead);
             memcpy(rec->data+recordOffset, attrValue, sizeToRead); //write data to record.data
-            // if (strcmp(attrType, "int") == 0)
-            // {
-            //     printf("rec_int: %d\n", (int)attrValue);
-            // }
-            // else {
-            //     printf("rec_text: %s\n", (char*)attrValue);
-            // }
             
             recordOffset += sizeToRead;
         }
@@ -125,14 +123,13 @@ void createRecords(Page *page, int tableNumber) {
 Page* getPage(int tableNumber, int pageNumber) { 
     char file_dest[15];
     sprintf(file_dest, "tables/%d.bin", tableNumber); //set file_dest variable to name of table file
-    //printf("dest: %s\n", file_dest);
     FILE *file = fopen(file_dest, "rb+");
     if (file == NULL) {
         printf("Error opening the file.\n");
         return NULL; // NULL indicates failure!!!
     }
 
-    int address = pageNumber * MAX_PAGE_SIZE; //location of page in file
+    int address = (pageNumber * MAX_PAGE_SIZE)+4; //location of page in file (skip numPages)
     void *page_buffer = (void *)malloc(MAX_PAGE_SIZE);
     if (page_buffer == NULL) {
         printf("Memory allocation failed for page buffer.\n");
@@ -154,20 +151,8 @@ Page* getPage(int tableNumber, int pageNumber) {
     p->data = page_buffer; //set data to data read from file
     int numRecords;
     memcpy(&numRecords, page_buffer, sizeof(int));
-    int int1;
-    memcpy(&int1, page_buffer+sizeof(int), sizeof(int));
-    char *example = (char*)malloc(11);
-    memcpy(example, page_buffer+(2*sizeof(int)), 11);
-    // example[10] = '\0';
-    // bool *flag = (bool)malloc(sizeof(bool));
-    // memcpy(&flag, page_buffer+sizeof(int)+numRecords, sizeof(bool));
-    // printf(flag);
-    printf("numRecords: %d\n", numRecords);
-    printf("int1: %d\n", int1);
-    printf("Test: %s\n", (char*)example);
     p->numRecords = numRecords;
     createRecords(p, tableNumber);
-    printf("created records");
     return p;
 }
 
@@ -215,7 +200,7 @@ void initBuffer() {
     bPool = getBufferPool();
 }
 
-//retrieve buffer and catalog
+//retrieve buffer and catalog (call early in main)
 void initializeStorageManager() {
     initCatalog();
     initBuffer();

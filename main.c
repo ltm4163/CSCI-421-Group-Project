@@ -44,6 +44,9 @@ int main(int argc, char* argv[]) {
     // fwrite(toWrite, MAX_PAGE_SIZE, 1, fp);
     // //free(text);
 
+    int numPages = 2;
+    fwrite(&numPages, sizeof(int), 1, fp);
+
     void *toWrite1 = malloc(MAX_PAGE_SIZE);
     char *text1 = malloc(11);
     strcpy(text1, "more text!");
@@ -76,14 +79,15 @@ int main(int argc, char* argv[]) {
     initializeBufferPool(pool);
     initializeStorageManager();
 
-    TableSchema *table = (TableSchema*)malloc(sizeof(TableSchema));
-    initializeTable(table, 2);
     AttributeSchema *attr1 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
     initializeAttribute(attr1, "num", "int", false, false, true, sizeof(int));
     AttributeSchema *attr2 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
     initializeAttribute(attr2, "words", "char", false, false, false, 11);
-    table->attributes[0] = *attr1;
-    table->attributes[1] = *attr2;
+    AttributeSchema *attributes = (AttributeSchema*)malloc(sizeof(AttributeSchema)*2);
+    attributes[0] = *attr1;
+    attributes[1] = *attr2;
+    TableSchema *table = (TableSchema*)malloc(sizeof(TableSchema));
+    initializeTable(table, 2, "name", attributes);
     table->tableNumber = 0;
     cat->tables[0] = *table;
     Page *pg = getPage(0, 0);
