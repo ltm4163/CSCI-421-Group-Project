@@ -29,6 +29,6 @@ void addAttribute(Catalog* c, char name[MAX_NAME_SIZE], char type[20]) {
 
 void displayCatalog(Catalog* c) {
     for(int i = 0; i < c->tableCount; i++) {
-        displayTable(c->tables[i]);
+        displayTable(&(c->tables[i]));
     }
 }

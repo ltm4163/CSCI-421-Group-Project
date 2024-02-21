@@ -16,5 +16,5 @@ void displayTable(TableSchema* table) {
 
     }
     printf("num pages: %s", table->numPages);
-    printf("num records: %s", table->numAttributes)
+    printf("num records: %s", table->numAttributes);
 }
