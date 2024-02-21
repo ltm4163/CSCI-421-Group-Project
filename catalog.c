@@ -28,5 +28,7 @@ void addAttribute(Catalog* c, char name[MAX_NAME_SIZE], char type[20]) {
 }  // Add more constraints as needed
 
 void displayCatalog(Catalog* c) {
-
+    for(int i = 0; i < c->tableCount; i++) {
+        displayTable(c->tables[i]);
+    }
 }
