@@ -21,6 +21,7 @@ void addTable(Catalog* c, TableSchema* table) {
         newTables[c->tableCount] = *table;
         c->tables = newTables;
         c->tableCount++;
+        printf("added table: %s\n", table->name);
     } else { fprintf(stderr, "Memory allocation failed\n"); }
 
 }  // recordCount and currentPage initialized as 0

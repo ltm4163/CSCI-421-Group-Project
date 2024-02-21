@@ -115,13 +115,13 @@ void parse() {
 		// case: create table
 		if(strcmp(command, "create") == 0) {
 			TableSchema* table = ParseTable();
-			displayTable(table);
-			// TODO send this somewhere
+			addTable(catalog, table);
+
 		// case: drop table
 		} else if(strcmp(command, "drop") == 0) {
 			scanf(" table %49s", table_name);
 			// call table drop method here
-			printf("drop table: %s\n", table_name);
+			dropTable(catalog, table_name);
 
 		// case: alter table
 		// TODO implement this
@@ -150,7 +150,7 @@ void parse() {
 			}
 
 		} else if(strcmp(command, "display") == 0) {
-			// TODO implement display DDL
+			displayCatalog(catalog);
 
 		} else if(strcmp(command, "select") == 0) {
 			// TODO implement select DDL
