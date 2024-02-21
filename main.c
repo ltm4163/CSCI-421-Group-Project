@@ -9,11 +9,14 @@
 #include "parse.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include "main.h"
 
 Catalog *cat;
 Buffer *buffer;
+char* dbDirectory = NULL;
 
 // Function to check if a directory exists
 int directoryExists(const char* path) {
@@ -24,11 +27,43 @@ int directoryExists(const char* path) {
     return 0;
 }
 
+// Checks/creates db location and a path for tables
+void ensureDbDirectory(const char* dbLocation) {
+    struct stat st = {0};
+
+    if (stat(dbLocation, &st) == -1) {
+        mkdir(dbLocation, 0755);
+    }
+    
+    char tablesDirPath[256];
+    snprintf(tablesDirPath, sizeof(tablesDirPath), "%s/tables", dbLocation);
+    
+    if (stat(tablesDirPath, &st) == -1) {
+        mkdir(tablesDirPath, 0755);
+    }
+}
+
+int createDirectory(const char* path, mode_t mode) {
+    struct stat st = {0};
+
+    if (stat(path, &st) == -1) {
+        if (mkdir(path, mode) == -1) {
+            perror("Failed to create directory");
+            return -1;
+        }
+    }
+
+    return 0;
+}
+
+
 int main(int argc, char* argv[]) {
     if (argc != 4) {
         printf("Usage: %s <db location> <page size> <buffer size>\n", argv[0]);
         return 1;
     }
+    
+    char tablesDir[128]; // holds path to tables directory
 
     const char* dbLocation = argv[1];
     int pageSize = atoi(argv[2]);
@@ -37,14 +72,20 @@ int main(int argc, char* argv[]) {
     printf("Welcome to JottQL\n");
     printf("Looking at %s for existing db....\n", dbLocation);
 
+    dbDirectory = strdup(dbLocation); // Allocate and copy dbLocation to global variable
+    if (dbDirectory == NULL) {
+        perror("Failed to allocate memory for dbDirectory");
+        return 1;
+    }
+    
     if (!directoryExists(dbLocation)) {
         printf("No existing db found\n");
         printf("Creating new db at %s\n", dbLocation);
-        // TODO: create new database
+        ensureDbDirectory(dbLocation);
         printf("New db created successfully\n");
     } else {
         printf("Existing db found at %s\n", dbLocation);
-        // TODO: load the existing database
+        // Existing db path is what the user passed in
     }
     
     cat = malloc(sizeof(Catalog));
@@ -79,3 +120,6 @@ Buffer* getBuffer() { //returns buffer pool variable to other files
     return buffer;
 }
 
+char* getDbDirectory() {
+    return dbDirectory;
+}

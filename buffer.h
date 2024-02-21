@@ -40,4 +40,7 @@ size_t buf_capacity(Buffer *buf);
 // returns the size of the buffer
 size_t buf_size(Buffer *buf);
 
+// writes buffer to hardware when the CLI is terminated
+void writeBufferToHardware(Buffer* bPool);
+
 #endif 

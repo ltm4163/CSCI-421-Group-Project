@@ -1,8 +1,11 @@
 #include "buffer.h"
 #include "page.h"
+#include "main.h"
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <sys/stat.h>
 
 // init the buffer
 Buffer *buf_init(Page* data, size_t size) {
@@ -104,6 +107,36 @@ int buf_get(Buffer* buf, Page* data) {
 }
 
 
+void writeBufferToHardware(Buffer* bPool) {
+    printf("Starting to write to hardware...\n");
 
+    for (size_t i = 0; i < buf_size(bPool); ++i) {
+        printf("\n---\n");
+        Page* page = &bPool->buffer[i];
+        if (!page->updated) continue; // Only write pages marked as updated
 
+        char filename[256];
+        snprintf(filename, sizeof(filename), "%s/tables/%d.bin", getDbDirectory(), page->tableNumber);
 
+        FILE* file = fopen(filename, "rb+");
+        if (!file) file = fopen(filename, "wb+"); // Create if doesn't exist
+        if (!file) {
+            perror("Failed to open file");
+            continue;
+        }
+
+        long offset = (long)page->pageNumber * MAX_PAGE_SIZE;
+        fseek(file, offset, SEEK_SET);
+
+        if (fwrite(page->data, MAX_PAGE_SIZE, 1, file) != 1) {
+            perror("Failed to write data");
+        } else {
+            printf("Page %zu for table %d written to disk.\n", i, page->tableNumber);
+        }
+
+        fclose(file);
+        page->updated = false; // Reset the flag after writing
+    }
+
+    printf("Finished writing to hardware.\n");
+}

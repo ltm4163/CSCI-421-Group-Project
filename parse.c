@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "buffer.h"
 #include "parse.h"
 #include "attribute.h"
 #include "table.h"
@@ -272,7 +273,9 @@ int parse(char* inputLine) {
         if (strcmp(command, "<quit>") == 0) {
             printf("\nSafely shutting down the database...\n");
             printf("Purging page buffer...\n");
-            printf("Saving catalog...\n\n");
+            
+            writeBufferToHardware(getBuffer());
+            
             printf("Exiting the database...\n\n");
             return 1; // 1 = TRUE = EXIT CLI loop in main()
         }
