@@ -82,17 +82,30 @@ void buf_put(Buffer* buf, Page data) {
 }
 
 // put a new element in the buffer
-// if the buffer is full, doesn't put
+// if the buffer is full, write the LRU page to hardware
+// Attempt to put a new page in the buffer, writing the LRU page to hardware if necessary.
 int buf_putr(Buffer* buf, Page data) {
-	if(!buf_full(buf)) {
-		buf->buffer[buf->head] = data;
-		adv_pointer(buf);
-		return 0;
-	}
+    if (buf_full(buf)) {
+        // Buffer is full; find the LRU page and write to hardware if updated
+        Page* lruPage = &buf->buffer[buf->tail];
+        if (lruPage->updated) {
+            writePageToHardware(lruPage);
+            lruPage->updated = false;
+        }
 
-	return -1;
+        // Advance the tail to "remove" the LRU page from the buffer.
+        // TODO: Test this!
+        re_pointer(buf);
+    }
 
+    // Insert the new page at the current head position.
+    buf->buffer[buf->head] = data;
+    data.updated = true;
+    adv_pointer(buf);
+
+    return 0;
 }
+
 
 // gets an element from the buffer
 int buf_get(Buffer* buf, Page* data) {
@@ -106,37 +119,88 @@ int buf_get(Buffer* buf, Page* data) {
 
 }
 
+// Called when the buffer is full
+// Should write the least recently used page to hardware
+void writePageToHardware(Page* page) {
+    if (!page || !page->updated) return;
 
+    char filename[256];
+    snprintf(filename, sizeof(filename), "%s/tables/%d.bin", getDbDirectory(), page->tableNumber);
+
+    FILE* file = fopen(filename, "ab+"); // Append mode, binary
+    if (!file) {
+        perror("Failed to open file for writing");
+        return;
+    }
+
+    long offset = (long)page->pageNumber * MAX_PAGE_SIZE;
+    fseek(file, offset, SEEK_SET);
+
+    if (fwrite(page->data, MAX_PAGE_SIZE, 1, file) != 1) {
+        perror("Failed to write page to hardware");
+    } else {
+        printf("Page for table %d at pageNumber %d written to disk.\n", page->tableNumber, page->pageNumber);
+    }
+
+    fclose(file);
+    page->updated = false; // Reset the flag
+}
+
+
+// Called when the system is shutting down
+// Writes everything in the buffer to hardware
 void writeBufferToHardware(Buffer* bPool) {
-    printf("Starting to write to hardware...\n");
+    printf("Starting to write to hardware...\nBuffer size: %zu\n", buf_size(bPool));
 
     for (size_t i = 0; i < buf_size(bPool); ++i) {
-        printf("\n---\n");
         Page* page = &bPool->buffer[i];
-        if (!page->updated) continue; // Only write pages marked as updated
+        printf("Page %zu: updated=%d\n", i, page->updated);
+        
+        if (!page->updated) continue;
 
         char filename[256];
         snprintf(filename, sizeof(filename), "%s/tables/%d.bin", getDbDirectory(), page->tableNumber);
+        printf("Filename: %s\n", filename);
 
-        FILE* file = fopen(filename, "rb+");
-        if (!file) file = fopen(filename, "wb+"); // Create if doesn't exist
+        FILE* file = fopen(filename, "ab+");
         if (!file) {
             perror("Failed to open file");
             continue;
         }
 
         long offset = (long)page->pageNumber * MAX_PAGE_SIZE;
-        fseek(file, offset, SEEK_SET);
+        if (fseek(file, offset, SEEK_SET) != 0) {
+            perror("Seek failed");
+            fclose(file);
+            continue;
+        }
 
-        if (fwrite(page->data, MAX_PAGE_SIZE, 1, file) != 1) {
+        printf("Writing at offset: %ld, MAX_PAGE_SIZE: %d\n", offset, MAX_PAGE_SIZE);
+        size_t written = fwrite(page->data, MAX_PAGE_SIZE, 1, file);
+        if (written != 1) {
             perror("Failed to write data");
         } else {
-            printf("Page %zu for table %d written to disk.\n", i, page->tableNumber);
+            printf("Page %zu for table %d written to disk. Bytes written: %zu\n", i, page->tableNumber, written * MAX_PAGE_SIZE);
         }
 
         fclose(file);
-        page->updated = false; // Reset the flag after writing
+        page->updated = false;
     }
 
     printf("Finished writing to hardware.\n");
+}
+
+// Used for the drop function
+void clearTablePagesFromBuffer(Buffer* bPool, int tableNumber) {
+    for (size_t i = 0; i < buf_size(bPool); ++i) {
+        Page* page = &bPool->buffer[i];
+        if (page->tableNumber == tableNumber) {
+            if (page->updated) {
+                writePageToHardware(page);
+            }
+            
+            // TODO: Check that this clears the page data successfully
+            memset(page, 0, sizeof(Page));
+        }
+    }
 }

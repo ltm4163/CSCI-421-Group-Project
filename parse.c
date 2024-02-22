@@ -204,10 +204,26 @@ void handleAlterCommand(char* inputLine) {
 }
 
 void handleDropCommand(char* inputLine) {
-    // TODO: Not implemented
-    // This is also not here in Professor's sample run: https://mycourses.rit.edu/d2l/le/content/1072579/viewContent/9634019/View
-    // Is it a requirement for this phase??
+    char tableName[MAX_NAME_SIZE];
+    if (sscanf(inputLine, "drop table %s", tableName) == 1) {
+        dropTable(getCatalog(), tableName);
+        
+        // Delete associated file(s)
+        char filename[256];
+        snprintf(filename, sizeof(filename), "tables/%s.bin", tableName);
+        if (remove(filename) == 0) {
+            printf("Table '%s' and its data have been successfully deleted.\n", tableName);
+        } else {
+            perror("Error deleting table file");
+        }
+        
+        // Remove from buffer
+        clearTablePagesFromBuffer(getBuffer(), tableName);
+    } else {
+        printf("Invalid command or table name.\n");
+    }
 }
+
 
 // TODO: Finish this
 void handleInsertCommand(char* inputLine) {

@@ -9,7 +9,7 @@
 #include "page.h"
 #include "record.h"
 
-Page *getRecords(int tableNumber);
+void getRecords(int tableNumber);
 
 void addRecord(Catalog* c, Record record, int tableNumber); //addRecord inserts a record to a certain table of a catalog
 

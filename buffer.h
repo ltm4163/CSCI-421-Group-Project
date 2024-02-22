@@ -43,4 +43,8 @@ size_t buf_size(Buffer *buf);
 // writes buffer to hardware when the CLI is terminated
 void writeBufferToHardware(Buffer* bPool);
 
+void writePageToHardware(Page* page);
+
+void clearTablePagesFromBuffer(Buffer* bPool, int tableNumber);
+
 #endif 
