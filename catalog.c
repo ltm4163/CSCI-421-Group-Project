@@ -7,9 +7,9 @@
 
 // Initialization Functions:
 
-void initializeCatalog(Catalog* c, int count) {
+void initializeCatalog(Catalog* c) {
     c -> tables = (TableSchema*)malloc(sizeof(TableSchema));
-    c->tableCount = count;
+    c->tableCount = 0;
 }
 
 

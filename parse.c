@@ -9,6 +9,7 @@
 #include "catalog.h"
 #include "main.h"
 #include "errno.h"
+#include "storagemanager.h"
 
 // to hold information parsed from stdin
 char command[10];
@@ -225,8 +226,12 @@ void handleInsertCommand(char* inputLine) {
     }
 }
 
+/// @brief Parses the select command and calls a method to print the requested contents (NOTE: only works with 'select * from [tableName];)
+/// @param inputLine The input from the user (assumed to include the 'select' keyword)
 void handleSelectCommand(char* inputLine) {
     // TODO: implement select DDL
+
+    Catalog* c = getCatalog();
 
     char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // the +1 allocates space for the null terminator
     strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
@@ -241,17 +246,31 @@ void handleSelectCommand(char* inputLine) {
 
     if (strcmp(token, "*")) {  // Checks if the current token is equal to "*"
         printf("Expected '*'");
-        return 0;
+        return;
     }
 
     token = strtok(NULL, " ");  // continues to the next token
 
     if (strcmp(token, "from")) {
         printf("Expected 'from'");
-        return 0;
+        return;
     }
 
     token = strtok(NULL, " ");
+
+    if (token != NULL) {  // Make sure there is a table name
+        for (int i = 0; i < c -> tableCount; i++) {  // Check each table in the schema to see if a name matches
+            TableSchema* t = &c -> tables[i];
+            if (strcmp(token, t -> name)) {
+                token = strtok(NULL, " ");
+                if (strcmp(token, ";")) {  // Check for a semicolon BEFORE printing the contents
+                    printf("Expected ';'");
+                    return;
+                }
+                getRecords(t -> tableNumber);  // select's functionality
+            }
+        }
+    }
 
     // Check if there is another token for the table (i.e. if the token's not null)
     // Check if that table exists in the catalog

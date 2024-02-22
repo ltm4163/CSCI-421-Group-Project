@@ -10,7 +10,7 @@ typedef struct Catalog {
 
 // Initialization Functions:
 
-void initializeCatalog(Catalog* c, int count);
+void initializeCatalog(Catalog* c);
 
 // Insertion Functions:
 
