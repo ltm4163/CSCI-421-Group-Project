@@ -17,6 +17,8 @@
 Catalog *cat;
 Buffer *buffer;
 char* dbDirectory = NULL;
+int pageSize;
+int bufferSize;
 
 // Function to check if a directory exists
 int directoryExists(const char* path) {
@@ -66,8 +68,8 @@ int main(int argc, char* argv[]) {
     char tablesDir[128]; // holds path to tables directory
 
     const char* dbLocation = argv[1];
-    int pageSize = atoi(argv[2]);
-    int bufferSize = atoi(argv[3]);
+    pageSize = atoi(argv[2]);
+    bufferSize = atoi(argv[3]);
 
     printf("Welcome to JottQL\n");
     printf("Looking at %s for existing db....\n", dbLocation);
@@ -122,4 +124,12 @@ Buffer* getBuffer() { //returns buffer pool variable to other files
 
 char* getDbDirectory() {
     return dbDirectory;
+}
+
+int getPageSize() {
+    return pageSize;
+}
+
+int getBufferSize() {
+    return bufferSize;
 }

@@ -11,4 +11,6 @@ void initializeDatabase(const char* dbLocation, int pageSize, int bufferSize);
 Catalog *getCatalog(); //returns catalog variable to other files
 Buffer *getBuffer(); //returns buffer pool variable to other files
 char* getDbDirectory();
+int getBufferSize();
+int getPageSize();
 #endif

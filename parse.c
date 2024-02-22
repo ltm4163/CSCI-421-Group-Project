@@ -57,7 +57,6 @@ void ParseAttribute(char* attributes) {
 		} else if(strcmp(type, "boolean") == 0) {
 			size = 1;
 		} else {
-			int size;
 			scanf(type, "%10s[^(](%d)", type, size);
 			// TODO unfinished
 		}
@@ -110,8 +109,6 @@ TableSchema* ParseTable(char* tableName, char* attributes) {
     return table;
 }
 
-// TODO: Return 'No primary key defined' if there is no primary key
-// Right now it returns nothing...
 void handleCreateCommand(char* inputLine) {
     Catalog* catalog = getCatalog();
     // Find the position of the first '(' which marks the start of attributes
@@ -182,16 +179,10 @@ void displaySchema(Catalog* catalog) {
      */
     
     // TODO: Store the following as constants and display their values
-    printf("\nDB location: \n");
-    printf("Page Size: \n");
-    printf("Buffer Size: \n");
-    
-    // if (catalog has tables) {
-    //   TODO: Iterate through catalog->tables and display each
-    // } else {
-        printf("\nNo tables to display\n");
-        printf("SUCCESS\n\n");
-    // }
+    printf("\nDB location: %s \n", getDbDirectory());
+    printf("Page Size: %d\n", getPageSize());
+    printf("Buffer Size: %d \n\n", getBufferSize());
+    displayCatalog(catalog);
 }
 
 // Find the correct table in the catalog and print it's info
