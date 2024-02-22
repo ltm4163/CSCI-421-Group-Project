@@ -176,30 +176,31 @@ void getRecords(int tableNumber) {
 // Convert page data into records using table schema
 void createRecords(Page *page, int tableNumber) {
     TableSchema table = catalog->tables[tableNumber];
-    int pageOffset = sizeof(int); //uses for knowing where next record starts in page
+    int pageOffset = sizeof(int); //uses for knowing where to read from page
     for (int i = 0; i < page->numRecords; i++) { //iterates through all records in page
         Record *rec = (Record*)malloc(sizeof(Record));
         rec->data = (void*)malloc(MAX_PAGE_SIZE);
-        int recordOffset = pageOffset; //used for knowing where next attribute starts in record
+        int recordOffset = 0; //used for knowing where to write to record
         for (int j = 0; j < table.numAttributes; j++) { //iterates through all attributes in table
             AttributeSchema *attr = &table.attributes[j];
             char *attrType = attr->type;
             int sizeToRead = attr->size; //used to tell fread how much data to read from page.data
             if (strcmp(attrType, "varchar") == 0) { //if type is varchar, read int that tells length of varchar
-                memcpy(&sizeToRead, page->data+recordOffset, sizeof(int));
-                memcpy(rec->data+recordOffset-4, &sizeToRead, sizeof(int));
+                memcpy(&sizeToRead, page->data+pageOffset, sizeof(int));
+                memcpy(rec->data+recordOffset, &sizeToRead, sizeof(int));
                 recordOffset += sizeof(int);
+                pageOffset += sizeof(int);
             }
             void *attrValue = (void*)malloc(sizeToRead); //value of attribute to be written to record struct
-            memcpy(attrValue, page->data+recordOffset, sizeToRead);
-            memcpy(rec->data+recordOffset-4, attrValue, sizeToRead); //write data to record.data
+            memcpy(attrValue, page->data+pageOffset, sizeToRead);
+            memcpy(rec->data+recordOffset, attrValue, sizeToRead); //write data to record.data
             
             
             recordOffset += sizeToRead;
+            pageOffset += sizeToRead;
         }
-        rec->data = (void*)realloc(rec->data, recordOffset-pageOffset); //cut size of record.data down to size of data stored
-        rec->size = recordOffset-pageOffset;
-        pageOffset += recordOffset;
+        rec->data = (void*)realloc(rec->data, recordOffset); //cut size of record.data down to size of data stored
+        rec->size = recordOffset;
         page->records[i] = rec;
     }
 }

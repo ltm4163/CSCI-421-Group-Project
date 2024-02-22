@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
     printf("\nPlease enter commands, enter <quit> to shutdown the db\n\n");
 
     //Testing begin
-    testGetRecords(buffer, cat);
+    //testGetRecords(buffer, cat);
     //Testing end
 
     // 0 = false, 1 = true
