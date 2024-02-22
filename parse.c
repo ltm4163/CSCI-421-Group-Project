@@ -49,7 +49,7 @@ void ParseAttribute(char* attributes) {
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
 
 		// parses name, type, and constraints 
-		sscanf(attr_tok, " %50s %19s %19[^,)]", name, type, constraints);
+		sscanf(attr_tok, " %50s %19s %19[^,);]", name, type, constraints);
 
 		// for type size
 		if(strcmp(type, "integer") == 0) {
@@ -247,20 +247,10 @@ void handleInsertCommand(char* inputLine) {
 void handleSelectCommand(char* inputLine) {
     Catalog* c = getCatalog();
 
-    char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
-
-    if (semiColonCheck == NULL) {  // If there are no semicolons...
-        printf("Expected ';'");
-        return;
-    }
-    else if (strcmp(semiColonCheck, ";")) {  // If the semicolon's position is not at the end of the command...
-        printf("';' expected at the end of the statement");
-        return;
-    }
-
     char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // The +1 allocates space for the null terminator
     strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
     char* token = strtok(inputLineArray, " ");  // Tokenizes the input string
+    char* tableName[MAX_NAME_SIZE];
 
     token = strtok(NULL, " ");  // Continues to the next token; we already checked for select
 
@@ -293,8 +283,8 @@ void handleSelectCommand(char* inputLine) {
         printf("Expected table name");
         return;
     }
-
-    printf("Table not found");  // If this code is reached, a table with a matching name was not found
+    // TODO get this to display tablename
+    printf("no such table");  // If this code is reached, a table with a matching name was not found
     return;
 }
 
@@ -303,6 +293,12 @@ int parse(char* inputLine) {
     Catalog* catalog = getCatalog();
     char command[10];
     char nextWord[100];
+    char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
+
+    if (semiColonCheck == NULL) {  // If there are no semicolons...
+        printf("Expected ';'\n");
+        return 0;
+    }
 
     if (sscanf(inputLine, "%9s", command) > 0) {
         // Quit
@@ -335,16 +331,18 @@ int parse(char* inputLine) {
         }
         // Display
         else if (strcmp(command, "display") == 0) {
-            if (sscanf(inputLine, "display %s", nextWord) == 1) {
+            if (sscanf(inputLine, "display %100[^ ;]", nextWord) == 1) {
                 if (strcmp(nextWord, "schema") == 0) {
                     displaySchema(catalog);
+                    printf("SUCCESS\n\n");
                     return 0;
                 }
                 else if (strcmp(nextWord, "info") == 0) {
                     char tableName[MAX_NAME_SIZE];
-                    if (sscanf(inputLine, "display info %s", tableName) == 1) {
+                    if (sscanf(inputLine, "display info %99[^;];", tableName) == 1) {
                         if(!findTableDisplay(catalog, tableName)) {
-                            printf("table %s not found\n", tableName);
+                            printf("no such table %s\n", tableName);
+                            printf("ERROR\n\n");
                         }
                         return 0;
                     }
