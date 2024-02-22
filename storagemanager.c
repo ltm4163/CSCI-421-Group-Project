@@ -171,6 +171,67 @@ Page *findPage(int tableNumber, int pageNumber) {
     return page;
 }
 
+void dropTableStorageManager(Catalog* c, const char* name) {
+    int tableIndex = -1;
+
+    // Find the table index
+    for (int i = 0; i < c->tableCount; i++) {
+        if (strcmp(c->tables[i].name, name) == 0) {
+            tableIndex = i;
+            break;
+        }
+    }
+
+    if (tableIndex != -1) {
+        // Optionally, clear related pages from the buffer before dropping the table
+        clearTablePagesFromBuffer(bPool, c->tables[tableIndex].tableNumber);
+
+        // Shift the remaining tables in the catalog to fill the gap
+        for (int i = tableIndex; i < c->tableCount - 1; i++) {
+            c->tables[i] = c->tables[i + 1];
+        }
+        c->tableCount--;
+
+        // Reallocate the catalog tables to the new size
+        if (c->tableCount > 0) {
+            TableSchema* newTables = realloc(c->tables, sizeof(TableSchema) * c->tableCount);
+            if (newTables != NULL) {
+                c->tables = newTables;
+            } else {
+                // Handle reallocation error
+            }
+        } else {
+            // If no tables are left, free the catalog tables array
+            free(c->tables);
+            c->tables = NULL;
+        }
+
+        printf("Table '%s' dropped successfully.\n", name);
+
+        // Remove the table's data file from the filesystem
+        char filepath[256];
+        snprintf(filepath, sizeof(filepath), "tables/%s.bin", name);
+        if (remove(filepath) == 0) {
+            printf("File '%s' successfully deleted.\n", filepath);
+        } else {
+            perror("Failed to delete file");
+        }
+    } else {
+        printf("Table '%s' not found.\n", name);
+    }
+}
+
+// Example function to free dynamically allocated contents of a TableSchema
+void freeTableSchemaContents(TableSchema* table) {
+    // If you have dynamically allocated elements like attributes, free them here
+    if(table->attributes != NULL) {
+        free(table->attributes);  // Assuming 'attributes' is dynamically allocated
+        table->attributes = NULL;
+    }
+    // Add more cleanup as necessary
+}
+
+
 //get record from table
 //Record getRecord(int tableNumber, void* primaryKey) {
 //    TableSchema table = catalog->tables[tableNumber*sizeof(TableSchema)]; //assuming table numbers will start at 0 and not 1

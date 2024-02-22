@@ -83,25 +83,29 @@ void buf_put(Buffer* buf, Page data) {
 
 // put a new element in the buffer
 // if the buffer is full, write the LRU page to hardware
+// Attempt to put a new page in the buffer, writing the LRU page to hardware if necessary.
 int buf_putr(Buffer* buf, Page data) {
-    if(buf_full(buf)) {
-        // Buffer is full; write the least recently used page to hardware
-        Page* lruPage = &buf->buffer[buf->tail]; // ASSUMES tail is the LRU page
+    if (buf_full(buf)) {
+        // Buffer is full; find the LRU page and write to hardware if updated
+        Page* lruPage = &buf->buffer[buf->tail];
         if (lruPage->updated) {
             writePageToHardware(lruPage);
             lruPage->updated = false;
         }
-        
-        // Move the tail to effectively remove the LRU page
-        // TODO: This may not be the best approach and is not tested yet!
+
+        // Advance the tail to "remove" the LRU page from the buffer.
+        // TODO: Test this!
         re_pointer(buf);
     }
-    
-    // Add the new page now that there's room
+
+    // Insert the new page at the current head position.
     buf->buffer[buf->head] = data;
+    data.updated = true;
     adv_pointer(buf);
+
     return 0;
 }
+
 
 // gets an element from the buffer
 int buf_get(Buffer* buf, Page* data) {
@@ -186,4 +190,17 @@ void writeBufferToHardware(Buffer* bPool) {
     printf("Finished writing to hardware.\n");
 }
 
-
+// Used for the drop function
+void clearTablePagesFromBuffer(Buffer* bPool, int tableNumber) {
+    for (size_t i = 0; i < buf_size(bPool); ++i) {
+        Page* page = &bPool->buffer[i];
+        if (page->tableNumber == tableNumber) {
+            if (page->updated) {
+                writePageToHardware(page);
+            }
+            
+            // TODO: Check that this clears the page data successfully
+            memset(page, 0, sizeof(Page));
+        }
+    }
+}
