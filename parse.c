@@ -229,29 +229,33 @@ void handleInsertCommand(char* inputLine) {
 /// @brief Parses the select command and calls a method to print the requested contents (NOTE: only works with 'select * from [tableName];)
 /// @param inputLine The input from the user (assumed to include the 'select' keyword)
 void handleSelectCommand(char* inputLine) {
-    // TODO: implement select DDL
-
     Catalog* c = getCatalog();
 
-    char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // the +1 allocates space for the null terminator
+    char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
+
+    if (semiColonCheck == NULL) {  // If there are no semicolons...
+        printf("Expected ';'");
+        return;
+    }
+    else if (strcmp(semiColonCheck, ";")) {  // If the semicolon's position is not at the end of the command...
+        printf("';' expected at the end of the statement");
+        return;
+    }
+
+    char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // The +1 allocates space for the null terminator
     strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
-    char* token = strtok(inputLineArray, " ");  //tokenizes the input string
+    char* token = strtok(inputLineArray, " ");  // Tokenizes the input string
 
-    // while (token != NULL) {
-    //     printf("%s\n", token);
-    //     token = strtok(NULL, " ");  // continue to next token
-    // }
+    token = strtok(NULL, " ");  // Continues to the next token; we already checked for select
 
-    token = strtok(NULL, " ");  // continues to the next token; we already checked for select
-
-    if (strcmp(token, "*")) {  // Checks if the current token is equal to "*"
+    if (token == NULL || strcmp(token, "*")) {  // Checks if the current token is equal to "*"
         printf("Expected '*'");
         return;
     }
 
-    token = strtok(NULL, " ");  // continues to the next token
+    token = strtok(NULL, " ");  // Continues to the next token
 
-    if (strcmp(token, "from")) {
+    if (token == NULL || strcmp(token, "from")) {
         printf("Expected 'from'");
         return;
     }
@@ -261,22 +265,21 @@ void handleSelectCommand(char* inputLine) {
     if (token != NULL) {  // Make sure there is a table name
         for (int i = 0; i < c -> tableCount; i++) {  // Check each table in the schema to see if a name matches
             TableSchema* t = &c -> tables[i];
-            if (strcmp(token, t -> name)) {
+            token[strlen(token) - 1] = '\0';  // Strips the table name of the semicolon at the end for comparison
+            if (!strcmp(token, t -> name)) {  // If the token is equal to the current table's name...
                 token = strtok(NULL, " ");
-                if (strcmp(token, ";")) {  // Check for a semicolon BEFORE printing the contents
-                    printf("Expected ';'");
-                    return;
-                }
-                getRecords(t -> tableNumber);  // select's functionality
+                getRecords(t -> tableNumber);  // Select's functionality
+                return;
             }
         }
     }
+    else {  // If the table name is not present in the query...
+        printf("Expected table name");
+        return;
+    }
 
-    // Check if there is another token for the table (i.e. if the token's not null)
-    // Check if that table exists in the catalog
-    // Print out all of the elements of that table in accordance to the required output
-
-    printf("Works");
+    printf("Table not found");  // If this code is reached, a table with a matching name was not found
+    return;
 }
 
 // TODO: Does each line of input need a ';' to be valid?? -- Yes
