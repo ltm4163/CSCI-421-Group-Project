@@ -58,17 +58,24 @@ void testGetRecords(Buffer *buffer, Catalog *cat) {
     FILE *fp;
     fp = fopen("tables/0.bin","wb");
     void *toWrite1 = malloc(MAX_PAGE_SIZE);
-    char *text1 = malloc(11);
+    char *text1 = malloc(14);
     strcpy(text1, "more text!");
     int int1 = 5;
-    int numRecords = 1;
+    int numRecords = 2;
     int numPages = 1;
     bool flag = false;
+    char *text2 = malloc(14);
+    strcpy(text2, "sample text:)");
+    int int2 = 23;
+    bool flag2 = true;
     memcpy(toWrite1, &numPages, sizeof(int));
     memcpy(toWrite1+sizeof(int), &numRecords, sizeof(int));
     memcpy(toWrite1+(2*sizeof(int)), &int1, sizeof(int));
-    memcpy(toWrite1+(3*sizeof(int)), text1, 11);
-    memcpy(toWrite1+(3*sizeof(int))+11, &flag, sizeof(bool));
+    memcpy(toWrite1+(3*sizeof(int)), text1, 14);
+    memcpy(toWrite1+(3*sizeof(int))+14, &flag, sizeof(bool));
+    memcpy(toWrite1+(3*sizeof(int))+14+sizeof(bool), &int2, sizeof(int));
+    memcpy(toWrite1+(4*sizeof(int))+14+sizeof(bool), text2, 14);
+    memcpy(toWrite1+(4*sizeof(int))+28+sizeof(bool), &flag2, sizeof(bool));
     fwrite(toWrite1, MAX_PAGE_SIZE, 1, fp);
     fclose(fp);
     
@@ -76,7 +83,7 @@ void testGetRecords(Buffer *buffer, Catalog *cat) {
     AttributeSchema *attr1 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
     initializeAttribute(attr1, "num", "integer", false, false, true, sizeof(int));
     AttributeSchema *attr2 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
-    initializeAttribute(attr2, "words", "char", false, false, false, 11);
+    initializeAttribute(attr2, "words", "char", false, false, false, 14);
     AttributeSchema *attr3 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
     initializeAttribute(attr3, "flag", "boolean", false, false, false, sizeof(bool));
     attributes[0] = *attr1;

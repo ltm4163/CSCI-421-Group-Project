@@ -95,6 +95,7 @@ void getRecords(int tableNumber) {
                 
                 recordOffset += sizeToRead;
             }
+            printf("\n");
         }
     }
 }
