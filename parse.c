@@ -47,7 +47,7 @@ void ParseAttribute(char* attributes) {
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
 
 		// parses name, type, and constraints 
-		sscanf(attr_tok, " %50s %19s %19[^,]", name, type, constraints);
+		sscanf(attr_tok, " %50s %19s %19[^,)]", name, type, constraints);
 
 		// for type size
 		if(strcmp(type, "integer") == 0) {
@@ -57,7 +57,6 @@ void ParseAttribute(char* attributes) {
 		} else if(strcmp(type, "boolean") == 0) {
 			size = 1;
 		} else {
-			int size;
 			scanf(type, "%10s[^(](%d)", type, size);
 			// TODO unfinished
 		}
@@ -110,8 +109,6 @@ TableSchema* ParseTable(char* tableName, char* attributes) {
     return table;
 }
 
-// TODO: Return 'No primary key defined' if there is no primary key
-// Right now it returns nothing...
 void handleCreateCommand(char* inputLine) {
     Catalog* catalog = getCatalog();
     // Find the position of the first '(' which marks the start of attributes
@@ -131,9 +128,11 @@ void handleCreateCommand(char* inputLine) {
         strncpy(attributes, startPos, sizeof(attributes) - 1);
 
         TableSchema* table = ParseTable(tableName, attributes);
-        if (table != NULL) {
+        if (table != NULL && hasPrimaryKey(table)) {
             addTable(catalog, table);
             printf("SUCCESS\n\n", tableName);
+        } else if (!hasPrimaryKey(table)) {
+            printf("No primary key defined\nFAILURE");
         } else {
             printf("Failed to create table '%s'.\n", tableName);
         }
@@ -180,43 +179,13 @@ void displaySchema(Catalog* catalog) {
      */
     
     // TODO: Store the following as constants and display their values
-    printf("\nDB location: \n");
-    printf("Page Size: \n");
-    printf("Buffer Size: \n");
-    
-    // if (catalog has tables) {
-    //   TODO: Iterate through catalog->tables and display each
-    // } else {
-        printf("\nNo tables to display\n");
-        printf("SUCCESS\n\n");
-    // }
+    printf("\nDB location: %s \n", getDbDirectory());
+    printf("Page Size: %d\n", getPageSize());
+    printf("Buffer Size: %d \n\n", getBufferSize());
+    displayCatalog(catalog);
 }
 
 // Find the correct table in the catalog and print it's info
-void displayTableInfo(Catalog* catalog, char* tableName) {
-    bool found = false;
-    for (int i = 0; i < catalog->tableCount; i++) {
-        if (strcmp(catalog->tables[i].name, tableName) == 0) {
-            found = true;
-            printf("Table name: %s\n", tableName);
-            // TODO: Iterate through attributes and display them
-            // Right now we only display table name. We want to display:
-            /*
-             Table name: foo
-             Table schema:
-                 num:integer primarykey
-             Pages: 0
-             Records: 0
-             */
-            printf("SUCCESS\n\n");
-            break;
-        }
-    }
-    if (!found) {
-        printf("No such table %s\n", tableName);
-        printf("ERROR\n\n");
-    }
-}
 
 void handleAlterCommand(char* inputLine) {
     //            char opt[50];
@@ -233,10 +202,26 @@ void handleAlterCommand(char* inputLine) {
 }
 
 void handleDropCommand(char* inputLine) {
-    // TODO: Not implemented
-    // This is also not here in Professor's sample run: https://mycourses.rit.edu/d2l/le/content/1072579/viewContent/9634019/View
-    // Is it a requirement for this phase??
+    char tableName[MAX_NAME_SIZE];
+    if (sscanf(inputLine, "drop table %s", tableName) == 1) {
+        dropTable(getCatalog(), tableName);
+        
+        // Delete associated file(s)
+        char filename[256];
+        snprintf(filename, sizeof(filename), "tables/%s.bin", tableName);
+        if (remove(filename) == 0) {
+            printf("Table '%s' and its data have been successfully deleted.\n", tableName);
+        } else {
+            perror("Error deleting table file");
+        }
+        
+        // Remove from buffer
+        clearTablePagesFromBuffer(getBuffer(), tableName);
+    } else {
+        printf("Invalid command or table name.\n");
+    }
 }
+
 
 // TODO: Finish this
 void handleInsertCommand(char* inputLine) {
@@ -307,7 +292,9 @@ int parse(char* inputLine) {
                 else if (strcmp(nextWord, "info") == 0) {
                     char tableName[MAX_NAME_SIZE];
                     if (sscanf(inputLine, "display info %s", tableName) == 1) {
-                        displayTableInfo(catalog, tableName);
+                        if(!findTableDisplay(catalog, tableName)) {
+                            printf("table %s not found\n", tableName);
+                        }
                         return 0;
                     }
                 }

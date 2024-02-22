@@ -24,6 +24,8 @@ void addAttribute(Catalog* c, char name[MAX_NAME_SIZE], char type[20]);  // Add 
 
 void displayCatalog(Catalog* c);
 
+int findTableDisplay(Catalog* c, char* name);
+
 /// @brief Writes the contents of the provided Catalog pointer to the provided pathname
 /// @param c The catalog with data to write (everything must be initialized/malloc'd)
 /// @param pathname The path of the .bin file to write to (if it does not exist, it will be created)

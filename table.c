@@ -12,6 +12,7 @@ void initializeTable(TableSchema* table, int numAttributes, char *name, Attribut
 }
 
 void displayTable(TableSchema* table) {
+    printf("name: %s\n", table->name);
     printf("num pages: %d\n", table->numPages);
     printf("num attributes: %d\n", table->numAttributes);
     printf("attributes:\n");
@@ -19,4 +20,14 @@ void displayTable(TableSchema* table) {
         displayAttribute(&(table->attributes[i]));
 
     }
+}
+
+
+bool hasPrimaryKey(TableSchema* table) { 
+    for(int i = 0; i < table->numAttributes; i++) {
+        if(table->attributes[i].primaryKey) {
+            return true;
+        }
+    }
+    return false;
 }

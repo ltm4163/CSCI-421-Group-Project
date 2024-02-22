@@ -15,4 +15,6 @@ void initializeTable(TableSchema* table, int numAttributes, char *name, Attribut
 
 void displayTable(TableSchema* table);
 
+bool hasPrimaryKey(TableSchema* table);
+
 #endif

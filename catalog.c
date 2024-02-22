@@ -17,11 +17,12 @@ void initializeCatalog(Catalog* c, int count) {
 
 void addTable(Catalog* c, TableSchema* table) {
     TableSchema* newTables = realloc(c->tables, (c->tableCount + 1) * sizeof(TableSchema));
+
     if(newTables != NULL) {
         newTables[c->tableCount] = *table;
         c->tables = newTables;
         c->tableCount++;
-        printf("added table: %s\n", table->name);
+        printf("added table: %s\n", table->name);    
     } else { fprintf(stderr, "Memory allocation failed\n"); }
 
 }  // recordCount and currentPage initialized as 0
@@ -67,9 +68,18 @@ void displayCatalog(Catalog* c) {
     }
     
     if(c->tableCount == 0) {
-        printf("No such table\n");  // TODO: Do I need to include table name?
-        printf("ERROR\n\n");
+        printf("no tables to display\n");  // TODO: Do I need to include table name?
     }
+}
+
+int findTableDisplay(Catalog* c, char* name) {
+    for(int i = 0; i < c->tableCount; i++) {
+        if(strcmp(c->tables[i].name, name) == 0) {
+            displayTable(&(c->tables[i]));
+            return 1;
+        }
+    } 
+    return 0;
 }
 
 void writeCatalogToFile(Catalog* c, char* pathname) {
