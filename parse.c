@@ -37,6 +37,7 @@ void ParseAttribute(char* attributes) {
 	int size = 0;
 	// holds contraints, this must be PARSED 
 	char constraints[MAX_NAME_SIZE];
+    constraints[0] = '\0';
 	// list of attributes to return
 
 	// uses strtok_r so for nested parsing 
@@ -49,8 +50,7 @@ void ParseAttribute(char* attributes) {
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
 
 		// parses name, type, and constraints 
-		sscanf(attr_tok, " %50s %19s %19[^,);]", name, type, constraints);
-
+		sscanf(attr_tok, " %50s %19[^)] %19[^,);]", name, type, constraints);
 		// for type size
 		if(strcmp(type, "integer") == 0) {
 			size = 4;
@@ -63,19 +63,20 @@ void ParseAttribute(char* attributes) {
 			// TODO unfinished
 		}
 
-		// tokenizes constraints
-		char* const_tok = strtok_r(constraints, " ", &ptr2);
-		// loops through constraints, flips constraint flag if constraint found
-		while(const_tok != NULL) {
-			if(strcmp(const_tok, "notnull") == 0) {
-				nonNull = true;
-			} else if (strcmp(const_tok, "primarykey") == 0) {
-				primaryKey = true;
-			} else if(strcmp(const_tok, "unique") == 0) {
-				unique = true;
-			} else { printf("Constraint %s does not exist", const_tok); }
-			const_tok = strtok_r(NULL, " ", &ptr2);
-		}
+        
+        // tokenizes constraints
+        char* const_tok = strtok_r(constraints, " ", &ptr2);
+        // loops through constraints, flips constraint flag if constraint found
+        while(const_tok != NULL) {
+            if(strcmp(const_tok, "notnull") == 0) {
+                nonNull = true;
+            } else if (strcmp(const_tok, "primarykey") == 0) {
+                primaryKey = true;
+            } else if(strcmp(const_tok, "unique") == 0) {
+                unique = true;
+            } else { printf("Constraint %s does not exist", const_tok); }
+            const_tok = strtok_r(NULL, " ", &ptr2);
+        }
 
 		initializeAttribute(cur_attribute, name, type, unique, nonNull, primaryKey, size);
 		// adds attribute to array
@@ -95,15 +96,12 @@ void ParseAttribute(char* attributes) {
 * @return returns a table struct
 */
 TableSchema* ParseTable(char* tableName, char* attributes) {
-    printf("ParseTable\n");
 
     TableSchema* table = malloc(sizeof(TableSchema));
     if (!table) {
         fprintf(stderr, "Memory allocation failed\n");
         return NULL;
     }
-
-    printf("Table name: %s, Attributes: %s\n", tableName, attributes);
     
     ParseAttribute(attributes);
     initializeTable(table, num_attributes, tableName, attribute_arr);
@@ -132,9 +130,10 @@ void handleCreateCommand(char* inputLine) {
         TableSchema* table = ParseTable(tableName, attributes);
         if (table != NULL && hasPrimaryKey(table)) {
             addTable(catalog, table);
+            printf("Table name: %s\n Attributes: %s\n", tableName, attributes);
             printf("SUCCESS\n\n", tableName);
         } else if (!hasPrimaryKey(table)) {
-            printf("No primary key defined\nFAILURE");
+            printf("No primary key defined\nFAILURE\n\n");
         } else {
             printf("Failed to create table '%s'.\n", tableName);
         }
@@ -283,8 +282,9 @@ void handleSelectCommand(char* inputLine) {
         printf("Expected table name");
         return;
     }
-    // TODO get this to display tablename
-    printf("no such table");  // If this code is reached, a table with a matching name was not found
+    // TODO get this to display tablename 
+    // should be: no such table [tablename here]
+    printf("no such table\nERROR\n\n");  // If this code is reached, a table with a matching name was not found
     return;
 }
 
