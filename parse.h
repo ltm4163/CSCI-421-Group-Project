@@ -4,7 +4,7 @@
 #define PARSE_H
 
 // main parser
-int parse();
+int parse(char* inputLine);
 
 // parses attributes
 void ParseAttribute(char* attributes);

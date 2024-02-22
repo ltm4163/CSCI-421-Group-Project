@@ -8,6 +8,7 @@
 #include "table.h"
 #include "catalog.h"
 #include "main.h"
+#include "errno.h"
 
 // to hold information parsed from stdin
 char command[10];
@@ -226,12 +227,40 @@ void handleInsertCommand(char* inputLine) {
 
 void handleSelectCommand(char* inputLine) {
     // TODO: implement select DDL
-    
-    printf("Select not implemented :(\n");
-    printf("ERROR\n\n");
+
+    char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // the +1 allocates space for the null terminator
+    strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
+    char* token = strtok(inputLineArray, " ");  //tokenizes the input string
+
+    // while (token != NULL) {
+    //     printf("%s\n", token);
+    //     token = strtok(NULL, " ");  // continue to next token
+    // }
+
+    token = strtok(NULL, " ");  // continues to the next token; we already checked for select
+
+    if (strcmp(token, "*")) {  // Checks if the current token is equal to "*"
+        printf("Expected '*'");
+        return 0;
+    }
+
+    token = strtok(NULL, " ");  // continues to the next token
+
+    if (strcmp(token, "from")) {
+        printf("Expected 'from'");
+        return 0;
+    }
+
+    token = strtok(NULL, " ");
+
+    // Check if there is another token for the table (i.e. if the token's not null)
+    // Check if that table exists in the catalog
+    // Print out all of the elements of that table in accordance to the required output
+
+    printf("Works");
 }
 
-// TODO: Does each line of input need a ';' to be valid??
+// TODO: Does each line of input need a ';' to be valid?? -- Yes
 int parse(char* inputLine) {
     Catalog* catalog = getCatalog();
     char command[10];
