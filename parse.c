@@ -256,8 +256,8 @@ void handleInsertCommand(char* inputLine) {
 }
 
 void handleSelectCommand(char* inputLine) {
-    // TODO: implement select DDL
-    
+    // TODO: implement select DML
+    // TODO: error detection/handling for if table doesn't exist
     printf("Select not implemented :(\n");
     printf("ERROR\n\n");
 }

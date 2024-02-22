@@ -11,37 +11,121 @@
 Catalog *catalog;
 Buffer *bPool;
 
-Page *getRecords(int tableNumber) {
-    Page *pages = (Page*)malloc(sizeof(Page)*1000); //1000 is placeholder value
+void getRecords(int tableNumber) {
+    TableSchema table = catalog->tables[tableNumber];
+    AttributeSchema attr = table.attributes[0];
+    Page *pages = (Page*)malloc(sizeof(Page)*catalog->tables[tableNumber].numPages); //locally store pages
+    bool *pagesInBuf = (bool*)malloc(sizeof(bool)*table.numPages); //keep track of which pages are in buffer
+    memset(pagesInBuf, false, table.numPages); //initialize pagesInBuf values to false
+    
+    for(int i = 0; i < buf_size(bPool); i++){ //find table's pages in buffer
+        struct Page *pg=(Page *)malloc(sizeof(Page));
+        buf_get(bPool, pg);
+        if (pg->tableNumber != tableNumber) { //skip page if not in desired table
+            continue;
+        }
+        pages[pg->pageNumber] = *pg;
+        pagesInBuf[pg->pageNumber] = true; //if page in buffer, set corresponding value in pagesInBuf to true
+    }
 
+    // print attribute names
+    char *attrBorder = (char*)malloc((table.numAttributes*7)+1);
+    for (int i = 0; i < table.numAttributes; i++)
+    {
+        strcpy(attrBorder+(i*7), "-------");
+    }
+    strcpy(attrBorder+(table.numAttributes*7), "\0");
+    
+    printf("%s\n", attrBorder);
+    printf("|");
+    for (int i = 0; i < table.numAttributes; i++)
+    {
+        printf(" %s |", table.attributes[i].name);
+    }
+    printf("\n%s\n", attrBorder);
+    free(attrBorder);
+    
+
+    for (int i = 0; i < table.numPages; i++) { //get remaining pages from file
+        if (pagesInBuf[i] == false) {
+            struct Page *pg=(Page *)malloc(sizeof(Page));
+            pg = getPage(tableNumber, i);
+            buf_put(bPool, *pg);
+            pages[i] = *pg;
+        }
+        Page page = pages[i];
+        for (int j = 0; j < page.numRecords; j++) { //iterates through all records in page
+            Record *rec = page.records[j];
+            int recordOffset = 0; //used for knowing where next attribute starts in record
+            printf("|");
+            for (int k = 0; k < table.numAttributes; k++) { //iterates through all attributes in table
+                AttributeSchema *attr = &table.attributes[k];
+                char *attrType = attr->type;
+                int sizeToRead = attr->size; //used to tell fread how much data to read from page.data
+                if (strcmp(attrType, "varchar") == 0) { //if type is varchar, read int that tells length of varchar
+                    memcpy(&sizeToRead, rec->data+recordOffset, sizeof(int));
+                    recordOffset += sizeof(int);
+                }
+                void *attrValue = (void*)malloc(sizeToRead); //value of attribute to be written to record struct
+                memcpy(attrValue, rec->data+recordOffset, sizeToRead);
+
+                if (strcmp(attr->type, "integer") == 0)
+                {
+                    int *value = (int*)attrValue;
+                    printf(" %d|", *value);
+                }
+                else if (strcmp(attr->type, "double") == 0)
+                {
+                    double *value = (double*)attrValue;
+                    printf(" %f|", *value);
+                }
+                else if (strcmp(attr->type, "boolean") == 0)
+                {
+                    bool *flag = (bool*)attrValue;
+                    printf("%s|", *flag?"true":"false");
+                }
+                else if (strcmp(attr->type, "char") == 0)
+                {
+                    printf(" %s|", (char*)(attrValue));
+                }
+                else if (strcmp(attr->type, "varchar") == 0)
+                {
+                    printf(" %s|", (char*)(attrValue));
+                }
+                
+                recordOffset += sizeToRead;
+            }
+        }
+    }
 }
 
 //addRecord inserts a record to a certain table of a catalog
 // void addRecord(Catalog* c, Record record, int tableNumber){
 //     Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
-//     if(c->tables[tableNumber].numPages==0){ //if no pages table
+//     if(c->tables[tableNumber].numPages==0){ //if no pages in table
 //             Page *page=(Page*)malloc(sizeof(Page));
 //             initializePage(page, 0, tableNumber, true);
 //             pages[0]=*page;
 //             page->records[0] = &record;
-//             bPool->pages = pages;
+//             page->numRecords = 1;
+//             buf_put(bPool, *page);
+//             c->tables[tableNumber].numPages++;
 //             return NULL;
 //     }
 
 //     // if(bPool->pageCount==0){ //if no pages in buffer, check table file
     
 //     // }
-//     pages=bPool->pages;
 //     int min_index;
     
-//     for(int i = 0; i < bPool->pageCount; i++){ //iterate through pages in buffer
+//     for(int i = 0; i < buf_size(bPool); i++){ //iterate through pages in buffer
 //         struct Page *pg=(Page *)malloc(sizeof(Page));
-//         pg=&bPool->pages[i*sizeof(Page)];
+//         buf_get(bPool, pg);
 //         if (pg->tableNumber != tableNumber) { //skip page if not in desired table
 //             continue;
 //         }
 //         int size=sizeof(pg->records)/sizeof(*pg->records[0]);
-//         for(int j = 0; j < size-1; j++){
+//         for(int j = 0; j < pg->numRecords-1; j++){ //
 //             min_index=j;
 //             for(int k = j+1; k < size; k++){
 //                 if(pg->records[k] < pg->records[min_index]){
@@ -103,12 +187,13 @@ void createRecords(Page *page, int tableNumber) {
             int sizeToRead = attr->size; //used to tell fread how much data to read from page.data
             if (strcmp(attrType, "varchar") == 0) { //if type is varchar, read int that tells length of varchar
                 memcpy(&sizeToRead, page->data+recordOffset, sizeof(int));
-                memcpy(rec->data+recordOffset, &sizeToRead, sizeof(int));
+                memcpy(rec->data+recordOffset-4, &sizeToRead, sizeof(int));
                 recordOffset += sizeof(int);
             }
             void *attrValue = (void*)malloc(sizeToRead); //value of attribute to be written to record struct
             memcpy(attrValue, page->data+recordOffset, sizeToRead);
-            memcpy(rec->data+recordOffset, attrValue, sizeToRead); //write data to record.data
+            memcpy(rec->data+recordOffset-4, attrValue, sizeToRead); //write data to record.data
+            
             
             recordOffset += sizeToRead;
         }
@@ -129,7 +214,7 @@ Page* getPage(int tableNumber, int pageNumber) {
         return NULL; // NULL indicates failure!!!
     }
 
-    int address = (pageNumber * MAX_PAGE_SIZE)+4; //location of page in file (skip numPages)
+    int address = (pageNumber * MAX_PAGE_SIZE)+sizeof(int); //location of page in file (skip numPages)
     void *page_buffer = (void *)malloc(MAX_PAGE_SIZE);
     if (page_buffer == NULL) {
         printf("Memory allocation failed for page buffer.\n");
@@ -150,7 +235,7 @@ Page* getPage(int tableNumber, int pageNumber) {
     initializePage(p, pageNumber, tableNumber, false);
     p->data = page_buffer; //set data to data read from file
     int numRecords;
-    memcpy(&numRecords, page_buffer, sizeof(int));
+    memcpy(&numRecords, p->data, sizeof(int));
     p->numRecords = numRecords;
     createRecords(p, tableNumber);
     return p;
@@ -160,10 +245,7 @@ Page* getPage(int tableNumber, int pageNumber) {
 Page *findPage(int tableNumber, int pageNumber) {
     Page *page = (Page*)malloc(sizeof(Page));
     for (int j = 0; j < buf_size(bPool); j++) {
-        if (buf_get(bPool, page) == -1) {
-            printf("No pages in buffer\n");
-            return NULL;
-        }
+        buf_get(bPool, page);
         if (page->tableNumber == tableNumber && page->pageNumber == pageNumber) {
             return page;
         }

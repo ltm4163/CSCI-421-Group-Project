@@ -7,6 +7,7 @@
 #include "page.h"
 #include "buffer.h"
 #include "parse.h"
+#include "test.c"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -32,14 +33,16 @@ void ensureDbDirectory(const char* dbLocation) {
     struct stat st = {0};
 
     if (stat(dbLocation, &st) == -1) {
-        mkdir(dbLocation, 0755);
+        // mkdir(dbLocation, 0755);
+        mkdir(dbLocation);
     }
     
     char tablesDirPath[256];
     snprintf(tablesDirPath, sizeof(tablesDirPath), "%s/tables", dbLocation);
     
     if (stat(tablesDirPath, &st) == -1) {
-        mkdir(tablesDirPath, 0755);
+        // mkdir(tablesDirPath, 0755);
+        mkdir(dbLocation);
     }
 }
 
@@ -47,7 +50,8 @@ int createDirectory(const char* path, mode_t mode) {
     struct stat st = {0};
 
     if (stat(path, &st) == -1) {
-        if (mkdir(path, mode) == -1) {
+        // if (mkdir(path, mode) == -1) {
+        if (mkdir(path) == -1) {
             perror("Failed to create directory");
             return -1;
         }
@@ -93,10 +97,16 @@ int main(int argc, char* argv[]) {
     
     Page* buf = malloc(bufferSize * sizeof(Page));
     buffer = buf_init(buf, bufferSize);
+
+    initializeStorageManager();
    
     printf("Page size: %d\n", pageSize);
     printf("Buffer size: %d\n", bufferSize);
     printf("\nPlease enter commands, enter <quit> to shutdown the db\n\n");
+
+    //Testing begin
+    testGetRecords(buffer, cat);
+    //Testing end
 
     // 0 = false, 1 = true
     int shouldExit = 0;
