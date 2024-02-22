@@ -72,6 +72,16 @@ void displayCatalog(Catalog* c) {
     }
 }
 
+int findTableDisplay(Catalog* c, char* name) {
+    for(int i = 0; i < c->tableCount; i++) {
+        if(strcmp(c->tables[i].name, name) == 0) {
+            displayTable(&(c->tables[i]));
+            return 1;
+        }
+    } 
+    return 0;
+}
+
 void writeCatalogToFile(Catalog* c, char* pathname) {
     FILE* file = fopen(pathname, "wb");
 

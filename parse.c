@@ -186,30 +186,6 @@ void displaySchema(Catalog* catalog) {
 }
 
 // Find the correct table in the catalog and print it's info
-void displayTableInfo(Catalog* catalog, char* tableName) {
-    bool found = false;
-    for (int i = 0; i < catalog->tableCount; i++) {
-        if (strcmp(catalog->tables[i].name, tableName) == 0) {
-            found = true;
-            printf("Table name: %s\n", tableName);
-            // TODO: Iterate through attributes and display them
-            // Right now we only display table name. We want to display:
-            /*
-             Table name: foo
-             Table schema:
-                 num:integer primarykey
-             Pages: 0
-             Records: 0
-             */
-            printf("SUCCESS\n\n");
-            break;
-        }
-    }
-    if (!found) {
-        printf("No such table %s\n", tableName);
-        printf("ERROR\n\n");
-    }
-}
 
 void handleAlterCommand(char* inputLine) {
     //            char opt[50];
@@ -300,7 +276,9 @@ int parse(char* inputLine) {
                 else if (strcmp(nextWord, "info") == 0) {
                     char tableName[MAX_NAME_SIZE];
                     if (sscanf(inputLine, "display info %s", tableName) == 1) {
-                        displayTableInfo(catalog, tableName);
+                        if(!findTableDisplay(catalog, tableName)) {
+                            printf("table %s not found\n", tableName);
+                        }
                         return 0;
                     }
                 }
