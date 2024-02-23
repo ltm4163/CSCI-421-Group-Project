@@ -118,7 +118,10 @@ void handleCreateCommand(char* inputLine) {
         // Extract table name
         char tableName[MAX_NAME_SIZE] = {0};
         strncpy(tableName, inputLine + strlen("create table "), startPos - (inputLine + strlen("create table ")));
-
+        if(tableExists(catalog, tableName)) {
+            printf("Table of name %s already exists\nERROR\n\n", tableName);
+            return;
+        }
         for (int i = strlen(tableName) - 1; i >= 0 && isspace((unsigned char)tableName[i]); i--) {
             tableName[i] = '\0';
         }

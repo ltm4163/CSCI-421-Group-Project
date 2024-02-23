@@ -72,6 +72,15 @@ void displayCatalog(Catalog* c) {
     }
 }
 
+int tableExists(Catalog* c, char* name) {
+    for(int i = 0; i < c->tableCount; i++) {
+        if(strcmp(c->tables[i].name, name) == 0) {
+            return 1;
+        }
+    } 
+    return 0;
+}
+
 int findTableDisplay(Catalog* c, char* name) {
     for(int i = 0; i < c->tableCount; i++) {
         if(strcmp(c->tables[i].name, name) == 0) {
