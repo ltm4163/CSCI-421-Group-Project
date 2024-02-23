@@ -294,7 +294,7 @@ int parse(char* inputLine) {
     char nextWord[100];
     char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
 
-    if (semiColonCheck == NULL) {  // If there are no semicolons...
+    if (semiColonCheck == NULL && strcmp(inputLine, "<quit>") != 10) {  // If there are no semicolons...
         printf("Expected ';'\n");
         return 0;
     }
