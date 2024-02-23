@@ -37,6 +37,7 @@ void ParseAttribute(char* attributes) {
 	int size = 0;
 	// holds contraints, this must be PARSED 
 	char constraints[MAX_NAME_SIZE];
+    constraints[0] = '\0';
 	// list of attributes to return
 
 	// uses strtok_r so for nested parsing 
@@ -47,36 +48,37 @@ void ParseAttribute(char* attributes) {
 		bool nonNull = false;
 		// current attribute being parsed
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
-
 		// parses name, type, and constraints 
-		sscanf(attr_tok, " %50s %19s %19[^,)]", name, type, constraints);
-
+        // TODO fix type parsing
+		sscanf(attr_tok, " %s %s %[^,);]", name, type, constraints);
 		// for type size
-		if(strcmp(type, "integer") == 0) {
-			size = 4;
-		} else if(strcmp(type, "double") == 0) {
-			size = 8;
-		} else if(strcmp(type, "boolean") == 0) {
-			size = 1;
-		} else {
-			scanf(type, "%10s[^(](%d)", type, size);
-			// TODO unfinished
-		}
+        sscanf(type, "%19[^(](%d", type, size);
+        if(strcmp(type, "integer") == 0) {
+            size = 4;
+        } else if(strcmp(type, "double") == 0) {
+            size = 8;
+        } else if(strcmp(type, "boolean") == 0) {
+            size = 1;
+        } else {
+            sscanf(type, "%10s[^(](%d)[^);]", type, size);
+            // TODO unfinished
+        }
 
-		// tokenizes constraints
-		char* const_tok = strtok_r(constraints, " ", &ptr2);
-		// loops through constraints, flips constraint flag if constraint found
-		while(const_tok != NULL) {
-			if(strcmp(const_tok, "notnull") == 0) {
-				nonNull = true;
-			} else if (strcmp(const_tok, "primarykey") == 0) {
-				primaryKey = true;
-			} else if(strcmp(const_tok, "unique") == 0) {
-				unique = true;
-			} else { printf("Constraint %s does not exist", const_tok); }
-			const_tok = strtok_r(NULL, " ", &ptr2);
-		}
-
+        if(strlen(constraints) > 0) {
+            // tokenizes constraints
+            char* const_tok = strtok_r(constraints, " ", &ptr2);
+            // loops through constraints, flips constraint flag if constraint found
+            while(const_tok != NULL) {
+                if(strcmp(const_tok, "notnull") == 0) {
+                    nonNull = true;
+                } else if (strcmp(const_tok, "primarykey") == 0) {
+                    primaryKey = true;
+                } else if(strcmp(const_tok, "unique") == 0) {
+                    unique = true;
+                } else { printf("Constraint %s does not exist", const_tok); }
+                const_tok = strtok_r(NULL, " ", &ptr2);
+            }
+        }
 		initializeAttribute(cur_attribute, name, type, unique, nonNull, primaryKey, size);
 		// adds attribute to array
 		attribute_arr[attribute_count] = *cur_attribute;
@@ -95,15 +97,12 @@ void ParseAttribute(char* attributes) {
 * @return returns a table struct
 */
 TableSchema* ParseTable(char* tableName, char* attributes) {
-    printf("ParseTable\n");
 
     TableSchema* table = malloc(sizeof(TableSchema));
     if (!table) {
         fprintf(stderr, "Memory allocation failed\n");
         return NULL;
     }
-
-    printf("Table name: %s, Attributes: %s\n", tableName, attributes);
     
     ParseAttribute(attributes);
     initializeTable(table, num_attributes, tableName, attribute_arr);
@@ -120,21 +119,24 @@ void handleCreateCommand(char* inputLine) {
         // Extract table name
         char tableName[MAX_NAME_SIZE] = {0};
         strncpy(tableName, inputLine + strlen("create table "), startPos - (inputLine + strlen("create table ")));
-
+        if(tableExists(catalog, tableName)) {
+            printf("Table of name %s already exists\nERROR\n\n", tableName);
+            return;
+        }
         for (int i = strlen(tableName) - 1; i >= 0 && isspace((unsigned char)tableName[i]); i--) {
             tableName[i] = '\0';
         }
 
         // Get other attributes
         char attributes[500] = {0}; // Ensure this buffer is sufficiently large
-        strncpy(attributes, startPos, sizeof(attributes) - 1);
+        strncpy(attributes, startPos+1, sizeof(attributes) - 1);
 
         TableSchema* table = ParseTable(tableName, attributes);
         if (table != NULL && hasPrimaryKey(table)) {
             addTable(catalog, table);
             printf("SUCCESS\n\n", tableName);
         } else if (!hasPrimaryKey(table)) {
-            printf("No primary key defined\nFAILURE");
+            printf("No primary key defined\nFAILURE\n\n");
         } else {
             printf("Failed to create table '%s'.\n", tableName);
         }
@@ -184,6 +186,7 @@ void displaySchema(Catalog* catalog) {
     printf("\nDB location: %s \n", getDbDirectory());
     printf("Page Size: %d\n", getPageSize());
     printf("Buffer Size: %d \n\n", getBufferSize());
+    printf("Tables:\n");
     displayCatalog(catalog);
 }
 
@@ -247,17 +250,6 @@ void handleInsertCommand(char* inputLine) {
 void handleSelectCommand(char* inputLine) {
     Catalog* c = getCatalog();
 
-    char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
-
-    if (semiColonCheck == NULL) {  // If there are no semicolons...
-        printf("Expected ';'");
-        return;
-    }
-    else if (strcmp(semiColonCheck, ";")) {  // If the semicolon's position is not at the end of the command...
-        printf("';' expected at the end of the statement");
-        return;
-    }
-
     char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // The +1 allocates space for the null terminator
     strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
     char* token = strtok(inputLineArray, " ");  // Tokenizes the input string
@@ -281,7 +273,7 @@ void handleSelectCommand(char* inputLine) {
     if (token != NULL) {  // Make sure there is a table name
         for (int i = 0; i < c -> tableCount; i++) {  // Check each table in the schema to see if a name matches
             TableSchema* t = &c -> tables[i];
-            token[strlen(token) - 1] = '\0';  // Strips the table name of the semicolon at the end for comparison
+            token[strlen(token) - 2] = '\0';  // Strips the table name of the semicolon at the end for comparison
             if (!strcmp(token, t -> name)) {  // If the token is equal to the current table's name...
                 token = strtok(NULL, " ");
                 getRecords(t -> tableNumber);  // Select's functionality
@@ -293,8 +285,9 @@ void handleSelectCommand(char* inputLine) {
         printf("Expected table name");
         return;
     }
-
-    printf("Table not found");  // If this code is reached, a table with a matching name was not found
+    // TODO get this to display tablename 
+    // should be: no such table [tablename here]
+    printf("no such table\nERROR\n\n");  // If this code is reached, a table with a matching name was not found
     return;
 }
 
@@ -303,6 +296,12 @@ int parse(char* inputLine) {
     Catalog* catalog = getCatalog();
     char command[10];
     char nextWord[100];
+    char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
+
+    if (semiColonCheck == NULL && strcmp(inputLine, "<quit>") != 10) {  // If there are no semicolons...
+        printf("Expected ';'\n");
+        return 0;
+    }
 
     if (sscanf(inputLine, "%9s", command) > 0) {
         // Quit
@@ -335,17 +334,19 @@ int parse(char* inputLine) {
         }
         // Display
         else if (strcmp(command, "display") == 0) {
-            if (sscanf(inputLine, "display %s", nextWord) == 1) {
+            if (sscanf(inputLine, "display %100[^ ;]", nextWord) == 1) {
                 if (strcmp(nextWord, "schema") == 0) {
                     displaySchema(catalog);
+                    printf("SUCCESS\n\n");
                     return 0;
                 }
                 else if (strcmp(nextWord, "info") == 0) {
                     char tableName[MAX_NAME_SIZE];
-                    if (sscanf(inputLine, "display info %s", tableName) == 1) {
+                    if (sscanf(inputLine, "display info %99[^;];", tableName) == 1) {
                         if(!findTableDisplay(catalog, tableName)) {
-                            printf("table %s not found\n", tableName);
-                        }
+                            printf("no such table %s\n", tableName);
+                            printf("ERROR\n\n");
+                        } else { printf("SUCCESS\n\n"); }
                         return 0;
                     }
                 }

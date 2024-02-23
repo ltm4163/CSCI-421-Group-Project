@@ -24,6 +24,8 @@ void addAttribute(Catalog* c, char name[MAX_NAME_SIZE], char type[20]);  // Add 
 
 void displayCatalog(Catalog* c);
 
+int tableExists(Catalog* c, char* name);
+
 int findTableDisplay(Catalog* c, char* name);
 
 /// @brief Writes the contents of the provided Catalog pointer to the provided pathname

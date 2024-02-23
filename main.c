@@ -36,7 +36,7 @@ void ensureDbDirectory(const char* dbLocation) {
 
     if (stat(dbLocation, &st) == -1) {
         // mkdir(dbLocation, 0755);
-        mkdir(dbLocation);
+        mkdir(dbLocation, 0755);
     }
     
     char tablesDirPath[256];
@@ -44,7 +44,7 @@ void ensureDbDirectory(const char* dbLocation) {
     
     if (stat(tablesDirPath, &st) == -1) {
         // mkdir(tablesDirPath, 0755);
-        mkdir(dbLocation);
+        mkdir(dbLocation, 0755);
     }
 }
 
@@ -53,7 +53,7 @@ int createDirectory(const char* path, mode_t mode) {
 
     if (stat(path, &st) == -1) {
         // if (mkdir(path, mode) == -1) {
-        if (mkdir(path) == -1) {
+        if (mkdir(path, 0755) == -1) {
             perror("Failed to create directory");
             return -1;
         }
