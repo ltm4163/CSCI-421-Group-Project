@@ -182,6 +182,7 @@ void displaySchema(Catalog* catalog) {
     printf("\nDB location: %s \n", getDbDirectory());
     printf("Page Size: %d\n", getPageSize());
     printf("Buffer Size: %d \n\n", getBufferSize());
+    printf("Tables:\n");
     displayCatalog(catalog);
 }
 
@@ -248,7 +249,6 @@ void handleSelectCommand(char* inputLine) {
     char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // The +1 allocates space for the null terminator
     strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
     char* token = strtok(inputLineArray, " ");  // Tokenizes the input string
-    char* tableName[MAX_NAME_SIZE];
 
     token = strtok(NULL, " ");  // Continues to the next token; we already checked for select
 
@@ -269,7 +269,7 @@ void handleSelectCommand(char* inputLine) {
     if (token != NULL) {  // Make sure there is a table name
         for (int i = 0; i < c -> tableCount; i++) {  // Check each table in the schema to see if a name matches
             TableSchema* t = &c -> tables[i];
-            token[strlen(token) - 1] = '\0';  // Strips the table name of the semicolon at the end for comparison
+            token[strlen(token) - 2] = '\0';  // Strips the table name of the semicolon at the end for comparison
             if (!strcmp(token, t -> name)) {  // If the token is equal to the current table's name...
                 token = strtok(NULL, " ");
                 getRecords(t -> tableNumber);  // Select's functionality
@@ -342,7 +342,7 @@ int parse(char* inputLine) {
                         if(!findTableDisplay(catalog, tableName)) {
                             printf("no such table %s\n", tableName);
                             printf("ERROR\n\n");
-                        }
+                        } else { printf("SUCCESS\n\n"); }
                         return 0;
                     }
                 }

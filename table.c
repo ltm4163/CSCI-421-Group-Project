@@ -12,14 +12,14 @@ void initializeTable(TableSchema* table, int numAttributes, char *name, Attribut
 }
 
 void displayTable(TableSchema* table) {
-    printf("name: %s\n", table->name);
-    printf("num pages: %d\n", table->numPages);
-    printf("num attributes: %d\n", table->numAttributes);
+    printf("Table name: %s\n", table->name);
     printf("attributes:\n");
     for(int i = 0; i < table->numAttributes; i++) {
+        printf("\t");
         displayAttribute(&(table->attributes[i]));
 
     }
+    printf("Pages: %d\n", table->numPages);
 }
 
 
