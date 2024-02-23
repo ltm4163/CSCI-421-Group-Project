@@ -49,9 +49,10 @@ void ParseAttribute(char* attributes) {
 		// current attribute being parsed
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
 		// parses name, type, and constraints 
+        // TODO fix type parsing
 		sscanf(attr_tok, " %s %s %[^,);]", name, type, constraints);
 		// for type size
-    
+        sscanf(type, "%19[^(](%d", type, size);
         if(strcmp(type, "integer") == 0) {
             size = 4;
         } else if(strcmp(type, "double") == 0) {
@@ -59,7 +60,7 @@ void ParseAttribute(char* attributes) {
         } else if(strcmp(type, "boolean") == 0) {
             size = 1;
         } else {
-            scanf(type, "%10s[^(](%d)", type, size);
+            sscanf(type, "%10s[^(](%d)[^);]", type, size);
             // TODO unfinished
         }
 
