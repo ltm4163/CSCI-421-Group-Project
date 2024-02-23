@@ -50,7 +50,7 @@ void getRecords(int tableNumber) {
         if (pagesInBuf[i] == false) {
             struct Page *pg=(Page *)malloc(sizeof(Page));
             pg = getPage(tableNumber, i);
-            buf_put(bPool, *pg);
+            buf_putr(bPool, *pg);
             pages[i] = *pg;
         }
         Page page = pages[i];
@@ -84,11 +84,7 @@ void getRecords(int tableNumber) {
                     bool *flag = (bool*)attrValue;
                     printf("%s|", *flag?"true":"false");
                 }
-                else if (strcmp(attr->type, "char") == 0)
-                {
-                    printf(" %s|", (char*)(attrValue));
-                }
-                else if (strcmp(attr->type, "varchar") == 0)
+                else if (strcmp(attr->type, "char") == 0 || strcmp(attr->type, "varchar") == 0)
                 {
                     printf(" %s|", (char*)(attrValue));
                 }
@@ -208,8 +204,8 @@ void createRecords(Page *page, int tableNumber) {
 
 // Read desired page from hardware
 Page* getPage(int tableNumber, int pageNumber) { 
-    char file_dest[15];
-    sprintf(file_dest, "tables/%d.bin", tableNumber); //set file_dest variable to name of table file
+    char file_dest[256];
+    sprintf(file_dest, "%s/tables/%d.bin",getDbDirectory(), tableNumber); //set file_dest variable to name of table file
     FILE *file = fopen(file_dest, "rb+");
     if (file == NULL) {
         printf("Error opening the file.\n");

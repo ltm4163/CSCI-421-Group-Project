@@ -98,7 +98,8 @@ int main(int argc, char* argv[]) {
     initializeCatalog(cat, 0);
     
     Page* buf = malloc(bufferSize * sizeof(Page));
-    buffer = buf_init(buf, bufferSize);
+    // buffer = buf_init(buf, bufferSize);
+    buffer = buf_init(buf, 1);
 
     initializeStorageManager();
    
@@ -107,7 +108,8 @@ int main(int argc, char* argv[]) {
     printf("\nPlease enter commands, enter <quit> to shutdown the db\n\n");
 
     //Testing begin
-    //testGetRecords(buffer, cat);
+    // testGetRecords(buffer, cat, dbDirectory);
+    // testBufferWrite(buffer, cat);
     //Testing end
 
     // 0 = false, 1 = true

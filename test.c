@@ -54,9 +54,11 @@ void testStoreBool() { //test if page/record store bool properly
     free(rec);
 }
 
-void testGetRecords(Buffer *buffer, Catalog *cat) {
+void testGetRecords(Buffer *buffer, Catalog *cat, char *dbDirectory) {
     FILE *fp;
-    fp = fopen("tables/0.bin","wb");
+    char filename[256];
+    snprintf(filename, sizeof(filename), "%s/tables/%d.bin", dbDirectory, 0);
+    fp = fopen(filename,"wb");
     void *toWrite1 = malloc(MAX_PAGE_SIZE);
     char *text1 = malloc(14);
     strcpy(text1, "more text!");
@@ -98,4 +100,48 @@ void testGetRecords(Buffer *buffer, Catalog *cat) {
     // buf_put(buffer, *pg);
     // Record *rec = pg->records[0];
     getRecords(0);
+}
+
+void testBufferWrite(Buffer *buffer, Catalog *cat) {
+    AttributeSchema *attributes = (AttributeSchema*)malloc(sizeof(AttributeSchema)*3);
+    AttributeSchema *attr1 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
+    initializeAttribute(attr1, "num", "integer", false, false, true, sizeof(int));
+    AttributeSchema *attr2 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
+    initializeAttribute(attr2, "words", "char", false, false, false, 14);
+    AttributeSchema *attr3 = (AttributeSchema*)malloc(sizeof(AttributeSchema));
+    initializeAttribute(attr3, "flag", "boolean", false, false, false, sizeof(bool));
+    attributes[0] = *attr1;
+    attributes[1] = *attr2;
+    attributes[2] = *attr3;
+    TableSchema *table = (TableSchema*)malloc(sizeof(TableSchema));
+    initializeTable(table, 3, "table1", attributes);
+    table->tableNumber = 0;
+    table->numPages = 1;
+    cat->tables[0] = *table;
+
+    Page *page = getPage(0, 0);
+    printf("numRecs1: %d\n", page->numRecords);
+    int int3 = 2;
+    char *text3 = malloc(14);
+    strcpy(text3, "third");
+    bool flag3 = false;
+    Record *rec = (Record*)malloc(sizeof(Record));
+    rec->data = (void*)malloc(sizeof(int) + 14 + sizeof(bool));
+    memcpy(rec->data, &int3, sizeof(int));
+    memcpy(rec->data+sizeof(int), text3, 14);
+    memcpy(rec->data+sizeof(int)+14, &flag3, sizeof(bool));
+    rec->size = sizeof(int) + 14 + sizeof(bool);
+    page->records[2] = rec;
+    page->numRecords++;
+    page->updated = true;
+    buf_putr(buffer, *page);
+    Page *empty = (Page*)malloc(sizeof(Page));
+    initializePage(empty, 1, 0, false);
+    buf_putr(buffer, *empty);
+
+    Page *test = getPage(0, 0);
+    printf("numRecs2: %d\n", test->numRecords);
+    int test2;
+    memcpy(&test2, page->records[2]->data, sizeof(int));
+    printf("int: %d\n", test2);
 }
