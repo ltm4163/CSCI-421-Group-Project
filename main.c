@@ -95,7 +95,7 @@ int main(int argc, char* argv[]) {
     }
     
     cat = malloc(sizeof(Catalog));
-    initializeCatalog(cat, 0);
+    initializeCatalog(cat);
     
     Page* buf = malloc(bufferSize * sizeof(Page));
     // buffer = buf_init(buf, bufferSize);
