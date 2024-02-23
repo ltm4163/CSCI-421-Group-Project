@@ -48,36 +48,36 @@ void ParseAttribute(char* attributes) {
 		bool nonNull = false;
 		// current attribute being parsed
 		AttributeSchema* cur_attribute = malloc(sizeof(AttributeSchema)); 
-
 		// parses name, type, and constraints 
-		sscanf(attr_tok, " %50s %19[^)] %19[^,);]", name, type, constraints);
+		sscanf(attr_tok, " %s %s %[^,);]", name, type, constraints);
 		// for type size
-		if(strcmp(type, "integer") == 0) {
-			size = 4;
-		} else if(strcmp(type, "double") == 0) {
-			size = 8;
-		} else if(strcmp(type, "boolean") == 0) {
-			size = 1;
-		} else {
-			scanf(type, "%10s[^(](%d)", type, size);
-			// TODO unfinished
-		}
-
-        
-        // tokenizes constraints
-        char* const_tok = strtok_r(constraints, " ", &ptr2);
-        // loops through constraints, flips constraint flag if constraint found
-        while(const_tok != NULL) {
-            if(strcmp(const_tok, "notnull") == 0) {
-                nonNull = true;
-            } else if (strcmp(const_tok, "primarykey") == 0) {
-                primaryKey = true;
-            } else if(strcmp(const_tok, "unique") == 0) {
-                unique = true;
-            } else { printf("Constraint %s does not exist", const_tok); }
-            const_tok = strtok_r(NULL, " ", &ptr2);
+    
+        if(strcmp(type, "integer") == 0) {
+            size = 4;
+        } else if(strcmp(type, "double") == 0) {
+            size = 8;
+        } else if(strcmp(type, "boolean") == 0) {
+            size = 1;
+        } else {
+            scanf(type, "%10s[^(](%d)", type, size);
+            // TODO unfinished
         }
 
+        if(strlen(constraints) > 0) {
+            // tokenizes constraints
+            char* const_tok = strtok_r(constraints, " ", &ptr2);
+            // loops through constraints, flips constraint flag if constraint found
+            while(const_tok != NULL) {
+                if(strcmp(const_tok, "notnull") == 0) {
+                    nonNull = true;
+                } else if (strcmp(const_tok, "primarykey") == 0) {
+                    primaryKey = true;
+                } else if(strcmp(const_tok, "unique") == 0) {
+                    unique = true;
+                } else { printf("Constraint %s does not exist", const_tok); }
+                const_tok = strtok_r(NULL, " ", &ptr2);
+            }
+        }
 		initializeAttribute(cur_attribute, name, type, unique, nonNull, primaryKey, size);
 		// adds attribute to array
 		attribute_arr[attribute_count] = *cur_attribute;
@@ -125,12 +125,11 @@ void handleCreateCommand(char* inputLine) {
 
         // Get other attributes
         char attributes[500] = {0}; // Ensure this buffer is sufficiently large
-        strncpy(attributes, startPos, sizeof(attributes) - 1);
+        strncpy(attributes, startPos+1, sizeof(attributes) - 1);
 
         TableSchema* table = ParseTable(tableName, attributes);
         if (table != NULL && hasPrimaryKey(table)) {
             addTable(catalog, table);
-            printf("Table name: %s\n Attributes: %s\n", tableName, attributes);
             printf("SUCCESS\n\n", tableName);
         } else if (!hasPrimaryKey(table)) {
             printf("No primary key defined\nFAILURE\n\n");
