@@ -98,8 +98,8 @@ int main(int argc, char* argv[]) {
     initializeCatalog(cat);
     
     Page* buf = malloc(bufferSize * sizeof(Page));
-    // buffer = buf_init(buf, bufferSize);
-    buffer = buf_init(buf, 1);
+    buffer = buf_init(buf, bufferSize);
+    //buffer = buf_init(buf, 1); // for testing
 
     initializeStorageManager();
    
@@ -109,7 +109,7 @@ int main(int argc, char* argv[]) {
 
     //Testing begin
     // testGetRecords(buffer, cat, dbDirectory);
-    // testBufferWrite(buffer, cat);
+    // testInsert(buffer, cat, dbDirectory);
     //Testing end
 
     // 0 = false, 1 = true

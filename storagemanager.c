@@ -2,7 +2,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
-#include "buffer.h"
 #include "storagemanager.h"
 #include "attribute.h"
 #include "constraint.h"
@@ -11,6 +10,7 @@
 Catalog *catalog;
 Buffer *bPool;
 
+// implements select *
 void getRecords(int tableNumber) {
     TableSchema table = catalog->tables[tableNumber];
     AttributeSchema attr = table.attributes[0];
@@ -96,79 +96,203 @@ void getRecords(int tableNumber) {
     }
 }
 
+// compare primary key of two records to find where to insert record
+bool compare(AttributeSchema *attr, Record *insertRecord, Record *existingRecord, int *recordOffset, int *insertOffset) {
+    char *attrType = attr->type;
+    int sizeToRead = attr->size; //used to tell fread how much data to read from existingRecord.data
+    int insertSize = attr->size; //used to tell fread how much data to read from insertRecord.data
+
+    if (strcmp(attrType, "varchar") == 0) { //if type is varchar, read int that tells length of varchar
+        memcpy(&sizeToRead, existingRecord->data+*recordOffset, sizeof(int));
+        *recordOffset += sizeof(int)+sizeToRead;
+        memcpy(&insertSize, insertRecord->data+*insertOffset, sizeof(int));
+        *insertOffset += sizeof(int)+insertSize;
+    }
+    void *recValue = (void*)malloc(sizeToRead); //value of attribute to be written to record struct
+    memcpy(recValue, existingRecord->data+*recordOffset, sizeToRead);
+    void *insertValue = (void*)malloc(sizeToRead); //value of attribute to be written to record struct
+    memcpy(insertValue, insertRecord->data+*insertOffset, insertSize);
+    
+    *recordOffset += sizeToRead;
+    *insertOffset += insertSize;
+
+    if (strcmp(attr->type, "integer") == 0)
+    {
+        if (*((int*)insertValue) == *((int*)recValue))
+        {
+            return NULL;
+        }
+        
+        return *((int*)insertValue) < *((int*)recValue);
+    }
+    else if (strcmp(attr->type, "double") == 0)
+    {
+        return *((double*)insertValue) < *((double*)recValue);
+    }
+    else if (strcmp(attr->type, "boolean") == 0)
+    {
+        return *((bool*)insertValue) < *((bool*)recValue);
+    }
+    else if (strcmp(attr->type, "char") == 0 || strcmp(attr->type, "varchar") == 0) {
+        int result = strcmp((char*)insertValue, (char*)recValue);
+        if (result < 0)
+        {
+            return true;
+        }
+        else if (result > 0)
+        {
+            return false;
+        }
+        else {
+            return NULL;
+        }
+    }
+}
+
+// split a page into two when overfull
+void splitpage(Buffer *bp, Page *currentpg, Page *newpage){
+    int numRecords=currentpg->numRecords;
+    int splitPoint = numRecords/2;
+    Record *firsthalf=(Record*)malloc(splitPoint * sizeof(Record));
+    Record *secondhalf=(Record *)malloc((numRecords-splitPoint) * sizeof(Record));
+    firsthalf=currentpg->records;
+    secondhalf=currentpg->records + splitPoint;
+    *currentpg->records=firsthalf;
+    *newpage->records=secondhalf;
+
+    // update page sizes
+    currentpg->numRecords = splitPoint;
+    newpage->numRecords = numRecords-splitPoint;
+    int currUpdatedSize = 0;
+    for (int i = 0; i < splitPoint; i++) currUpdatedSize += currentpg->records[i]->size;
+    newpage->size = currentpg->size-currUpdatedSize;
+    currentpg->size = currUpdatedSize;
+
+    buf_putr(bp, *currentpg);
+    buf_putr(bp, *newpage);
+}
+
 //addRecord inserts a record to a certain table of a catalog
-// void addRecord(Catalog* c, Record record, int tableNumber){
-//     Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
-//     if(c->tables[tableNumber].numPages==0){ //if no pages in table
-//             Page *page=(Page*)malloc(sizeof(Page));
-//             initializePage(page, 0, tableNumber, true);
-//             pages[0]=*page;
-//             page->records[0] = &record;
-//             page->numRecords = 1;
-//             buf_put(bPool, *page);
-//             c->tables[tableNumber].numPages++;
-//             return NULL;
-//     }
+void addRecord(Catalog* c, Record *record, int tableNumber){
+    Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
+    TableSchema *table = &c->tables[tableNumber];
+    if(table->numPages==0){ //if no pages in table
+            Page *page=(Page*)malloc(sizeof(Page));
+            initializePage(page, 0, tableNumber, true);
+            pages[0]=*page;
+            page->records[0] = record;
+            page->numRecords = 1;
+            buf_put(bPool, *page);
+            table->numPages++;
+            return;
+    }
 
-//     // if(bPool->pageCount==0){ //if no pages in buffer, check table file
+    bool *pagesInBuf = (bool*)malloc(sizeof(bool)*table->numPages); //keep track of which pages are in buffer
+    memset(pagesInBuf, false, table->numPages); //initialize pagesInBuf values to false
     
-//     // }
-//     int min_index;
-    
-//     for(int i = 0; i < buf_size(bPool); i++){ //iterate through pages in buffer
-//         struct Page *pg=(Page *)malloc(sizeof(Page));
-//         buf_get(bPool, pg);
-//         if (pg->tableNumber != tableNumber) { //skip page if not in desired table
-//             continue;
-//         }
-//         int size=sizeof(pg->records)/sizeof(*pg->records[0]);
-//         for(int j = 0; j < pg->numRecords-1; j++){ //
-//             min_index=j;
-//             for(int k = j+1; k < size; k++){
-//                 if(pg->records[k] < pg->records[min_index]){
-//                     min_index=k;
+    for(int i = 0; i < buf_size(bPool); i++){ //find table's pages in buffer
+        struct Page *pg=(Page *)malloc(sizeof(Page));
+        if (buf_get(bPool, pg) == -1) break;
+        if (pg->tableNumber != tableNumber) { //skip page if not in desired table
+            continue;
+        }
+        pages[pg->pageNumber] = *pg;
+        pagesInBuf[pg->pageNumber] = true; //if page in buffer, set corresponding value in pagesInBuf to true
+    }
+
+    bool maintainConstraints = false; // if an attribute has unique or notNull, search entire table
+    bool indexFound = false; // flag for if insert location found
+    int pageIndex;
+    int recIndex;
+
+    for (int i = 0; i < table->numPages; i++) { //get remaining pages from file
+        if (indexFound && !maintainConstraints) break;
+        if (pagesInBuf[i] == false) {
+            struct Page *pg=(Page *)malloc(sizeof(Page));
+            pg = getPage(tableNumber, i);
+            pages[i] = *pg;
+        }
+
+        Page page = pages[i];
+        for (int j = 0; j < page.numRecords; j++) { //iterates through all records in page
+            if (indexFound && !maintainConstraints) break;
+            
+            Record *rec = page.records[j];
+            int *recordOffset = (int*)malloc(sizeof(int)); //location in existing record.data
+            *recordOffset = 0;
+            int *insertOffset = (int*)malloc(sizeof(int)); //location in insert record.data
+            *insertOffset = 0;
+            for (int k = 0; k < table->numAttributes; k++) { //iterates through all attributes in table
+                AttributeSchema *attr = &table->attributes[k];
+                if (attr->nonNull == true || attr->unique == true) maintainConstraints = true;
+                if (attr->primaryKey == true && !indexFound) {
+                    bool result = compare(attr, record, rec, recordOffset, insertOffset);
+                    if (&result == NULL) {
+                        //TODO: cancel insert
+                        printf("cancel!"); //placeholder
+                    }
+                    else if (result) {
+                        indexFound = true;
+                        pageIndex = i;
+                        recIndex = j;
+                    }
                     
-//                 }
-                
-//             }
-//             struct Record *temprec=(struct Record *)malloc(sizeof(struct Record));
-//             temprec=pg->records[min_index];
-//             pg->records[min_index]=pg->records[j];
-//             pg->records[j]=temprec;
+                }
+                else {
+                    if (attr->unique == true) {
+                        bool result = compare(attr, record, rec, recordOffset, insertOffset);
+                        if (&result == NULL) {
+                            //TODO: cancel insert
+                            printf("cancel!"); //placeholder
+                        }
+                    }
+                    if (attr->nonNull == true)
+                    {
+                        //TODO: check if value equals agreed upon NULL placeholder
+                        //  cancel insert if so
+                    }
+                    
+                    
+                    if (strcmp(attr->type, "varchar") == 0) { //if type is varchar, read int that tells length of varchar
+                        int sizeToRead;
+                        int insertSize;
+                        memcpy(&sizeToRead, rec->data+*recordOffset, sizeof(int));
+                        *recordOffset += sizeof(int)+sizeToRead;
+                        memcpy(&insertSize, record->data+*insertOffset, sizeof(int));
+                        *insertOffset += sizeof(int)+insertSize;
+                    }
+                    else {
+                        *recordOffset += attr->size;
+                        *insertOffset += attr->size;
+                    }
+                }
 
-//         }
-//         inserted=true;
-//         if(sizeof(pg->records)==MAX_NUM_RECORDS){
-//             struct Page *newpg=(struct Page*)malloc(sizeof(struct Page));
-//             splitpage(pg, newpg);
-//         }
-//     }
-// }
-    
+            }
+        }
+    }
 
-
-// void splitpage(BufferPool*bp, Page *currentpg, Page *newpage){
-//     int sizerecords=sizeof(currentpg->records)/(sizeof(currentpg->records[0]));
-//     Record *firsthalf=(Record*)malloc(sizerecords/2 * sizeof(Record));
-//     Record *secondhalf=(Record *)malloc(sizerecords/2 * sizeof(Record));
-//     firsthalf=currentpg->records;
-//     secondhalf=currentpg->records + sizerecords/2;
-//     *currentpg->records=firsthalf;
-//     *newpage->records=secondhalf;
-//     int pos=0;
-//     for(int b=0; b < sizeof(bp->pages)/sizeof(bp->pages[0]); b++){
-//         if(currentpg == &bp->pages[b]){
-//             pos=b;
-//         }
-//     }
-//     int numberpgs=sizeof(bp->pages)/sizeof(bp->pages[0]);
-//     for(int n=numberpgs-1; n >= pos; n--){
-//         bp->pages[n]=bp->pages[n-1];
-//     }
-//     bp->pages[pos-1]=*newpage;
-    
-
-// }
+    // insert record
+    Page page;
+    if (indexFound) {
+        page = pages[pageIndex];
+        for (int i = page.numRecords; i > recIndex; i--) page.records[i] = page.records[i-1];
+    }
+    else {
+        pageIndex = table->numPages-1;
+        page = pages[pageIndex];
+        recIndex = page.numRecords;
+    }
+    page.records[recIndex] = record;
+    page.numRecords++;
+    page.size += record->size;
+    page.updated = true;
+    if (page.size > MAX_PAGE_SIZE) {
+        Page *newPage = (Page*)malloc(sizeof(Page));
+        initializePage(newPage, page.pageNumber+1, page.tableNumber, true);
+        splitpage(bPool, &page, newPage);
+    }
+    else buf_putr(bPool, page);
+}
 
 // Convert page data into records using table schema
 void createRecords(Page *page, int tableNumber) {
@@ -199,6 +323,7 @@ void createRecords(Page *page, int tableNumber) {
         rec->data = (void*)realloc(rec->data, recordOffset); //cut size of record.data down to size of data stored
         rec->size = recordOffset;
         page->records[i] = rec;
+        page->size += recordOffset;
     }
 }
 

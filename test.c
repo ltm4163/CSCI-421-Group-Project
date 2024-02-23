@@ -145,3 +145,24 @@ void testBufferWrite(Buffer *buffer, Catalog *cat) {
     memcpy(&test2, page->records[2]->data, sizeof(int));
     printf("int: %d\n", test2);
 }
+
+void testInsert(Buffer *buffer, Catalog *cat, char *dbDirectory) {
+    Page *test = getPage(0, 0);
+    printf("numRecs: %d\n", test->numRecords);
+    int int3 = 8;
+    char *text3 = malloc(14);
+    strcpy(text3, "stinky");
+    bool flag3 = true;
+    Record *rec = (Record*)malloc(sizeof(Record));
+    rec->data = (void*)malloc(sizeof(int) + 14 + sizeof(bool));
+    memcpy(rec->data, &int3, sizeof(int));
+    memcpy(rec->data+sizeof(int), text3, 14);
+    memcpy(rec->data+sizeof(int)+14, &flag3, sizeof(bool));
+    rec->size = sizeof(int) + 14 + sizeof(bool);
+
+    addRecord(cat, rec, test->tableNumber);
+    Page *result = (Page*)malloc(sizeof(Page));
+    // if(buf_get(buffer, result) == -1) printf("No page in buf");
+    // printf("numRecs2: %d\n", result->numRecords);
+    getRecords(0);
+}

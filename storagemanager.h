@@ -8,10 +8,16 @@
 #include "catalog.h"
 #include "page.h"
 #include "record.h"
+#include "buffer.h"
 
 void getRecords(int tableNumber);
 
-void addRecord(Catalog* c, Record record, int tableNumber); //addRecord inserts a record to a certain table of a catalog
+// compare primary key of two records to find where to insert record
+bool compare(AttributeSchema *attr, Record *insertRecord, Record *existingRecord, int *recordOffset, int *insertOffset);
+
+void splitpage(Buffer *bp, Page *currentpg, Page *newpage); // split a page into two when overfull
+
+void addRecord(Catalog* c, Record *record, int tableNumber); //addRecord inserts a record to a certain table of a catalog
 
 void createRecords(Page *page, int tableNumber); // Convert page data into records using table schema
 
