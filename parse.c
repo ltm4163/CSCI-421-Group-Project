@@ -242,7 +242,7 @@ void handleDropCommand(char* inputLine) {
 }
 
 
-// TODO: Finish this
+// TODO: Need to make sure this works when tuples aren't separated by spaces and just commas
 // Must deal with Integer, Double, Boolean, Char(x), Varchar(x)
 void handleInsertCommand(char* inputLine) {
     Catalog* c = getCatalog();
@@ -261,6 +261,7 @@ void handleInsertCommand(char* inputLine) {
     }
 
     char* valuesStart = strstr(inputLine, "values") + 7;  // Creates a string starting at the end of values and the start of the tuples
+                                                          //  Will be used later...
 
     char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // The +1 allocates space for the null terminator
     strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
@@ -268,7 +269,7 @@ void handleInsertCommand(char* inputLine) {
 
     token = strtok(NULL, " ");  // Continues to the next token; we already checked for insert
 
-    if (token == NULL || strcmp(token, "into")) {
+    if (token == NULL || strcmp(token, "into")) {  // Checks if 'into' is the next token
         printf("Expected 'into'");
         return;
     }
@@ -279,7 +280,7 @@ void handleInsertCommand(char* inputLine) {
     bool found = false;  // Flag to indicate whether we have found the table or not
         for (int i = 0; i < c -> tableCount; i++) {  // Check each table in the schema to see if a name matches
             t = &c -> tables[i];
-            if (!strcmp(token, t -> name)) {  // If the token is equal to the current table's name...s
+            if (!strcmp(token, t -> name)) {  // If the token is equal to the current table's name...
                 found = true;
                 break;
             }
@@ -299,8 +300,11 @@ void handleInsertCommand(char* inputLine) {
 
     token = strtok(NULL, " ");
 
+    // Parse the attributes
     while (token != NULL) {
-        printf("%s\n", token);
+        void** values = (void**)malloc(t -> numAttributes * sizeof(void*));
+        int* valueSizes = (int*)malloc(t -> numAttributes * sizeof(int));
+
         char firstChar = *token;  // Get the first character of the token (should be a '(' )
 
         if (token == NULL || !firstChar == '(') {
@@ -331,22 +335,51 @@ void handleInsertCommand(char* inputLine) {
                     printf("Expected an integer");
                     return;
                 }
+                valueSizes[i] = sizeof(int);
+                values[i] = malloc(valueSizes[i]);
+                sscanf(truncatedToken, "%d", (int*)values[i]);
             }
             else if (!strcmp(a -> type, "double")) {
-                
+                char *endptr;
+                strtod(truncatedToken, &endptr);
+                if (!(*truncatedToken != '\0' && *endptr == '\0' && endptr != truncatedToken)) {
+                    printf("Expected a double");
+                    return;
+                }
+                valueSizes[i] = sizeof(double);
+                values[i] = malloc(valueSizes[i]);
+                sscanf(truncatedToken, "%lf", (double*)values[i]);
             }
             else if (!strcmp(a -> type, "boolean")) {
-                
+                if(!(strcasecmp(truncatedToken, "true") == 0 || strcasecmp(truncatedToken, "false") == 0)) {
+                    printf("Expected a boolean");
+                    return;
+                }
+                valueSizes[i] = sizeof(bool);
+                values[i] = malloc(valueSizes[i]);
+                sscanf(truncatedToken, "%d", (bool*)values[i]);
             }
             else if (!strcmp(a -> type, "char")) {
-                
+                if (truncatedToken[0] != '"') {
+                    printf("Expected quotes around char");
+                    return;
+                }
+                removeFirstCharacter(truncatedToken);  // Removes the first quotation
+                if (strlen(truncatedToken) - 1 != a -> size) {
+                    printf("Incorrect size of char");
+                    return;
+                }
+                if (truncatedToken[a -> size] != '"') {
+                    printf("Expected quotes around char");
+                    return;
+                }
             }
             else if (!strcmp(a -> type, "varchar")) {
-                
+                // TODO: Implement this. Should be similar to the char parse
             }
 
             if (a -> unique) {
-
+                // Use getRecords, right?
             }
 
             if (a -> nonNull) {
@@ -364,11 +397,35 @@ void handleInsertCommand(char* inputLine) {
             }
 
             if (!last) {
-                token = strtok(NULL, " ");
+                token = strtok(NULL, " ");  // Go to next tuple
             }
         }
-        token = strtok(NULL, ",");
-        printf("%s\n", token);
+
+        Record* r = (Record*)malloc(sizeof(Record));  // Record to insert
+        r -> size = t -> numAttributes * sizeof(void*) + t -> numAttributes * sizeof(int);
+        r -> data = malloc(r -> size);
+
+        char* ptr = (char*)r -> data;  // Pointer to the record's data
+        memcpy(ptr, values, t -> numAttributes * sizeof(void*));
+        ptr += t -> numAttributes * sizeof(void*);
+        memcpy(ptr, valueSizes, t -> numAttributes * sizeof(int));
+
+        void** valuesTest = (void**)r -> data;
+        int* valueSizesTest = (int*)((char*)r -> data + r -> size - sizeof(int) * r -> size / sizeof(void*));
+
+        for (int i = 0; i < t -> numAttributes; i++) {
+            if (i > 0) {
+            printf(", ");
+            }
+
+            if (valueSizes[i] == sizeof(int)) {
+                printf("%d", *((int*)valuesTest[i]));
+            }
+        }
+
+        //addRecord(c, *r, t -> tableNumber);  // insert functionality
+
+        token = strtok(NULL, " ");  // Go to the next tuple
     }
 }
 
