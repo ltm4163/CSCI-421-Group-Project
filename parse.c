@@ -8,6 +8,8 @@
 #include "table.h"
 #include "catalog.h"
 #include "main.h"
+#include "errno.h"
+#include "storagemanager.h"
 
 // to hold information parsed from stdin
 char command[10];
@@ -240,14 +242,63 @@ void handleInsertCommand(char* inputLine) {
     }
 }
 
+/// @brief Parses the select command and calls a method to print the requested contents (NOTE: only works with 'select * from [tableName];)
+/// @param inputLine The input from the user (assumed to include the 'select' keyword)
 void handleSelectCommand(char* inputLine) {
-    // TODO: implement select DML
-    // TODO: error detection/handling for if table doesn't exist
-    printf("Select not implemented :(\n");
-    printf("ERROR\n\n");
+    Catalog* c = getCatalog();
+
+    char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
+
+    if (semiColonCheck == NULL) {  // If there are no semicolons...
+        printf("Expected ';'");
+        return;
+    }
+    else if (strcmp(semiColonCheck, ";")) {  // If the semicolon's position is not at the end of the command...
+        printf("';' expected at the end of the statement");
+        return;
+    }
+
+    char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // The +1 allocates space for the null terminator
+    strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
+    char* token = strtok(inputLineArray, " ");  // Tokenizes the input string
+
+    token = strtok(NULL, " ");  // Continues to the next token; we already checked for select
+
+    if (token == NULL || strcmp(token, "*")) {  // Checks if the current token is equal to "*"
+        printf("Expected '*'");
+        return;
+    }
+
+    token = strtok(NULL, " ");  // Continues to the next token
+
+    if (token == NULL || strcmp(token, "from")) {
+        printf("Expected 'from'");
+        return;
+    }
+
+    token = strtok(NULL, " ");
+
+    if (token != NULL) {  // Make sure there is a table name
+        for (int i = 0; i < c -> tableCount; i++) {  // Check each table in the schema to see if a name matches
+            TableSchema* t = &c -> tables[i];
+            token[strlen(token) - 1] = '\0';  // Strips the table name of the semicolon at the end for comparison
+            if (!strcmp(token, t -> name)) {  // If the token is equal to the current table's name...
+                token = strtok(NULL, " ");
+                getRecords(t -> tableNumber);  // Select's functionality
+                return;
+            }
+        }
+    }
+    else {  // If the table name is not present in the query...
+        printf("Expected table name");
+        return;
+    }
+
+    printf("Table not found");  // If this code is reached, a table with a matching name was not found
+    return;
 }
 
-// TODO: Does each line of input need a ';' to be valid??
+// TODO: Does each line of input need a ';' to be valid?? -- Yes
 int parse(char* inputLine) {
     Catalog* catalog = getCatalog();
     char command[10];
