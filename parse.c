@@ -292,7 +292,7 @@ void handleSelectCommand(char* inputLine) {
 }
 
 // TODO: Does each line of input need a ';' to be valid?? -- Yes
-int parse(char* inputLine) {
+int parse(char* inputLine, char* dbpath) {
     Catalog* catalog = getCatalog();
     char command[10];
     char nextWord[100];
@@ -310,8 +310,10 @@ int parse(char* inputLine) {
             printf("Purging page buffer...\n");
             
             writeBufferToHardware(getBuffer());
-            
+            writeCatalogToFile(catalog, dbpath);
+    
             printf("Exiting the database...\n\n");
+            
             return 1; // 1 = TRUE = EXIT CLI loop in main()
         }
         
