@@ -21,53 +21,17 @@ char* dbDirectory = NULL;
 int pageSize;
 int bufferSize;
 
-// Function to check if a directory exists
-int directoryExists(const char* path) {
-    struct stat stats;
-    if (stat(path, &stats) == 0 && S_ISDIR(stats.st_mode)) {
-        return 1;
-    }
-    return 0;
+
+int fileExists(const char* path) {
+    struct stat buffer;
+    return (stat(path, &buffer) == 0);
 }
 
-// // Checks/creates db location and a path for tables
-// void ensureDbDirectory(const char* dbLocation) {
-//     struct stat st = {0};
-
-//     if (stat(dbLocation, &st) == -1) {
-//         // mkdir(dbLocation, 0755);
-//         mkdir(dbLocation);
-//     }
-    
-//     char tablesDirPath[256];
-//     snprintf(tablesDirPath, sizeof(tablesDirPath), "%s/tables", dbLocation);
-    
-//     if (stat(tablesDirPath, &st) == -1) {
-//         // mkdir(tablesDirPath, 0755);
-//         mkdir(dbLocation);
-//     }
-// }
-
-// int createDirectory(const char* path, mode_t mode) {
-//     struct stat st = {0};
-
-//     if (stat(path, &st) == -1) {
-//         // if (mkdir(path, mode) == -1) {
-//         if (mkdir(path) == -1) {
-//             perror("Failed to create directory");
-//             return -1;
-//         }
-//     }
-
-//     return 0;
-// }
-
-
-// int main(int argc, char* argv[]) {
-//     if (argc != 4) {
-//         printf("Usage: %s <db location> <page size> <buffer size>\n", argv[0]);
-//         return 1;
-//     }
+int main(int argc, char* argv[]) {
+    if (argc != 4) {
+        printf("Usage: %s <db location> <page size> <buffer size>\n", argv[0]);
+        return 1;
+    }
     
 //     char tablesDir[128]; // holds path to tables directory
 
@@ -75,30 +39,34 @@ int directoryExists(const char* path) {
 //     pageSize = atoi(argv[2]);
 //     bufferSize = atoi(argv[3]);
 
-//     printf("Welcome to JottQL\n");
-//     printf("Looking at %s for existing db....\n", dbLocation);
+    // Compute path for catalog
+    char catalogPath[256];
+    snprintf(catalogPath, sizeof(catalogPath), "%s/catalog.bin", dbLocation);
 
-//     dbDirectory = strdup(dbLocation); // Allocate and copy dbLocation to global variable
-//     if (dbDirectory == NULL) {
-//         perror("Failed to allocate memory for dbDirectory");
-//         return 1;
-//     }
+    printf("Welcome to JottQL\n");
+    printf("Looking for catalog at %s...\n", catalogPath);
+
+    dbDirectory = strdup(dbLocation);
+    if (dbDirectory == NULL) {
+        perror("Failed to allocate memory for dbDirectory");
+        return 1;
+    }
+
+    cat = malloc(sizeof(Catalog));
+    initializeCatalog(cat);
     
-//     if (!directoryExists(dbLocation)) {
-//         printf("No existing db found\n");
-//         printf("Creating new db at %s\n", dbLocation);
-//         ensureDbDirectory(dbLocation);
-//         printf("New db created successfully\n");
-//     } else {
-//         printf("Existing db found at %s\n", dbLocation);
-//         // Existing db path is what the user passed in
-//     }
+    if (fileExists(catalogPath)) {
+        printf("Existing db found at %s\n", dbLocation);
+        readCatalogFromFile(cat, catalogPath);
+    } else {
+        printf("No existing db found at %s\n", dbLocation);
+    }
     
-//     cat = malloc(sizeof(Catalog));
-//     initializeCatalog(cat, 0);
-    
-//     Page* buf = malloc(bufferSize * sizeof(Page));
-//     buffer = buf_init(buf, bufferSize);
+    Page* buf = malloc(bufferSize * sizeof(Page));
+    buffer = buf_init(buf, bufferSize);
+    //buffer = buf_init(buf, 1); // for testing
+
+    updateValues(pageSize, bufferSize);
 
 //     initializeStorageManager();
    
@@ -106,44 +74,27 @@ int directoryExists(const char* path) {
 //     printf("Buffer size: %d\n", bufferSize);
 //     printf("\nPlease enter commands, enter <quit> to shutdown the db\n\n");
 
-//     //Testing begin
-//     //testGetRecords(buffer, cat);
-//     //Testing end
+
+    //Testing begin
+    // testGetRecords(buffer, cat, dbDirectory, pageSize);
+    // testInsert(buffer, cat, dbDirectory);
+//     testDoubleInsert(buffer, cat, dbDirectory, pageSize);
+    //Testing end
 
 //     // 0 = false, 1 = true
 //     int shouldExit = 0;
-    
-//     char inputLine[1024]; // Buffer to store user input
 
-//     while (1) {
-//         printf("JottQL> ");
-//         if (fgets(inputLine, sizeof(inputLine), stdin) == NULL) break; // Check for EOF or error
-//         if (parse(inputLine)) break; // Exit loop if parse returns 1 (quit command)
-//     }
+    char inputLine[1024]; // Buffer to store user input
 
-//     return 0;
-// }
-
-int main(int argc, char* argv[]) { 
-    cat = (Catalog*)malloc(sizeof(Catalog));
-    AttributeSchema* a = (AttributeSchema*)malloc(sizeof(AttributeSchema));
-    TableSchema* t = (TableSchema*)malloc(sizeof(TableSchema));
-    initializeAttribute(a, "attribute1", "char", false, true, true, 4);
-    initializeTable(t, 1, "table1", a);
-    initializeCatalog(cat);
-
-    cat -> tableCount = 1;
-    cat -> tables = t;
-
-    char* inputLine = "insert into table1 values (1), (2), (3);";
-    char* inputLineDouble = "insert into table1 values (1.45), (2.67), (3.89);";
-    char* inputLineBoolean = "insert into table1 values (true), (false), (true);";
-    char* inputLineChar = "insert into table1 values (\"hell\"), (\"pooo\"), (\"shar\");";
-
-    parse(inputLineChar);
+    while (1) {
+        printf("JottQL> ");
+        if (fgets(inputLine, sizeof(inputLine), stdin) == NULL) break; // Check for EOF or error
+        if (parse(inputLine, catalogPath)) break; // Exit loop if parse returns 1 (quit command)
+    }
 
     return 0;
 }
+
 
 Catalog *getCatalog() { //returns catalog variable to other files
     return cat;

@@ -9,6 +9,7 @@ typedef struct TableSchema {
     int tableNumber;
     int numPages;
     int numAttributes;
+    int *pageLocations; //used for storing pages in file (index=pageNumber; value=location in file)
 } TableSchema;
 
 void initializeTable(TableSchema* table, int numAttributes, char *name, AttributeSchema *attributes);

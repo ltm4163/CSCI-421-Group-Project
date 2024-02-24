@@ -91,6 +91,7 @@ int buf_putr(Buffer* buf, Page data) {
         if (lruPage->updated) {
             writePageToHardware(lruPage);
             lruPage->updated = false;
+            // free(lruPage);
         }
 
         // Advance the tail to "remove" the LRU page from the buffer.
@@ -127,16 +128,33 @@ void writePageToHardware(Page* page) {
     char filename[256];
     snprintf(filename, sizeof(filename), "%s/tables/%d.bin", getDbDirectory(), page->tableNumber);
 
-    FILE* file = fopen(filename, "ab+"); // Append mode, binary
+    FILE* file = fopen(filename, "rb+"); // Append mode, binary
     if (!file) {
         perror("Failed to open file for writing");
         return;
     }
 
-    long offset = (long)page->pageNumber * MAX_PAGE_SIZE;
-    fseek(file, offset, SEEK_SET);
+    // write numPages to front of table file
+    Catalog *cat = getCatalog();
+    TableSchema *table = &cat->tables[page->tableNumber];
+    fwrite(&table->numPages, sizeof(int), 1, file);
 
-    if (fwrite(page->data, MAX_PAGE_SIZE, 1, file) != 1) {
+    long offset = ((long)table->pageLocations[page->pageNumber] * maxPageSize)+sizeof(int); //used to know where to write in table file
+
+    // write numRecords to front of page.data
+    memcpy(page->data, &page->numRecords, sizeof(int));
+    
+    // iterate through records and write their data to page.data
+    int pageOffset = sizeof(int); //used to know where to write in page.data
+    for (int i = 0; i < page->numRecords; i++)
+    {
+        memcpy(page->data+pageOffset, page->records[i]->data, page->records[i]->size);
+        pageOffset += page->records[i]->size;
+    }
+    
+    // write page.data to table file
+    fseek(file, offset, SEEK_SET);
+    if (fwrite(page->data, maxPageSize, 1, file) != 1) {
         perror("Failed to write page to hardware");
     } else {
         printf("Page for table %d at pageNumber %d written to disk.\n", page->tableNumber, page->pageNumber);
@@ -168,19 +186,20 @@ void writeBufferToHardware(Buffer* bPool) {
             continue;
         }
 
-        long offset = (long)page->pageNumber * MAX_PAGE_SIZE;
+        Catalog *cat = getCatalog();
+        long offset = (long)cat->tables[page->tableNumber].pageLocations[page->pageNumber] * maxPageSize;
         if (fseek(file, offset, SEEK_SET) != 0) {
             perror("Seek failed");
             fclose(file);
             continue;
         }
 
-        printf("Writing at offset: %ld, MAX_PAGE_SIZE: %d\n", offset, MAX_PAGE_SIZE);
-        size_t written = fwrite(page->data, MAX_PAGE_SIZE, 1, file);
+        printf("Writing at offset: %ld, MAX_PAGE_SIZE: %d\n", offset, maxPageSize);
+        size_t written = fwrite(page->data, maxPageSize, 1, file);
         if (written != 1) {
             perror("Failed to write data");
         } else {
-            printf("Page %zu for table %d written to disk. Bytes written: %zu\n", i, page->tableNumber, written * MAX_PAGE_SIZE);
+            printf("Page %zu for table %d written to disk. Bytes written: %zu\n", i, page->tableNumber, written * maxPageSize);
         }
 
         fclose(file);

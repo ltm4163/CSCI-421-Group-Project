@@ -5,11 +5,12 @@
 #include "record.h"
 
 typedef struct Page {
-    struct Record *records[MAX_NUM_RECORDS];
+    Record **records;
     void *data;
     int pageNumber;
     int tableNumber;
     int numRecords;
+    int size;
     bool updated; //know whether page needs to be written to file
 } Page;
 
