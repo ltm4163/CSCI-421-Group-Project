@@ -128,7 +128,7 @@ int main(int argc, char* argv[]) {
     cat = (Catalog*)malloc(sizeof(Catalog));
     AttributeSchema* a = (AttributeSchema*)malloc(sizeof(AttributeSchema));
     TableSchema* t = (TableSchema*)malloc(sizeof(TableSchema));
-    initializeAttribute(a, "attribute1", "char", false, true, false, 4);
+    initializeAttribute(a, "attribute1", "char", false, true, true, 4);
     initializeTable(t, 1, "table1", a);
     initializeCatalog(cat);
 

@@ -375,11 +375,38 @@ void handleInsertCommand(char* inputLine) {
                 }
             }
             else if (!strcmp(a -> type, "varchar")) {
-                // TODO: Implement this. Should be similar to the char parse
+                if (truncatedToken[0] != '"') {
+                    printf("Expected quotes around varchar");
+                    return;
+                }
+                removeFirstCharacter(truncatedToken);  // Removes the first quotation
+                if (strlen(truncatedToken) - 1 > a -> size) {
+                    printf("Varchar is over the size limit");
+                    return;
+                }
+                if (truncatedToken[a -> size] != '"') {
+                    printf("Expected quotes around varchar");
+                    return;
+                }
             }
 
             if (a -> unique) {
-                // Use getRecords, right?
+                // Need to sift through all records and make sure the current data (truncatedToken) is not the same as an existing data
+
+                // Buffer *bPool;
+                // Page *pages = (Page*)malloc(sizeof(Page) * t -> numPages); //locally store pages
+                // bool *pagesInBuf = (bool*)malloc(sizeof(bool) * t -> numPages); //keep track of which pages are in buffer
+                // memset(pagesInBuf, false, t -> numPages); //initialize pagesInBuf values to false
+                
+                // for(int i = 0; i < buf_size(bPool); i++) { //find table's pages in buffer; assumes the buffer is initialized...
+                //     Page *pg=(Page *)malloc(sizeof(Page));
+                //     buf_get(bPool, pg);
+                //     if (pg->tableNumber != t -> tableNumber) { //skip page if not in desired table
+                //         continue;
+                //     }
+                //     pages[pg->pageNumber] = *pg;
+                //     pagesInBuf[pg->pageNumber] = true; //if page in buffer, set corresponding value in pagesInBuf to true
+                // }
             }
 
             if (a -> nonNull) {
@@ -423,7 +450,7 @@ void handleInsertCommand(char* inputLine) {
             }
         }
 
-        //addRecord(c, *r, t -> tableNumber);  // insert functionality
+        //addRecord(c, r, t -> tableNumber);  // insert functionality; uncomment this method when implemented
 
         token = strtok(NULL, " ");  // Go to the next tuple
     }
