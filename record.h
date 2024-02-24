@@ -4,6 +4,7 @@
 
 typedef struct Record {
     void* data;
+    int size;
 } Record;
 
 // void initializeRecord(Record* rec);
