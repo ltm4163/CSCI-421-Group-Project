@@ -36,7 +36,7 @@ void ensureDbDirectory(const char* dbLocation) {
 
     if (stat(dbLocation, &st) == -1) {
         // mkdir(dbLocation, 0755);
-        mkdir(dbLocation, 0755);
+        mkdir(dbLocation);
     }
     
     char tablesDirPath[256];
@@ -44,7 +44,7 @@ void ensureDbDirectory(const char* dbLocation) {
     
     if (stat(tablesDirPath, &st) == -1) {
         // mkdir(tablesDirPath, 0755);
-        mkdir(dbLocation, 0755);
+        mkdir(dbLocation);
     }
 }
 
@@ -53,7 +53,7 @@ int createDirectory(const char* path, mode_t mode) {
 
     if (stat(path, &st) == -1) {
         // if (mkdir(path, mode) == -1) {
-        if (mkdir(path, 0755) == -1) {
+        if (mkdir(path) == -1) {
             perror("Failed to create directory");
             return -1;
         }
@@ -101,6 +101,8 @@ int main(int argc, char* argv[]) {
     buffer = buf_init(buf, bufferSize);
     //buffer = buf_init(buf, 1); // for testing
 
+    updateValues(pageSize, bufferSize);
+
     initializeStorageManager();
    
     printf("Page size: %d\n", pageSize);
@@ -108,8 +110,8 @@ int main(int argc, char* argv[]) {
     printf("\nPlease enter commands, enter <quit> to shutdown the db\n\n");
 
     //Testing begin
-    // testGetRecords(buffer, cat, dbDirectory);
-    // testInsert(buffer, cat, dbDirectory);
+    testGetRecords(buffer, cat, dbDirectory, pageSize);
+    testInsert(buffer, cat, dbDirectory);
     //Testing end
 
     // 0 = false, 1 = true

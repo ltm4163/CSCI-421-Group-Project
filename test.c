@@ -54,12 +54,12 @@ void testStoreBool() { //test if page/record store bool properly
     free(rec);
 }
 
-void testGetRecords(Buffer *buffer, Catalog *cat, char *dbDirectory) {
+void testGetRecords(Buffer *buffer, Catalog *cat, char *dbDirectory, int pageSize) {
     FILE *fp;
     char filename[256];
     snprintf(filename, sizeof(filename), "%s/tables/%d.bin", dbDirectory, 0);
     fp = fopen(filename,"wb");
-    void *toWrite1 = malloc(MAX_PAGE_SIZE);
+    void *toWrite1 = malloc(pageSize);
     char *text1 = malloc(14);
     strcpy(text1, "more text!");
     int int1 = 5;
@@ -78,7 +78,7 @@ void testGetRecords(Buffer *buffer, Catalog *cat, char *dbDirectory) {
     memcpy(toWrite1+(3*sizeof(int))+14+sizeof(bool), &int2, sizeof(int));
     memcpy(toWrite1+(4*sizeof(int))+14+sizeof(bool), text2, 14);
     memcpy(toWrite1+(4*sizeof(int))+28+sizeof(bool), &flag2, sizeof(bool));
-    fwrite(toWrite1, MAX_PAGE_SIZE, 1, fp);
+    fwrite(toWrite1, pageSize, 1, fp);
     fclose(fp);
     
     AttributeSchema *attributes = (AttributeSchema*)malloc(sizeof(AttributeSchema)*3);
@@ -95,6 +95,8 @@ void testGetRecords(Buffer *buffer, Catalog *cat, char *dbDirectory) {
     initializeTable(table, 3, "table1", attributes);
     table->tableNumber = 0;
     table->numPages = 1;
+    table->pageLocations = (int*)malloc(sizeof(int));
+    table->pageLocations[0] = 0;
     cat->tables[0] = *table;
     // Page *pg = getPage(0, 0);
     // buf_put(buffer, *pg);
@@ -117,6 +119,8 @@ void testBufferWrite(Buffer *buffer, Catalog *cat) {
     initializeTable(table, 3, "table1", attributes);
     table->tableNumber = 0;
     table->numPages = 1;
+    table->pageLocations = (int*)malloc(sizeof(int));
+    table->pageLocations[0] = 0;
     cat->tables[0] = *table;
 
     Page *page = getPage(0, 0);
@@ -146,7 +150,7 @@ void testBufferWrite(Buffer *buffer, Catalog *cat) {
     printf("int: %d\n", test2);
 }
 
-void testInsert(Buffer *buffer, Catalog *cat, char *dbDirectory) {
+void testInsert(Buffer *buffer, Catalog *cat, char *dbDirectory) { // set pageSize to 60 to test page split
     Page *test = getPage(0, 0);
     printf("numRecs: %d\n", test->numRecords);
     int int3 = 8;
@@ -160,8 +164,10 @@ void testInsert(Buffer *buffer, Catalog *cat, char *dbDirectory) {
     memcpy(rec->data+sizeof(int)+14, &flag3, sizeof(bool));
     rec->size = sizeof(int) + 14 + sizeof(bool);
 
+    printf("bufSize: %d\n", buf_size(buffer));
     addRecord(cat, rec, test->tableNumber);
-    Page *result = (Page*)malloc(sizeof(Page));
+    printf("bufSize: %d\n", buf_size(buffer));
+    // Page *result = (Page*)malloc(sizeof(Page));
     // if(buf_get(buffer, result) == -1) printf("No page in buf");
     // printf("numRecs2: %d\n", result->numRecords);
     getRecords(0);
