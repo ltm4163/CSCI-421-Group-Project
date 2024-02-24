@@ -18,6 +18,23 @@ char attributes[500];
 int num_attributes;
 AttributeSchema attribute_arr[MAX_NUM_ATTRIBUTES];
 
+void removeFirstCharacter(char* str) {
+    if (str != NULL && *str != '\0') {
+        // Move the pointer to the next character in the string
+        memmove(str, str + 1, strlen(str));
+    }
+}
+
+int containsOnlyDigits(const char *str) {
+    while (*str) {
+        if (!isdigit(*str)) {
+            return 0; // Not a digit
+        }
+        str++;
+    }
+    return 1; // Contains only digits
+}
+
 /*	
 * Method: ParseAttribute
 * Helper function to parse attribute input
@@ -228,22 +245,220 @@ void handleDropCommand(char* inputLine) {
 }
 
 
-// TODO: Finish this
+// TODO: Need to make sure this works when tuples aren't separated by spaces and just commas
+// Must deal with Integer, Double, Boolean, Char(x), Varchar(x)
 void handleInsertCommand(char* inputLine) {
-    printf("Insert not implemented :(\n");
-    printf("ERROR\n\n");
-    
-    // parses tablename and attributes out of command
-    scanf(" into %49s values %99[^;]s;", table_name, attributes);
+    Catalog* c = getCatalog();
+    TableSchema* t;
+    AttributeSchema* a;
 
-    // tokenizes the input tuples
-    char *tok = strtok(attributes, ",");
-    while (tok != NULL) {
-        // TODO: process and create records here
-        // TODO: Appropriate error handling if the operation fails
-        tok = strtok(NULL, ",");
+    char* semiColonCheck = strchr(inputLine, ';');  // Creates a string starting at the position of the first instance of a semicolon
+
+    if (semiColonCheck == NULL) {  // If there are no semicolons...
+        printf("Expected ';'");
+        return;
+    }
+    else if (strcmp(semiColonCheck, ";")) {  // If the semicolon's position is not at the end of the command...
+        printf("';' expected at the end of the statement");
+        return;
+    }
+
+    char* valuesStart = strstr(inputLine, "values") + 7;  // Creates a string starting at the end of values and the start of the tuples
+                                                          //  Will be used later...
+
+    char* inputLineArray = (char*)malloc(strlen(inputLine) + 1);  // The +1 allocates space for the null terminator
+    strcpy(inputLineArray, inputLine);  // strtok doesn't work unless you use a char array
+    char* token = strtok(inputLineArray, " ");  // Tokenizes the input string
+
+    token = strtok(NULL, " ");  // Continues to the next token; we already checked for insert
+
+    if (token == NULL || strcmp(token, "into")) {  // Checks if 'into' is the next token
+        printf("Expected 'into'");
+        return;
+    }
+
+    token = strtok(NULL, " ");  // Continues to the next token
+
+    if (token != NULL) {  // Make sure there is a table name
+    bool found = false;  // Flag to indicate whether we have found the table or not
+        for (int i = 0; i < c -> tableCount; i++) {  // Check each table in the schema to see if a name matches
+            t = &c -> tables[i];
+            if (!strcmp(token, t -> name)) {  // If the token is equal to the current table's name...
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            printf("Table not found");
+            return;
+        }
+    }
+
+    token = strtok(NULL, " ");
+
+    if (token == NULL || strcmp(token, "values")) {
+        printf("Expected 'values'");
+        return;
+    }
+
+    token = strtok(NULL, " ");
+
+    // Parse the attributes
+    while (token != NULL) {
+        void** values = (void**)malloc(t -> numAttributes * sizeof(void*));
+        int* valueSizes = (int*)malloc(t -> numAttributes * sizeof(int));
+
+        char firstChar = *token;  // Get the first character of the token (should be a '(' )
+
+        if (token == NULL || !firstChar == '(') {
+            printf("Expected '('");
+            return;
+        }
+
+        removeFirstCharacter(token);  // Removes the '('; always updates token to include the first attribute
+
+        for (int i = 0; i < t -> numAttributes; i++) {
+            bool last = false;  // A flag to check whether this current attribute is the last in the tuple
+            char truncatedToken[strlen(token)];  // To be used if the token contains the last attribute in a tuple
+            a = &t -> attributes[i];  // Grab the i'th attribute
+
+            // Check if the current attribute is the last attribute
+            if (token[strlen(token) - 2] == ')' && (token[strlen(token) - 1] == ';') || token[strlen(token) - 1] == ',') {
+                strncpy(truncatedToken, token, strlen(token) - 2);  // Remove the parenthesis and comma or semicolon from the attribute
+                truncatedToken[strlen(token) - 2] = '\0';  // Add null terminator
+                last = true;
+            }
+            else {
+                strncpy(truncatedToken, token, strlen(token));
+            }
+
+            // Check if the type matches the current attribute
+            if (!strcmp(a -> type, "integer")) {
+                if (!containsOnlyDigits(truncatedToken)) {
+                    printf("Expected an integer");
+                    return;
+                }
+                valueSizes[i] = sizeof(int);
+                values[i] = malloc(valueSizes[i]);
+                sscanf(truncatedToken, "%d", (int*)values[i]);
+            }
+            else if (!strcmp(a -> type, "double")) {
+                char *endptr;
+                strtod(truncatedToken, &endptr);
+                if (!(*truncatedToken != '\0' && *endptr == '\0' && endptr != truncatedToken)) {
+                    printf("Expected a double");
+                    return;
+                }
+                valueSizes[i] = sizeof(double);
+                values[i] = malloc(valueSizes[i]);
+                sscanf(truncatedToken, "%lf", (double*)values[i]);
+            }
+            else if (!strcmp(a -> type, "boolean")) {
+                if(!(strcasecmp(truncatedToken, "true") == 0 || strcasecmp(truncatedToken, "false") == 0)) {
+                    printf("Expected a boolean");
+                    return;
+                }
+                valueSizes[i] = sizeof(bool);
+                values[i] = malloc(valueSizes[i]);
+                sscanf(truncatedToken, "%d", (bool*)values[i]);
+            }
+            else if (!strcmp(a -> type, "char")) {
+                if (truncatedToken[0] != '"') {
+                    printf("Expected quotes around char");
+                    return;
+                }
+                removeFirstCharacter(truncatedToken);  // Removes the first quotation
+                if (strlen(truncatedToken) - 1 != a -> size) {
+                    printf("Incorrect size of char");
+                    return;
+                }
+                if (truncatedToken[a -> size] != '"') {
+                    printf("Expected quotes around char");
+                    return;
+                }
+            }
+            else if (!strcmp(a -> type, "varchar")) {
+                if (truncatedToken[0] != '"') {
+                    printf("Expected quotes around varchar");
+                    return;
+                }
+                removeFirstCharacter(truncatedToken);  // Removes the first quotation
+                if (strlen(truncatedToken) - 1 > a -> size) {
+                    printf("Varchar is over the size limit");
+                    return;
+                }
+                if (truncatedToken[a -> size] != '"') {
+                    printf("Expected quotes around varchar");
+                    return;
+                }
+            }
+
+            if (a -> unique) {
+                // Need to sift through all records and make sure the current data (truncatedToken) is not the same as an existing data
+
+                // Buffer *bPool;
+                // Page *pages = (Page*)malloc(sizeof(Page) * t -> numPages); //locally store pages
+                // bool *pagesInBuf = (bool*)malloc(sizeof(bool) * t -> numPages); //keep track of which pages are in buffer
+                // memset(pagesInBuf, false, t -> numPages); //initialize pagesInBuf values to false
+                
+                // for(int i = 0; i < buf_size(bPool); i++) { //find table's pages in buffer; assumes the buffer is initialized...
+                //     Page *pg=(Page *)malloc(sizeof(Page));
+                //     buf_get(bPool, pg);
+                //     if (pg->tableNumber != t -> tableNumber) { //skip page if not in desired table
+                //         continue;
+                //     }
+                //     pages[pg->pageNumber] = *pg;
+                //     pagesInBuf[pg->pageNumber] = true; //if page in buffer, set corresponding value in pagesInBuf to true
+                // }
+            }
+
+            if (a -> nonNull) {
+                if (!strcmp(truncatedToken, "null")) {
+                    printf("Attribute should not be null");
+                    return;
+                }
+            }
+
+            if (a -> primaryKey) {
+                if (!strcmp(truncatedToken, "null")) {
+                    printf("Attribute should not be null");
+                    return;
+                }
+            }
+
+            if (!last) {
+                token = strtok(NULL, " ");  // Go to next tuple
+            }
+        }
+
+        Record* r = (Record*)malloc(sizeof(Record));  // Record to insert
+        r -> size = t -> numAttributes * sizeof(void*) + t -> numAttributes * sizeof(int);
+        r -> data = malloc(r -> size);
+
+        char* ptr = (char*)r -> data;  // Pointer to the record's data
+        memcpy(ptr, values, t -> numAttributes * sizeof(void*));
+        ptr += t -> numAttributes * sizeof(void*);
+        memcpy(ptr, valueSizes, t -> numAttributes * sizeof(int));
+
+        void** valuesTest = (void**)r -> data;
+        int* valueSizesTest = (int*)((char*)r -> data + r -> size - sizeof(int) * r -> size / sizeof(void*));
+
+        for (int i = 0; i < t -> numAttributes; i++) {
+            if (i > 0) {
+            printf(", ");
+            }
+
+            if (valueSizes[i] == sizeof(int)) {
+                printf("%d", *((int*)valuesTest[i]));
+            }
+        }
+
+        //addRecord(c, r, t -> tableNumber);  // insert functionality; uncomment this method when implemented
+
+        token = strtok(NULL, " ");  // Go to the next tuple
     }
 }
+
 
 /// @brief Parses the select command and calls a method to print the requested contents (NOTE: only works with 'select * from [tableName];)
 /// @param inputLine The input from the user (assumed to include the 'select' keyword)

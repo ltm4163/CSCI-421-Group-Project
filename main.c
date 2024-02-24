@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
+// #include <unistd.h>
 #include <sys/stat.h>
 #include "main.h"
 
@@ -20,6 +20,7 @@ Buffer *buffer;
 char* dbDirectory = NULL;
 int pageSize;
 int bufferSize;
+
 
 int fileExists(const char* path) {
     struct stat buffer;
@@ -32,11 +33,11 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     
-    char tablesDir[128]; // holds path to tables directory
+//     char tablesDir[128]; // holds path to tables directory
 
-    const char* dbLocation = argv[1];
-    pageSize = atoi(argv[2]);
-    bufferSize = atoi(argv[3]);
+//     const char* dbLocation = argv[1];
+//     pageSize = atoi(argv[2]);
+//     bufferSize = atoi(argv[3]);
 
     // Compute path for catalog
     char catalogPath[256];
@@ -67,21 +68,22 @@ int main(int argc, char* argv[]) {
 
     updateValues(pageSize, bufferSize);
 
-    initializeStorageManager();
+//     initializeStorageManager();
    
-    printf("Page size: %d\n", pageSize);
-    printf("Buffer size: %d\n", bufferSize);
-    printf("\nPlease enter commands, enter <quit> to shutdown the db\n\n");
+//     printf("Page size: %d\n", pageSize);
+//     printf("Buffer size: %d\n", bufferSize);
+//     printf("\nPlease enter commands, enter <quit> to shutdown the db\n\n");
+
 
     //Testing begin
     // testGetRecords(buffer, cat, dbDirectory, pageSize);
     // testInsert(buffer, cat, dbDirectory);
-    testDoubleInsert(buffer, cat, dbDirectory, pageSize);
+//     testDoubleInsert(buffer, cat, dbDirectory, pageSize);
     //Testing end
 
-    // 0 = false, 1 = true
-    int shouldExit = 0;
-    
+//     // 0 = false, 1 = true
+//     int shouldExit = 0;
+
     char inputLine[1024]; // Buffer to store user input
 
     while (1) {
