@@ -13,7 +13,7 @@
 void getRecords(int tableNumber);
 
 // compare primary key of two records to find where to insert record
-bool compare(AttributeSchema *attr, Record *insertRecord, Record *existingRecord, int *recordOffset, int *insertOffset);
+bool *compare(AttributeSchema *attr, Record *insertRecord, Record *existingRecord, int *recordOffset, int *insertOffset);
 
 void splitpage(Buffer *bp, Page *currentpg, Page *newpage); // split a page into two when overfull
 

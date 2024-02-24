@@ -76,6 +76,7 @@ int main(int argc, char* argv[]) {
     //Testing begin
     // testGetRecords(buffer, cat, dbDirectory, pageSize);
     // testInsert(buffer, cat, dbDirectory);
+    testDoubleInsert(buffer, cat, dbDirectory, pageSize);
     //Testing end
 
     // 0 = false, 1 = true

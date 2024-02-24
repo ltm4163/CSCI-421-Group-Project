@@ -99,7 +99,7 @@ void getRecords(int tableNumber) {
 }
 
 // compare primary key of two records to find where to insert record
-bool compare(AttributeSchema *attr, Record *insertRecord, Record *existingRecord, int *recordOffset, int *insertOffset) {
+bool *compare(AttributeSchema *attr, Record *insertRecord, Record *existingRecord, int *recordOffset, int *insertOffset) {
     char *attrType = attr->type;
     int sizeToRead = attr->size; //used to tell how much data to read from existingRecord.data
     int insertSize = attr->size; //used to tell how much data to read from insertRecord.data
@@ -118,37 +118,53 @@ bool compare(AttributeSchema *attr, Record *insertRecord, Record *existingRecord
     *recordOffset += sizeToRead;
     *insertOffset += insertSize;
 
-    //TODO: fix same value detection
     // compare values to find insert location
+    bool *result = (bool*)malloc(sizeof(bool));
     if (strcmp(attr->type, "integer") == 0)
     {
         if (*((int*)insertValue) == *((int*)recValue))
         {
-            return NULL;
+            result = NULL;
+            return result;
         }
-        
-        return *((int*)insertValue) < *((int*)recValue);
+        *result = *((int*)insertValue) < *((int*)recValue);
+        return result;
     }
     else if (strcmp(attr->type, "double") == 0)
     {
-        return *((double*)insertValue) < *((double*)recValue);
+        if (*((double*)insertValue) == *((double*)recValue))
+        {
+            result = NULL;
+            return result;
+        }
+        *result = *((double*)insertValue) < *((double*)recValue);
+        return result;
     }
     else if (strcmp(attr->type, "boolean") == 0)
     {
-        return *((bool*)insertValue) < *((bool*)recValue);
+        if (*((bool*)insertValue) == *((bool*)recValue))
+        {
+            result = NULL;
+            return result;
+        }
+        *result = *((bool*)insertValue) < *((bool*)recValue);
+        return result;
     }
     else if (strcmp(attr->type, "char") == 0 || strcmp(attr->type, "varchar") == 0) {
-        int result = strcmp((char*)insertValue, (char*)recValue);
-        if (result < 0)
+        int stringResult = strcmp((char*)insertValue, (char*)recValue);
+        if (stringResult < 0)
         {
-            return true;
+            *result = true;
+            return result;
         }
-        else if (result > 0)
+        else if (stringResult > 0)
         {
-            return false;
+            *result = false;
+            return result;
         }
         else {
-            return NULL;
+            result = NULL;
+            return result;
         }
     }
 }
@@ -178,9 +194,9 @@ void splitpage(Buffer *bp, Page *currentpg, Page *newpage){
 
 //addRecord inserts a record to a certain table of a catalog
 void addRecord(Catalog* c, Record *record, int tableNumber){
-    Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //unnecessary allocation?
+    Page *pages=(Page *)malloc(sizeof(Page)*maxBufferSize); //local storage of pages in table
     TableSchema *table = &c->tables[tableNumber];
-    if(table->numPages==0){ //if no pages in table
+    if(table->numPages==0){ //if no pages in table, create new page
             Page *page=(Page*)malloc(sizeof(Page));
             initializePage(page, 0, tableNumber, true);
             pages[0]=*page;
@@ -202,21 +218,27 @@ void addRecord(Catalog* c, Record *record, int tableNumber){
         if (pg->tableNumber != tableNumber) { //skip page if not in desired table
             continue;
         }
+
+        //if page in buffer, set corresponding value in pagesInBuf to true and add to local pages storage
         pages[pg->pageNumber] = *pg;
-        pagesInBuf[pg->pageNumber] = true; //if page in buffer, set corresponding value in pagesInBuf to true
+        pagesInBuf[pg->pageNumber] = true;
     }
 
     bool maintainConstraints = false; // if an attribute has unique or notNull, search entire table
     bool indexFound = false; // flag for if insert location found
+    // used for location to insert record in table
     int pageIndex;
     int recIndex;
 
-    for (int i = 0; i < table->numPages; i++) { //get remaining pages from file
+    for (int i = 0; i < table->numPages; i++) { //iterate through all pages to find insert location
         if (indexFound && !maintainConstraints) break;
+
+        // if page wasn't in buffer, add to local pages storage
         if (pagesInBuf[i] == false) {
             struct Page *pg=(Page *)malloc(sizeof(Page));
             pg = getPage(tableNumber, i);
             pages[i] = *pg;
+            // TODO: also add page to buffer
         }
 
         Page page = pages[i];
@@ -232,9 +254,9 @@ void addRecord(Catalog* c, Record *record, int tableNumber){
                 AttributeSchema *attr = &table->attributes[k];
                 if (attr->nonNull == true || attr->unique == true) maintainConstraints = true;
                 if (attr->primaryKey == true && !indexFound) {
-                    bool result = compare(attr, record, rec, recordOffset, insertOffset);
-                    if (&result == NULL) {
-                        //TODO: cancel insert
+                    bool *result = compare(attr, record, rec, recordOffset, insertOffset);
+                    if (result == NULL) {
+                        //TODO: cancel insert error handling
                         printf("cancel!"); //placeholder
                         return;
                     }
@@ -247,9 +269,9 @@ void addRecord(Catalog* c, Record *record, int tableNumber){
                 }
                 else {
                     if (attr->unique == true) {
-                        bool result = compare(attr, record, rec, recordOffset, insertOffset);
-                        if (&result == NULL) {
-                            //TODO: cancel insert
+                        bool *result = compare(attr, record, rec, recordOffset, insertOffset);
+                        if (result == NULL) {
+                            //TODO: cancel insert error handling
                             printf("cancel!"); //placeholder
                             return;
                         }
