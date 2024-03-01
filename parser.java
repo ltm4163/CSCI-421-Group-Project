@@ -1,13 +1,6 @@
 import java.lang.*;
 
 public class parser {
-    private static void writeBufferToHardware(Object buffer) {
-        // Implement the writeBufferToHardware method
-    }
-
-    private static void writeCatalogToFile(Catalog catalog, String dbpath) {
-        // Implement the writeCatalogToFile method
-    }
 
     private static void handleCreateCommand(String inputLine) {
         // Implement the handleCreateCommand method
@@ -27,11 +20,6 @@ public class parser {
 
     private static void displaySchema(Catalog catalog) {
         // Implement the displaySchema method
-    }
-
-    private static boolean findTableDisplay(Catalog catalog, String tableName) {
-        // Implement the findTableDisplay method
-        return false;
     }
 
     private static void handleSelectCommand(String inputLine) {
