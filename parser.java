@@ -89,7 +89,7 @@ public class parser {
                 return;
             }
 
-            token = removeFirstCharacter(token);  // Removes the '('; always updates token to include the first attribute
+            token = token.substring(1);  // Removes the '('; always updates token to include the first attribute
 
             for (int i = 0; i < t.getNumAttributes(); i++) {
                 boolean last = false;  // A flag to check whether this current attribute is the last in the tuple
@@ -104,7 +104,7 @@ public class parser {
 
                 // Check if the type matches the current attribute
                 if ("integer".equals(a.getType())) {
-                    if (!containsOnlyDigits(token)) {
+                    if (!token.matches("\\d+")) {  // Checks if the token contains only digits
                         System.out.println("Expected an integer");
                         return;
                     }
@@ -124,18 +124,22 @@ public class parser {
                         System.out.println("Expected a boolean");
                         return;
                     }
-                    valueSizes[i] = Boolean.SIZE / 8;
+                    valueSizes[i] = Byte.SIZE / 8;
                     values[i] = Boolean.parseBoolean(token);
                 } else if ("char".equals(a.getType())) {
                     if (token.charAt(0) != '"' || token.length() - 1 != a.getSize() || token.charAt(a.getSize() + 1) != '"') {
                         System.out.println("Expected quotes around char or incorrect size of char");
                         return;
                     }
+                    valueSizes[i] = a.size();
+                    values[i] = token;
                 } else if ("varchar".equals(a.getType())) {
                     if (token.charAt(0) != '"' || token.length() - 1 > a.getSize() || token.charAt(a.getSize() + 1) != '"') {
                         System.out.println("Expected quotes around varchar or varchar over the size limit");
                         return;
                     }
+                    valueSizes[i] = a.size();
+                    values[i] = token;
                 }
 
                 if (a.isUnique()) {
