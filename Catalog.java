@@ -15,16 +15,23 @@ public class Catalog implements ICatalog{
     }
         
     public void addTable(Catalog c, TableSchema table){
-        TableSchema[]newTables=Arrays.copyOf(c.tables, c.tables.length + 1 );
-        if(newTables != null) {
-            newTables[c.tableCount] = table;
-            c.tables=newTables;
-            c.tableCount++;
-            System.out.println("added table: \n"+ table.getname());    
+        if(c.tables != null) {
+            TableSchema[]newTables=Arrays.copyOf(c.tables, c.tables.length + 1 );
+            if (newTables != null) {
+                newTables[c.tableCount] = table;
+                c.tables=newTables;
+                c.tableCount++;
+                System.out.println("added table: \n"+ table.getname());    
+            }
+            else {
+                System.err.print("Memory allocation failed\n"); 
+            }
         }   
         else 
         { 
-            System.err.print("Memory allocation failed\n"); 
+            c.tables = new TableSchema[1];
+            c.tables[0] = table;
+            c.tableCount++;
         }
     }
     public void dropTable(Catalog c, String name){
@@ -137,11 +144,11 @@ public class Catalog implements ICatalog{
 
 
 
-    public TableSchema getTableSchema(int tableName) {
-        if (tableName >= 0 && tableName < this.tableCount) {
-            return this.tables[tableName];
+    public TableSchema getTableSchema(int tableNumber) {
+        if (tableNumber >= 0 && tableNumber < this.tableCount) {
+            return this.tables[tableNumber];
         } else {
-            System.err.println("Invalid table number: " + tableName);
+            System.err.println("Invalid table number: " + tableNumber);
             return null; // Should we throw an exception here??
         }
     }

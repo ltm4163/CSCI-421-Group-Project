@@ -1,6 +1,7 @@
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
+import java.io.RandomAccessFile;
 import java.nio.Buffer;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,12 +21,12 @@ public class IStorageManager implements StorageManager {
         TableSchema table = catalog.getTableSchema(tableNumber);
         List<Page> pages = new ArrayList<>();
         
-        for (int i = 0; i < table.getNumPages(); i++) {
+        for (int i = 0; i < table.getNumPages(); i++) { // get all pages for table from buffer and file
             Page page;
-            if (buffer.isPageInBuffer(tableNumber)) {
-                page = buffer.getPage(tableNumber);
+            if (buffer.isPageInBuffer(tableNumber)) { 
+                page = buffer.getPage(tableNumber); // get page from buffer
             } else {
-                page = getPage(tableNumber, i);
+                page = getPage(tableNumber, i); // get page from file
             }
             pages.add(page);
         }
@@ -128,9 +129,9 @@ public class IStorageManager implements StorageManager {
     private Page findInsertionPage(TableSchema table, Record record) {
         for (int i = 0; i < table.getNumPages(); i++) {
             Page page = getPage(table.gettableNumber(), i);
-            if (page.hasSpaceFor(record)) {
-                return page;
-            }
+            
+            // TODO: implement finding insertion point based off primary key
+
         }
     
         Page newPage = new Page(table.gettableNumber(), table.getNextPageNumber(), false);
@@ -167,11 +168,13 @@ public class IStorageManager implements StorageManager {
 
     private Page loadPageFromDisk(int tableNumber, int pageNumber) {
         Page page = null;
-        String fileName = "path/to/storage/" + tableNumber + "_" + pageNumber + ".bin";
-        try (FileInputStream fileIn = new FileInputStream(fileName)) {
-            byte[] data = new byte[fileIn.available()]; 
+        String fileName = Main.getDbDirectory() + "/tables/" + tableNumber + ".bin";
+        try (RandomAccessFile fileIn = new RandomAccessFile(fileName, "r")) {
+            byte[] data = new byte[Main.getPageSize()];
+            //int address = catalog.getTables()[tableNumber].
+            fileIn.seek(Integer.BYTES); // skip numPages int
             fileIn.read(data);
-            page = Page.fromBinary(data, tableNumber, pageNumber);
+            page = Page.fromBinary(data, tableNumber, pageNumber, catalog);
             buffer.addPage(pageNumber, page); 
         } catch(IOException e) {
             e.printStackTrace();

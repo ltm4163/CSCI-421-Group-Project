@@ -1,19 +1,19 @@
 import java.nio.ByteBuffer;
 
 public class Record implements IRecord {
-    private Object data;
+    private ByteBuffer data;
     private int size;
 
     // Constructor
-    public Record(Object data, int size) {
+    public Record(ByteBuffer data, int size) {
         this.data = data;
         this.size = size;
     }
-    public void setdata(Object data)
+    public void setdata(ByteBuffer data)
     {
         this.data=data;
     }
-    public Object getdata()
+    public ByteBuffer getdata()
     {
         return this.data;
     }

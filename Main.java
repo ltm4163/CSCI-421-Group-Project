@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 public class Main {
     private static Catalog catalog;
@@ -12,21 +13,26 @@ public class Main {
     private static int bufferSize;
 
     public static void main(String[] args) {
-        if (args.length != 4) {
+        if (args.length != 3) {
             System.out.println("Usage: java Main <db location> <page size> <buffer size>");
             return;
         }
 
-        dbDirectory = args[1];
-        pageSize = Integer.parseInt(args[2]);
-        bufferSize = Integer.parseInt(args[3]);
+        dbDirectory = args[0];
+        pageSize = Integer.parseInt(args[1]);
+        bufferSize = Integer.parseInt(args[2]);
         
         String catalogPath = dbDirectory + "/catalog.bin";
         System.out.println("Welcome to JottQL");
         System.out.println("Looking for catalog at " + catalogPath + "...");
 
-        catalog = new Catalog(null, bufferSize); 
+        catalog = new Catalog(null, 0); 
         buffer = new PageBuffer(bufferSize);
+        StorageManager storageManager = new IStorageManager(catalog, pageSize);
+
+        // Testing begin
+        // Test.testGetPage(catalog, storageManager);
+        // Testing end
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
             String inputLine;

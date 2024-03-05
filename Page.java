@@ -7,6 +7,8 @@ public class Page {
     private int pageNumber;
     private int tableNumber;
     private boolean updated; // Indicates whether the page needs to be written to disk
+    private int size; // Number of bytes of data in page
+    private int numRecords;
 
     // Constructor initializes the page with basic information and an empty list of records.
     public Page(int pageNumber, int tableNumber, boolean updated) {
@@ -24,8 +26,7 @@ public class Page {
 
     // Check if the page is overfull.
     public boolean isOverfull() {
-        // TODO: check the total size of records against a maximum page size
-        return false;
+        return getSize() < Main.getPageSize();
     }
 
     // Serializes the page and its records to a binary format.
@@ -42,13 +43,44 @@ public class Page {
     }
 
     // Deserializes a page from a binary format.
-    public static Page fromBinary(byte[] data, int tableNumber, int pageNumber) {
+    public static Page fromBinary(byte[] data, int tableNumber, int pageNumber, Catalog catalog) {
         ByteBuffer buffer = ByteBuffer.wrap(data);
+        TableSchema tableSchema = catalog.getTableSchema(tableNumber);
         int numRecords = buffer.getInt(); // First 4 bytes for the number of records
+        AttributeSchema[] attributeSchemas = tableSchema.getattributes();
 
         Page page = new Page(pageNumber, tableNumber, false);
+        page.setNumRecords(numRecords);
+        page.size = 4; // numRecords counts towards page size
 
         // TODO: Logic to deserialize each record and add it to the page
+
+        for (int i = 0; i < numRecords; i++) {
+            int recordOffset = 0; // used for writing to record byte array
+            byte[] recordData = new byte[Main.getPageSize()];
+
+            for (int j = 0; j < tableSchema.getnumAttributes(); j++) {
+                AttributeSchema attr = attributeSchemas[j];
+                String attrType = attr.gettype();
+                int sizeToRead = attr.getsize(); // used to know how many bytes to read for current attribute
+
+                if (attrType.equals("varchar")) { //if type is varchar, read int that tells length of varchar
+                    sizeToRead = buffer.getInt();
+                    byte[] intBytes = ByteBuffer.allocate(Integer.BYTES).putInt(sizeToRead).array();
+                    System.arraycopy(intBytes, 0, recordData, recordOffset, intBytes.length); // store int in record data
+                    recordOffset += Integer.BYTES;
+                }
+
+                buffer.get(recordData, recordOffset, sizeToRead); // write attribute value to record data
+                recordOffset += sizeToRead;
+            }
+
+            ByteBuffer recDataBuffer = ByteBuffer.allocate(recordOffset);
+            recDataBuffer.put(recordData, 0, recordOffset);
+            Record record = new Record(recDataBuffer, recordOffset);
+            page.addRecord(record);
+            page.size += recordOffset;
+        }
 
         return page;
     }
@@ -88,13 +120,19 @@ public class Page {
         this.updated = updated;
     }
 
-    public boolean hasSpaceFor(Record record) {
-        // TODO: Get max records working as a constant
-        final int MAX_RECORDS_PER_PAGE = 100; 
-        return this.records.size() < MAX_RECORDS_PER_PAGE;
+    public int getSize() {
+        return this.size;
     }
 
     public void setTableNumber(int newTableNumber) {
         this.tableNumber = newTableNumber;
+    }
+
+    public int getNumRecords() {
+        return numRecords;
+    }
+
+    public void setNumRecords(int numRecords) {
+        this.numRecords = numRecords;
     }
 }
