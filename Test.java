@@ -41,6 +41,7 @@ public class Test {
         attributeSchemas[1] = attr2;
         attributeSchemas[2] = attr3;
         TableSchema tableSchema = new TableSchema(3, "table0", 0, attributeSchemas);
+        tableSchema.setNumPages(1);
         catalog.addTable(catalog, tableSchema);
         System.out.println("tableCount: " + catalog.tableCount);
 
@@ -57,5 +58,9 @@ public class Test {
         byte testFlagByte = testRecord.getdata().get();
         boolean testFlag = (boolean)(testFlagByte == 1 ? true : false);
         System.out.println("testFlag: " + testFlag);
+    }
+
+    public static void testGetRecords(StorageManager storageManager) {
+        storageManager.getRecords(0);
     }
 }

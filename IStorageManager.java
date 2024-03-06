@@ -54,10 +54,37 @@ public class IStorageManager implements StorageManager {
     }
     
     private void printRecord(Record record, AttributeSchema[] attributeSchemas) {
+        if (record.getdata().position() > 0) record.getdata().flip();
         StringBuilder recordString = new StringBuilder("|");
         for (AttributeSchema attr : attributeSchemas) {
-            Object value = record.getAttributeValue(attr.getname()); 
-            recordString.append(String.format(" %-10s |", value.toString()));
+            int sizeToRead = attr.getsize(); //used to tell how much data to read from page.data
+            if (attr.gettype().equals("varchar")) {
+                sizeToRead = record.getdata().getInt(); //if type is varchar, read int that tells length of varchar
+                byte[] attrValueBytes = new byte[sizeToRead];
+                record.getdata().get(attrValueBytes, 0, sizeToRead);
+                String attrValue = new String(attrValueBytes);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            if (attr.gettype().equals("char")) {
+                byte[] attrValueBytes = new byte[sizeToRead];
+                record.getdata().get(attrValueBytes, 0, sizeToRead);
+                String attrValue = new String(attrValueBytes);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            if (attr.gettype().equals("integer")) {
+                int attrValue = record.getdata().getInt();
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            if (attr.gettype().equals("double")) {
+                double attrValue = record.getdata().getDouble();
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            if (attr.gettype().equals("boolean")) {
+                byte attrValueByte = record.getdata().get();
+                boolean attrValue = (boolean)(attrValueByte == 1 ? true : false);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            //recordString.append(String.format(" %-10s |", value.toString()));
         }
         System.out.println(recordString);
     }

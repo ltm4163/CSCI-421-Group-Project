@@ -76,6 +76,10 @@ public class TableSchema implements ITableSchema {
         return this.numPages;
     }
 
+    public void setNumPages(int numPages) {
+        this.numPages = numPages;
+    }
+
     public int getNextPageNumber() {
         return this.numPages;
     }
