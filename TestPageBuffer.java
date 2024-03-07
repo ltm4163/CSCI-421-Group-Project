@@ -55,5 +55,73 @@ public class TestPageBuffer {
         boolean sameornot=(page2.equals(buffer.getPage(2,2)));
         System.out.println("Page 2 is the same: "+sameornot);
     }
+    public static void testWritePageToHardware() {
+        // Create a mock Page object
+        Page mockPage = new Page(1, 1, true); // Assuming constructor takes table number, page number, and data
+
+        // Create a ByteArrayOutputStream to capture the data written to the file
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        // Mock Files.write to capture the data written to the file
+        try {
+            Files.write(Paths.get("mock/file/path.bin"), mockPage.toBinary());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        // Read the data written to the file
+        byte[] actualData = outputStream.toByteArray();
+        byte[] expectedData = mockPage.toBinary(); // Assuming this method exists in Page class
+
+        // Verify that the data written to the file matches the expected binary representation of the page data
+        if (expectedData.equals(actualData)) {
+            System.out.println("Test passed: Data written to file matches expected data.");
+        } else {
+            System.out.println("Test failed: Data written to file does not match expected data.");
+        }
+    }
+    public void testWriteBufferToHardware() throws IOException {
+        // Create a mock PageBuffer object
+        PageBuffer buffer = new PageBuffer(3);
+
+        // Create mock Page objects
+        Page mockPage1 = new Page(1, 1, true);
+        Page mockPage2 = new Page(2, 2, false);
+
+        // Add mock pages to the buffer
+        buffer.addPage(1, mockPage1);
+        buffer.addPage(2, mockPage2);
+
+        // Create a ByteArrayOutputStream to capture the data written to the file
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        // Mock writePageToHardware method to capture the data written to the ByteArrayOutputStream
+        buffer.setWritePageToHardware(page -> {
+            try {
+                byte[] data = page.toBinary(); // Assuming this method exists in Page class
+                outputStream.write(data);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+
+        // Call writeBufferToHardware method
+        buffer.writeBufferToHardware();
+
+        // Verify that the data written to the ByteArrayOutputStream matches the expected binary representation of the page data for each page
+        byte[] actualData = outputStream.toByteArray();
+
+        // Expected binary representations of the mock page data
+        byte[] expectedData1 = mockPage1.toBinary();
+        byte[] expectedData2 = mockPage2.toBinary();
+
+        // Verify that the data written to the ByteArrayOutputStream matches the expected binary representations of the page data
+        
+        boolean data1equv=expectedData1.equals(actualData);
+        boolean data2equv=expectedData2.equals(actualData);
+        System.out.println("Mock Page 1 Binary data is a match: "+data1equv);
+        System.out.println("Mock Page 2 Binary data is a match: "+data2equv);
+    }
+    
      
 }

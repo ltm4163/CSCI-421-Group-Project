@@ -5,10 +5,12 @@ import java.nio.file.Paths;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 public class PageBuffer {
     private final int capacity;
     private final LinkedHashMap<Pair<Integer, Integer>, Page> pages;
+    private Consumer<Page> writePageToHardware;
 
     public PageBuffer(int capacity) {
         this.capacity = capacity;
@@ -100,5 +102,10 @@ public class PageBuffer {
             result = 31 * result + pageNumber.hashCode();
             return result;
         }
+    }
+
+    public void setWritePageToHardware(Consumer<Page> writePageToHardware) {
+        // TODO Auto-generated method stub
+        this.writePageToHardware = writePageToHardware;
     }
 }
