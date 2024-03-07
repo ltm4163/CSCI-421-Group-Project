@@ -31,8 +31,9 @@ public class Main {
         StorageManager storageManager = new IStorageManager(catalog, pageSize);
 
         // Testing begin
-        // Test.testGetPage(catalog, storageManager);
-        // Test.testGetRecords(storageManager);
+        // StorageManagerTest.testGetPage(catalog, storageManager);
+        // StorageManagerTest.testGetRecords(storageManager);
+        StorageManagerTest.testInsert(catalog, storageManager);
         // Testing end
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {

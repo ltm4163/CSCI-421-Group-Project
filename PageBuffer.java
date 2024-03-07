@@ -3,17 +3,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 public class PageBuffer {
     private final int capacity;
-    private final LinkedHashMap<Integer, Page> pages;
+    private final LinkedHashMap<Pair<Integer, Integer>, Page> pages;
 
     public PageBuffer(int capacity) {
         this.capacity = capacity;
         this.pages = new LinkedHashMap<>() {
             @Override
-            protected boolean removeEldestEntry(Map.Entry<Integer, Page> eldest) {
+            protected boolean removeEldestEntry(Map.Entry<Pair<Integer, Integer>, Page> eldest) {
                 boolean shouldRemove = size() > PageBuffer.this.capacity;
                 if (shouldRemove) {
                     writePageToHardware(eldest.getValue());
@@ -24,15 +25,18 @@ public class PageBuffer {
     }
 
     public void addPage(int pageNumber, Page page) {
-        pages.put(pageNumber, page);
+        Pair<Integer, Integer> key = new Pair<>(page.getTableNumber(), pageNumber);
+        pages.put(key, page);
     }
 
-    public Page getPage(int pageNumber) {
-        return pages.get(pageNumber);
+    public Page getPage(int tableNumber, int pageNumber) {
+        Pair<Integer, Integer> key = new Pair<>(tableNumber, pageNumber);
+        return pages.get(key);
     }
 
-    public boolean isPageInBuffer(int pageNumber) {
-        return pages.containsKey(pageNumber);
+    public boolean isPageInBuffer(int tableNumber, int pageNumber) {
+        Pair<Integer, Integer> key = new Pair<>(tableNumber, pageNumber);
+        return pages.containsKey(key);
     }
 
     // Adjusted to handle binary data writing
@@ -53,10 +57,48 @@ public class PageBuffer {
 
     public void updatePage(Page targetPage) {
         int pageNumber = targetPage.getPageNumber();
-        if (pages.containsKey(pageNumber)) {
-            pages.put(pageNumber, targetPage); // Replace the old page with the updated one
+        Pair<Integer, Integer> key = new Pair<>(targetPage.getTableNumber(), pageNumber);
+        if (pages.containsKey(key)) {
+            pages.put(key, targetPage); // Replace the old page with the updated one
         } else {
             addPage(pageNumber, targetPage); // If the page wasn't in the buffer, add it
+        }
+    }
+
+    // Define a custom Pair class to represent the key
+    static class Pair<K, V> {
+        private final K tableNumber;
+        private final V pageNumber;
+
+        public Pair(K first, V second) {
+            this.tableNumber = first;
+            this.pageNumber = second;
+        }
+
+        public K getTableNumber() {
+            return tableNumber;
+        }
+
+        public V getPageNumber() {
+            return pageNumber;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+
+            Pair<?, ?> pair = (Pair<?, ?>) o;
+
+            if (!tableNumber.equals(pair.tableNumber)) return false;
+            return pageNumber.equals(pair.pageNumber);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = tableNumber.hashCode();
+            result = 31 * result + pageNumber.hashCode();
+            return result;
         }
     }
 }

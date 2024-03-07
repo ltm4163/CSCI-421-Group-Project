@@ -16,17 +16,32 @@ public class Page {
         this.tableNumber = tableNumber;
         this.updated = updated;
         this.records = new ArrayList<>();
+        this.size = Integer.BYTES; //accounts for numRecs int
+        this.numRecords = 0;
     }
 
     // Adds a record to the page, marking it as updated.
     public void addRecord(Record record) {
         this.records.add(record);
+        this.numRecords++;
+        this.size += record.getsize();
+        this.updated = true;
+    }
+
+    public void shiftRecordsAndAdd(Record rec, int startingIndex) {
+        this.records.add(rec);
+        for (int i = this.getNumRecords(); i > startingIndex; i--) {
+            this.records.set(i, records.get(i-1));
+        }
+        this.records.set(startingIndex, rec);
+        this.numRecords++;
+        this.size += rec.getsize();
         this.updated = true;
     }
 
     // Check if the page is overfull.
     public boolean isOverfull() {
-        return getSize() < Main.getPageSize();
+        return getSize() > Main.getPageSize();
     }
 
     // Serializes the page and its records to a binary format.
@@ -50,16 +65,13 @@ public class Page {
         AttributeSchema[] attributeSchemas = tableSchema.getattributes();
 
         Page page = new Page(pageNumber, tableNumber, false);
-        page.setNumRecords(numRecords);
-        page.size = 4; // numRecords counts towards page size
 
-        // TODO: Logic to deserialize each record and add it to the page
-
-        for (int i = 0; i < numRecords; i++) {
+        // Populate page with records using data from file
+        for (int i = 0; i < numRecords; i++) { // iterare through records
             int recordOffset = 0; // used for writing to record byte array
             byte[] recordData = new byte[Main.getPageSize()];
 
-            for (int j = 0; j < tableSchema.getnumAttributes(); j++) {
+            for (int j = 0; j < tableSchema.getnumAttributes(); j++) { // iterate through attributes
                 AttributeSchema attr = attributeSchemas[j];
                 String attrType = attr.gettype();
                 int sizeToRead = attr.getsize(); // used to know how many bytes to read for current attribute
@@ -108,6 +120,10 @@ public class Page {
         return pageNumber;
     }
 
+    public void setPageNumber(int pageNumber) {
+        this.pageNumber = pageNumber;
+    }
+
     public int getTableNumber() {
         return tableNumber;
     }
@@ -122,6 +138,10 @@ public class Page {
 
     public int getSize() {
         return this.size;
+    }
+
+    public void setSize(int size) {
+        this.size = size;
     }
 
     public void setTableNumber(int newTableNumber) {
