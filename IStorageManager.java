@@ -17,10 +17,11 @@ public class IStorageManager implements StorageManager {
     
 
     @Override
-    public void getRecords(int tableNumber) {
+    public ArrayList<ArrayList<Object>> getRecords(int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
         List<Page> pages = new ArrayList<>();
-        
+        ArrayList<ArrayList<Object>> tuples = new ArrayList<>();
+
         for (int i = 0; i < table.getNumPages(); i++) { // get all pages for table from buffer and file
             Page page;
             if (buffer.isPageInBuffer(tableNumber, i)) { 
@@ -31,63 +32,12 @@ public class IStorageManager implements StorageManager {
             pages.add(page);
         }
 
-        printAttributeNames(table.getattributes());
-        
         for (Page page : pages) {
             for (Record record : page.getRecords()) {
-                printRecord(record, table.getattributes());
+                tuples.add(record.getdata());
             }
         }
-    }
-
-    private void printAttributeNames(AttributeSchema[] attributeSchemas) {
-        StringBuilder header = new StringBuilder("|");
-        StringBuilder separator = new StringBuilder("+");
-        for (AttributeSchema attr : attributeSchemas) {
-            String attrName = String.format(" %-10s |", attr.getname());
-            header.append(attrName);
-            separator.append("-".repeat(attrName.length() - 1)).append("+");
-        }
-        System.out.println(separator);
-        System.out.println(header);
-        System.out.println(separator);
-    }
-    
-    private void printRecord(Record record, AttributeSchema[] attributeSchemas) {
-        if (record.getdata().position() > 0) record.getdata().rewind();
-        StringBuilder recordString = new StringBuilder("|");
-        for (AttributeSchema attr : attributeSchemas) {
-            
-            // print value of each attribute in record
-            if (attr.gettype().equals("varchar")) {
-                int sizeOfString = record.getdata().getInt(); //if type is varchar, read int that tells length of varchar
-                byte[] attrValueBytes = new byte[sizeOfString];
-                record.getdata().get(attrValueBytes, 0, sizeOfString);
-                String attrValue = new String(attrValueBytes);
-                recordString.append(String.format(" %-10s |", attrValue));
-            }
-            else if (attr.gettype().equals("char")) {
-                int sizeOfString = attr.getsize(); //used to tell how big string is
-                byte[] attrValueBytes = new byte[sizeOfString];
-                record.getdata().get(attrValueBytes, 0, sizeOfString);
-                String attrValue = new String(attrValueBytes);
-                recordString.append(String.format(" %-10s |", attrValue));
-            }
-            else if (attr.gettype().equals("integer")) {
-                int attrValue = record.getdata().getInt();
-                recordString.append(String.format(" %-10s |", attrValue));
-            }
-            else if (attr.gettype().equals("double")) {
-                double attrValue = record.getdata().getDouble();
-                recordString.append(String.format(" %-10s |", attrValue));
-            }
-            else if (attr.gettype().equals("boolean")) {
-                byte attrValueByte = record.getdata().get();
-                boolean attrValue = (boolean)(attrValueByte == 1 ? true : false);
-                recordString.append(String.format(" %-10s |", attrValue));
-            }
-        }
-        System.out.println(recordString);
+        return tuples;
     }
     
     public Page getPage(int tableNumber, int pageNumber) {
@@ -120,11 +70,12 @@ public class IStorageManager implements StorageManager {
                 if (indexFound && !maintainConstraints) break;
                 Record existingRecord = existingRecords.get(j);
 
+                int tupleIndex = 0; // index of current attribute in tuple
                 for (AttributeSchema attr : attributes) {
                     if (attr.getunique() || attr.getnotnull()) maintainConstraints = true;
                     if (indexFound && !maintainConstraints) break;
                     if (attr.getprimarykey()) {
-                        int comparisonResult = compare(attr, record, existingRecord);
+                        int comparisonResult = compare(attr, record, existingRecord, tupleIndex);
                         if (comparisonResult == 0) {
                             // TODO: cancel insert
                             return;
@@ -137,7 +88,7 @@ public class IStorageManager implements StorageManager {
                     }
                     else {
                         if (attr.getunique()) {
-                            int comparisonResult = compare(attr, record, existingRecord);
+                            int comparisonResult = compare(attr, record, existingRecord, tupleIndex);
                             if (comparisonResult == 0) {
                                 // TODO: cancel insert
                                 return;
@@ -148,6 +99,7 @@ public class IStorageManager implements StorageManager {
                             //  cancel insert if so
                         }
                     }
+                    tupleIndex++; // move to next attribute in tuple
                 }
             }
 
@@ -241,60 +193,35 @@ public class IStorageManager implements StorageManager {
     // }
     
     // Tells findInsertionPage if current location is where to insert record
-    private int compare(AttributeSchema attr, Record record, Record existingRecord) {
-        if (record.getdata().position() > 0) record.getdata().rewind();
-        if (existingRecord.getdata().position() > 0) existingRecord.getdata().rewind();
+    private int compare(AttributeSchema attr, Record record, Record existingRecord, int tupleIndex) {
         if (attr.gettype().equals("varchar")) {
-            int sizeOfStringInsert = record.getdata().getInt(); //if type is varchar, read int that tells length of varchar
-            byte[] attrValueInsertBytes = new byte[sizeOfStringInsert];
-            record.getdata().get(attrValueInsertBytes, 0, sizeOfStringInsert);
-            String attrValueInsert = new String(attrValueInsertBytes);
-
-            int sizeOfStringExisting = existingRecord.getdata().getInt(); //if type is varchar, read int that tells length of varchar
-            byte[] attrValueExistingBytes = new byte[sizeOfStringExisting];
-            existingRecord.getdata().get(attrValueExistingBytes, 0, sizeOfStringExisting);
-            String attrValueExisting = new String(attrValueExistingBytes);
-            
+            String attrValueInsert = (String)record.getdata().get(tupleIndex);
+            String attrValueExisting = (String)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert.compareTo(attrValueExisting);
         }
         else if (attr.gettype().equals("char")) {
-            int sizeOfString = attr.getsize(); //if type is varchar, read int that tells length of varchar
-            byte[] attrValueInsertBytes = new byte[sizeOfString];
-            record.getdata().get(attrValueInsertBytes, 0, sizeOfString);
-            String attrValueInsert = new String(attrValueInsertBytes);
-
-            byte[] attrValueExistingBytes = new byte[sizeOfString];
-            existingRecord.getdata().get(attrValueExistingBytes, 0, sizeOfString);
-            String attrValueExisting = new String(attrValueExistingBytes);
-            
+            String attrValueInsert = (String)record.getdata().get(tupleIndex);
+            String attrValueExisting = (String)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert.compareTo(attrValueExisting);
         }
         else if (attr.gettype().equals("integer")) {
-            int attrValueInsert = record.getdata().getInt();
-            int attrValueExisting = existingRecord.getdata().getInt();
+            int attrValueInsert = (int)record.getdata().get(tupleIndex);
+            int attrValueExisting = (int)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert-attrValueExisting;
         }
         else if (attr.gettype().equals("double")) {
-            double attrValueInsert = record.getdata().getDouble();
-            double attrValueExisting = existingRecord.getdata().getDouble();
+            double attrValueInsert = (double)record.getdata().get(tupleIndex);
+            double attrValueExisting = (double)existingRecord.getdata().get(tupleIndex);
             return (int)(attrValueInsert-attrValueExisting);
         }
         else if (attr.gettype().equals("boolean")) {
-            byte attrValueInsertByte = record.getdata().get();
-            //boolean attrValueInsert = (boolean)(attrValueInsertByte == 1 ? true : false);
-            byte attrValueExistingByte = existingRecord.getdata().get();
-            //boolean attrValueExisting = (boolean)(attrValueExistingByte == 1 ? true : false);
+            boolean attrValueInsert = (boolean)record.getdata().get(tupleIndex);
+            boolean attrValueExisting = (boolean)existingRecord.getdata().get(tupleIndex);
+            byte attrValueInsertByte = (byte)(attrValueInsert ? 1 : 0);
+            byte attrValueExistingByte = (byte)(attrValueExisting ? 1 : 0);
             return attrValueInsertByte-attrValueExistingByte;
         }
         return 0;
-    }
-    
-    private Page findInsertionPage(TableSchema table, Record record) {
-        
-    
-        Page newPage = new Page(table.gettableNumber(), table.getNextPageNumber(), false);
-        table.addPage(newPage);
-        return newPage;
     }
     
     @Override
