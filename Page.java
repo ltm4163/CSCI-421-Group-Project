@@ -45,12 +45,12 @@ public class Page {
     }
 
     // Serializes the page and its records to a binary format.
-    public byte[] toBinary() {
-        ByteBuffer buffer = ByteBuffer.allocate(calculateBinarySize());
-        buffer.putInt(records.size()); // First 4 bytes for the number of records
+    public byte[] toBinary(TableSchema tableSchema) {
+        ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
+        buffer.putInt(getNumRecords()); // First 4 bytes for the number of records
 
         for (Record record : records) {
-            byte[] recordBytes = record.toBinary(); // Assuming Record has a toBinary method
+            byte[] recordBytes = record.toBinary(tableSchema.getattributes()); // Assuming Record has a toBinary method
             buffer.put(recordBytes);
         }
 
@@ -70,40 +70,58 @@ public class Page {
         for (int i = 0; i < numRecords; i++) { // iterare through records
             int recordOffset = 0; // used for writing to record byte array
             byte[] recordData = new byte[Main.getPageSize()];
+            ArrayList<Object> attrValues = new ArrayList<>(tableSchema.getnumAttributes());
 
             for (int j = 0; j < tableSchema.getnumAttributes(); j++) { // iterate through attributes
                 AttributeSchema attr = attributeSchemas[j];
                 String attrType = attr.gettype();
-                int sizeToRead = attr.getsize(); // used to know how many bytes to read for current attribute
+                // int sizeToRead = attr.getsize(); // used to know how many bytes to read for current attribute
 
-                if (attrType.equals("varchar")) { //if type is varchar, read int that tells length of varchar
-                    sizeToRead = buffer.getInt();
-                    byte[] intBytes = ByteBuffer.allocate(Integer.BYTES).putInt(sizeToRead).array();
-                    System.arraycopy(intBytes, 0, recordData, recordOffset, intBytes.length); // store int in record data
-                    recordOffset += Integer.BYTES;
+                // if (attrType.equals("varchar")) { //if type is varchar, read int that tells length of varchar
+                //     sizeToRead = buffer.getInt();
+                //     byte[] intBytes = ByteBuffer.allocate(Integer.BYTES).putInt(sizeToRead).array();
+                //     System.arraycopy(intBytes, 0, recordData, recordOffset, intBytes.length); // store int in record data
+                //     recordOffset += Integer.BYTES;
+                // }
+
+                // buffer.get(recordData, recordOffset, sizeToRead); // write attribute value to record data
+                // recordOffset += sizeToRead;
+
+                if (attrType.equals("varchar")) {
+                    int sizeOfString = buffer.getInt(); //if type is varchar, read int that tells length of varchar
+                    byte[] attrValueBytes = new byte[sizeOfString];
+                    buffer.get(attrValueBytes, 0, sizeOfString);
+                    String attrValue = new String(attrValueBytes);
+                    attrValues.add(attrValue);
                 }
-
-                buffer.get(recordData, recordOffset, sizeToRead); // write attribute value to record data
-                recordOffset += sizeToRead;
+                else if (attrType.equals("char")) {
+                    int sizeOfString = attr.getsize(); //used to tell how big string is
+                    byte[] attrValueBytes = new byte[sizeOfString];
+                    buffer.get(attrValueBytes, 0, sizeOfString);
+                    String attrValue = new String(attrValueBytes);
+                    attrValues.add(attrValue);
+                }
+                else if (attrType.equals("integer")) {
+                    int attrValue = buffer.getInt();
+                    attrValues.add(attrValue);
+                }
+                else if (attrType.equals("double")) {
+                    double attrValue = buffer.getDouble();
+                    attrValues.add(attrValue);
+                }
+                else if (attrType.equals("boolean")) {
+                    byte attrValueByte = buffer.get();
+                    boolean attrValue = (boolean)(attrValueByte == 1 ? true : false);
+                    attrValues.add(attrValue);
+                }
             }
 
-            ByteBuffer recDataBuffer = ByteBuffer.allocate(recordOffset);
-            recDataBuffer.put(recordData, 0, recordOffset);
-            Record record = new Record(recDataBuffer, recordOffset);
+            Record record = new Record(attrValues, recordOffset);
             page.addRecord(record);
             page.size += recordOffset;
         }
 
         return page;
-    }
-
-    // This is a helper method for toBinary().
-    private int calculateBinarySize() {
-        int size = Integer.BYTES; // Starting with 4 bytes for the number of records
-        for (Record record : records) {
-            size += record.toBinary().length; // Add the size of each record's binary representation
-        }
-        return size;
     }
 
     // Getters and setters
@@ -149,7 +167,7 @@ public class Page {
     }
 
     public int getNumRecords() {
-        return numRecords;
+        return this.numRecords;
     }
 
     public void setNumRecords(int numRecords) {

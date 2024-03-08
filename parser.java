@@ -1,8 +1,53 @@
 import java.io.IOException;
 import java.lang.*;
+import java.util.ArrayList;
 
 public class parser {
 
+    public static void printAttributeNames(AttributeSchema[] attributeSchemas) {
+        StringBuilder header = new StringBuilder("|");
+        StringBuilder separator = new StringBuilder("+");
+        for (AttributeSchema attr : attributeSchemas) {
+            String attrName = String.format(" %-10s |", attr.getname());
+            header.append(attrName);
+            separator.append("-".repeat(attrName.length() - 1)).append("+");
+        }
+        System.out.println(separator);
+        System.out.println(header);
+        System.out.println(separator);
+    }
+    
+    public static void printTuple(ArrayList<Object> tuple, AttributeSchema[] attributeSchemas) {
+        StringBuilder recordString = new StringBuilder("|");
+        int tupleIndex = 0; // index of current attribute in tuple
+        for (AttributeSchema attr : attributeSchemas) {
+            
+            // print value of each attribute in record
+            if (attr.gettype().equals("varchar")) {
+                String attrValue = (String)tuple.get(tupleIndex);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            else if (attr.gettype().equals("char")) {
+                String attrValue = (String)tuple.get(tupleIndex);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            else if (attr.gettype().equals("integer")) {
+                int attrValue = (int)tuple.get(tupleIndex);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            else if (attr.gettype().equals("double")) {
+                double attrValue = (double)tuple.get(tupleIndex);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            else if (attr.gettype().equals("boolean")) {
+                boolean attrValue = (boolean)tuple.get(tupleIndex);
+                recordString.append(String.format(" %-10s |", attrValue));
+            }
+            tupleIndex++;
+        }
+        System.out.println(recordString);
+    }
+    
     private static void handleCreateCommand(String inputLine, Catalog catalog) {
         // TODO: Implement the handleCreateCommand method
     }

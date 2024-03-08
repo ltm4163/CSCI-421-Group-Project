@@ -64,14 +64,14 @@ public class TestPageBuffer {
 
         // Mock Files.write to capture the data written to the file
         try {
-            Files.write(Paths.get("mock/file/path.bin"), mockPage.toBinary());
+            Files.write(Paths.get("mock/file/path.bin"), mockPage.toBinary(Main.getCatalog().getTableSchema(mockPage.getTableNumber())));
         } catch (IOException e) {
             e.printStackTrace();
         }
 
         // Read the data written to the file
         byte[] actualData = outputStream.toByteArray();
-        byte[] expectedData = mockPage.toBinary(); // Assuming this method exists in Page class
+        byte[] expectedData = mockPage.toBinary(Main.getCatalog().getTableSchema(mockPage.getTableNumber())); // Assuming this method exists in Page class
 
         // Verify that the data written to the file matches the expected binary representation of the page data
         if (expectedData.equals(actualData)) {
@@ -98,7 +98,7 @@ public class TestPageBuffer {
         // Mock writePageToHardware method to capture the data written to the ByteArrayOutputStream
         buffer.setWritePageToHardware(page -> {
             try {
-                byte[] data = page.toBinary(); // Assuming this method exists in Page class
+                byte[] data = page.toBinary(Main.getCatalog().getTableSchema(page.getTableNumber())); // Assuming this method exists in Page class
                 outputStream.write(data);
             } catch (IOException e) {
                 e.printStackTrace();
@@ -112,8 +112,8 @@ public class TestPageBuffer {
         byte[] actualData = outputStream.toByteArray();
 
         // Expected binary representations of the mock page data
-        byte[] expectedData1 = mockPage1.toBinary();
-        byte[] expectedData2 = mockPage2.toBinary();
+        byte[] expectedData1 = mockPage1.toBinary(Main.getCatalog().getTableSchema(mockPage1.getTableNumber()));
+        byte[] expectedData2 = mockPage2.toBinary(Main.getCatalog().getTableSchema(mockPage2.getTableNumber()));
 
         // Verify that the data written to the ByteArrayOutputStream matches the expected binary representations of the page data
         

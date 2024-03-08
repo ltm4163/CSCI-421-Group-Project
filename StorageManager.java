@@ -1,6 +1,7 @@
+import java.util.ArrayList;
 
 public interface StorageManager {
-    void getRecords(int tableNumber);
+    ArrayList<ArrayList<Object>> getRecords(int tableNumber);
     void addRecord(Catalog catalog, Record record, int tableNumber);
     Page getPage(int tableNumber, int pageNumber);
     Page findPage(int tableNumber, int pageNumber);

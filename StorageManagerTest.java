@@ -52,44 +52,51 @@ public class StorageManagerTest {
         Page test = storageManager.getPage(0, 0);
         System.out.println("numRecords: " + test.getNumRecords());
         Record testRecord = test.getRecords().get(0);
-        testRecord.getdata().flip();
-        int testInt = testRecord.getdata().getInt();
+        int testInt = (int)testRecord.getdata().get(0);
         System.out.println("testInt: " + testInt);
-        byte[] testStringBytes = new byte[20];
-        testRecord.getdata().get(testStringBytes, 0, 20);
-        String testString = new String(testStringBytes);
+        String testString = (String)testRecord.getdata().get(1);
         System.out.println("testString: " + testString);
-        byte testFlagByte = testRecord.getdata().get();
-        boolean testFlag = (boolean)(testFlagByte == 1 ? true : false);
+        boolean testFlag = (boolean)testRecord.getdata().get(2);
         System.out.println("testFlag: " + testFlag);
     }
 
     // call testGetPage first
-    public static void testGetRecords(StorageManager storageManager) {
-        storageManager.getRecords(0);
+    public static void testGetRecords(Catalog catalog, StorageManager storageManager) {
+        parser.printAttributeNames(catalog.getTableSchema(0).getattributes());
+        ArrayList<ArrayList<Object>> tuples = storageManager.getRecords(0);
+        for(ArrayList<Object> tuple : tuples) {
+            parser.printTuple(tuple, catalog.getTableSchema(0).getattributes());
+        }
     }
 
     public static void testInsert(Catalog catalog, StorageManager storageManager) {
         createTable1(catalog);
         // System.out.println("isPK: " + tableSchema.getattributes()[0].getprimarykey());
+        System.out.println("testing insert");
 
         int int1 = 15;
         String string1 = "larger string";
         boolean flag1 = false;
-        byte[] stringBytes1 = new byte[20];
-        byte[] bytes1 = string1.getBytes();
-        System.arraycopy(bytes1, 0, stringBytes1, 0, bytes1.length);
-        String testString1 = new String(stringBytes1);
-        System.out.println("testString: " + testString1);
-        byte boolByte1 = (byte)(flag1 ? 1: 0);
-        ByteBuffer buffer = ByteBuffer.allocate(Integer.BYTES + 20 + 1);
-        buffer.putInt(int1);
-        buffer.put(stringBytes1, 0, 20);
-        buffer.put(boolByte1);
-        buffer.rewind();
+        ArrayList<Object> recTuple = new ArrayList<>();
+        recTuple.add(int1);
+        recTuple.add(string1);
+        recTuple.add(flag1);
+        int int2 = 11;
+        String string2 = "largest string";
+        boolean flag2 = true;
+        ArrayList<Object> recTuple2 = new ArrayList<>();
+        recTuple2.add(int2);
+        recTuple2.add(string2);
+        recTuple2.add(flag2);
 
-        Record record = new Record(buffer, Integer.BYTES + 20 + 1);
+        Record record = new Record(recTuple, Integer.BYTES + 20 + 1);
+        Record record2 = new Record(recTuple2, Integer.BYTES + 20 + 1);
         storageManager.addRecord(catalog, record, 0);
-        storageManager.getRecords(0);
+        storageManager.addRecord(catalog, record2, 0);
+        parser.printAttributeNames(catalog.getTableSchema(0).getattributes());
+        ArrayList<ArrayList<Object>> tuples = storageManager.getRecords(0);
+        for(ArrayList<Object> tuple : tuples) {
+            parser.printTuple(tuple, catalog.getTableSchema(0).getattributes());
+        }
     }
 }

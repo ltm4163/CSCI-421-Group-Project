@@ -45,7 +45,7 @@ public class PageBuffer {
     public void writePageToHardware(Page page) {
         try {
             String fileName = "path/to/storage/" + page.getTableNumber() + "_" + page.getPageNumber() + ".bin";
-            byte[] data = page.toBinary(); // Assuming this method exists in Page class
+            byte[] data = page.toBinary(Main.getCatalog().getTableSchema(page.getTableNumber())); // Assuming this method exists in Page class
             Files.write(Paths.get(fileName), data);
             System.out.println("Page data is saved in binary format at " + fileName);
         } catch(IOException e) {
