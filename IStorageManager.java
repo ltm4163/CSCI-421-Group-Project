@@ -10,9 +10,9 @@ public class IStorageManager implements StorageManager {
     private Catalog catalog;
     private PageBuffer buffer;
 
-    public IStorageManager(Catalog catalog, int bufferCapacity) {
+    public IStorageManager(Catalog catalog, PageBuffer buffer) {
         this.catalog = catalog;
-        this.buffer = new PageBuffer(bufferCapacity);
+        this.buffer = buffer;
     }
     
 
@@ -254,10 +254,24 @@ public class IStorageManager implements StorageManager {
     private Page loadPageFromDisk(int tableNumber, int pageNumber) {
         Page page = null;
         String fileName = Main.getDbDirectory() + "/tables/" + tableNumber + ".bin";
+        TableSchema tableSchema = catalog.getTableSchema(tableNumber);
         try (RandomAccessFile fileIn = new RandomAccessFile(fileName, "r")) {
             byte[] data = new byte[Main.getPageSize()];
-            //int address = catalog.getTables()[tableNumber].
-            fileIn.seek(Integer.BYTES); // skip numPages int
+            int index = -1; // placeholder value for compiling
+            int[] pageLocations = tableSchema.getPageLocations();
+            for (int i = 0; i < tableSchema.getNumPages(); i++) { // find location of page in file
+                if (pageLocations[i] == pageNumber) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index<0) {
+                //throw new Exception("No pages in table");
+                System.out.println("No pages in table");
+                return null;
+            }
+            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file
+            fileIn.seek(address);
             fileIn.read(data);
             page = Page.fromBinary(data, tableNumber, pageNumber, catalog);
             buffer.addPage(pageNumber, page); 

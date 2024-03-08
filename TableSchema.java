@@ -107,6 +107,9 @@ public class TableSchema implements ITableSchema {
         // TODO: Implement this
         System.out.println("Update page: Placeholder implementation");
     }
+
+    public int[] getPageLocations() {
+        return this.pageLocations;
+    }
     
 }
-

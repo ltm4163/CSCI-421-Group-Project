@@ -1,6 +1,7 @@
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.NotSerializableException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.util.Arrays;
@@ -108,11 +109,17 @@ public class Catalog implements ICatalog{
             FileOutputStream fos=new FileOutputStream(pathname);
             ObjectOutputStream oos=new ObjectOutputStream(fos);
             oos.writeObject(c);
+            System.out.println("c");
             oos.writeObject(c.tables);
+            System.out.println("tables");
             for(int i=0; i < c.tables.length; i++){
                 oos.writeObject(c.tables[i].getattributes());
+                System.out.println("attr");
             }
         } 
+        catch(NotSerializableException e) {
+            System.out.println("Catalog can't currently be written to file like this");
+        }
         catch(IOException ioe){
             System.out.println("An error has occurred while writing this file: "+ioe.getMessage());
         }

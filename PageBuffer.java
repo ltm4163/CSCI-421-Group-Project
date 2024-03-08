@@ -2,6 +2,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.io.RandomAccessFile;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -44,9 +45,26 @@ public class PageBuffer {
     // Adjusted to handle binary data writing
     public void writePageToHardware(Page page) {
         try {
-            String fileName = "path/to/storage/" + page.getTableNumber() + "_" + page.getPageNumber() + ".bin";
-            byte[] data = page.toBinary(Main.getCatalog().getTableSchema(page.getTableNumber())); // Assuming this method exists in Page class
-            Files.write(Paths.get(fileName), data);
+            String fileName = Main.getDbDirectory() + "/tables/" + page.getTableNumber() + ".bin";
+            TableSchema tableSchema = Main.getCatalog().getTableSchema(page.getTableNumber());
+            byte[] data = page.toBinary(tableSchema); // Assuming this method exists in Page class
+            RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
+            int index = -1; // placeholder value for compiling
+            int[] pageLocations = tableSchema.getPageLocations();
+            for (int i = 0; i < tableSchema.getNumPages(); i++) { // find location of page in file
+                if (pageLocations[i] == page.getPageNumber()) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index<0) {
+                //throw new Exception("No pages in table");
+                System.out.println("No pages in table");
+                return;
+            }
+            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file
+            fileOut.seek(address);
+            fileOut.write(data);
             System.out.println("Page data is saved in binary format at " + fileName);
         } catch(IOException e) {
             e.printStackTrace();
@@ -54,7 +72,9 @@ public class PageBuffer {
     }
 
     public void writeBufferToHardware() {
-        pages.values().forEach(this::writePageToHardware);
+        for(Pair<Integer, Integer> key : this.pages.keySet()) {
+            this.writePageToHardware(this.pages.get(key));
+        }
     }
 
     public void updatePage(Page targetPage) {

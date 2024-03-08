@@ -68,6 +68,7 @@ public class Record implements IRecord {
                 byte attrValueByte = (byte)(attrValue ? 1 : 0);
                 recData.put(attrValueByte);
             }
+            tupleIndex++;
         }
         return recData.array();
     }

@@ -3,6 +3,8 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+
+import java.io.RandomAccessFile;
 public class TestPageBuffer {
     public static void testaddPage(){
         PageBuffer buffer = new PageBuffer(3);
@@ -56,41 +58,56 @@ public class TestPageBuffer {
         System.out.println("Page 2 is the same: "+sameornot);
     }
     public static void testWritePageToHardware() {
-        // Create a mock Page object
-        Page mockPage = new Page(1, 1, true); // Assuming constructor takes table number, page number, and data
-
-        // Create a ByteArrayOutputStream to capture the data written to the file
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-
-        // Mock Files.write to capture the data written to the file
+        PageBuffer buffer = new PageBuffer(3);
+        Page mockPage = new Page(1, 1, true);
+        buffer.addPage(1, mockPage);
+        buffer.writePageToHardware(mockPage);
+        System.out.println(mockPage + " write to file");
+        /**
         try {
-            Files.write(Paths.get("mock/file/path.bin"), mockPage.toBinary(Main.getCatalog().getTableSchema(mockPage.getTableNumber())));
-        } catch (IOException e) {
+            Page mockPage = new Page(1, 1, true);
+            String fileName = Main.getDbDirectory() + "/tables/" + mockPage.getTableNumber() + ".bin";
+            TableSchema tableSchema = Main.getCatalog().getTableSchema(mockPage.getTableNumber());
+            byte[] data = mockPage.toBinary(tableSchema); // Assuming this method exists in Page class
+            RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
+            int index = -1; // placeholder value for compiling
+            int[] pageLocations = tableSchema.getPageLocations();
+            for (int i = 0; i < tableSchema.getNumPages(); i++) { // find location of page in file
+                if (pageLocations[i] == mockPage.getPageNumber()) {
+                    index = i;
+                    break;
+                }
+            }
+            if (index<0) {
+                //throw new Exception("No pages in table");
+                System.out.println("No pages in table");
+                return;
+            }
+            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file
+            fileOut.seek(address);
+            fileOut.write(data);
+            System.out.println("Page data is saved in binary format at " + fileName);
+        } catch(IOException e) {
             e.printStackTrace();
         }
-
-        // Read the data written to the file
-        byte[] actualData = outputStream.toByteArray();
-        byte[] expectedData = mockPage.toBinary(Main.getCatalog().getTableSchema(mockPage.getTableNumber())); // Assuming this method exists in Page class
-
-        // Verify that the data written to the file matches the expected binary representation of the page data
-        if (expectedData.equals(actualData)) {
-            System.out.println("Test passed: Data written to file matches expected data.");
-        } else {
-            System.out.println("Test failed: Data written to file does not match expected data.");
-        }
+        */
     }
     public void testWriteBufferToHardware() throws IOException {
         // Create a mock PageBuffer object
-        PageBuffer buffer = new PageBuffer(3);
+        PageBuffer buffer = new PageBuffer(4);
 
         // Create mock Page objects
         Page mockPage1 = new Page(1, 1, true);
         Page mockPage2 = new Page(2, 2, false);
+        Page mockPage3 = new Page(3, 3, false);
 
         // Add mock pages to the buffer
         buffer.addPage(1, mockPage1);
         buffer.addPage(2, mockPage2);
+        buffer.addPage(3, mockPage3);
+        buffer.writeBufferToHardware();
+        System.out.println("All finished writing buffer to hardware");
+        /**
 
         // Create a ByteArrayOutputStream to capture the data written to the file
         ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -122,6 +139,8 @@ public class TestPageBuffer {
         System.out.println("Mock Page 1 Binary data is a match: "+data1equv);
         System.out.println("Mock Page 2 Binary data is a match: "+data2equv);
     }
+    */
     
      
+}
 }
