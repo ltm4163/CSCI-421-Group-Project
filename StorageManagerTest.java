@@ -4,7 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class StorageManagerTest {
-    public static void createTable1(Catalog catalog) {
+    public static void createTable1(Catalog catalog, int numPages) {
         AttributeSchema[] attributeSchemas = new AttributeSchema[3];
         AttributeSchema attr1 = new AttributeSchema("num", "integer", false, false, true, Integer.BYTES);
         AttributeSchema attr2 = new AttributeSchema("words", "char", false, false, false, 20);
@@ -13,7 +13,7 @@ public class StorageManagerTest {
         attributeSchemas[1] = attr2;
         attributeSchemas[2] = attr3;
         TableSchema tableSchema = new TableSchema(3, "table0", 0, attributeSchemas);
-        tableSchema.setNumPages(1);
+        tableSchema.setNumPages(numPages);
         catalog.addTable(catalog, tableSchema);
     }
     
@@ -46,7 +46,7 @@ public class StorageManagerTest {
             e.printStackTrace();
         }
 
-        createTable1(catalog);
+        createTable1(catalog, 1);
         System.out.println("tableCount: " + catalog.tableCount);
 
         Page test = storageManager.getPage(0, 0);
@@ -69,8 +69,15 @@ public class StorageManagerTest {
         }
     }
 
+    // public static void testLoadFromDisk(StorageManager storageManager) {
+    //     Main.getBuffer().writeBufferToHardware();
+    //     Page page = storageManager.loadPageFromDisk(0, 0);
+    //     Record rec = page.getRecords().get(1);
+    //     System.out.println("int2: " + (int)rec.getdata().get(0));
+    // }
+
     public static void testInsert(Catalog catalog, StorageManager storageManager) {
-        createTable1(catalog);
+        createTable1(catalog, 0);
         // System.out.println("isPK: " + tableSchema.getattributes()[0].getprimarykey());
         System.out.println("testing insert");
 

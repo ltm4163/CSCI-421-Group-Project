@@ -28,12 +28,13 @@ public class Main {
 
         catalog = new Catalog(null, 0); 
         buffer = new PageBuffer(bufferSize);
-        StorageManager storageManager = new IStorageManager(catalog, pageSize);
+        StorageManager storageManager = new IStorageManager(catalog, buffer);
 
         // Testing begin
         // StorageManagerTest.testGetPage(catalog, storageManager);
         // StorageManagerTest.testGetRecords(catalog, storageManager);
-        // StorageManagerTest.testInsert(catalog, storageManager);
+        StorageManagerTest.testInsert(catalog, storageManager);
+        //StorageManagerTest.testLoadFromDisk(storageManager);
         // Testing end
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
@@ -42,7 +43,7 @@ public class Main {
             while (true) {
                 System.out.print("JottQL> ");
                 inputLine = reader.readLine();
-                if (inputLine == null || inputLine.trim().equalsIgnoreCase("<quit>")) {
+                if (inputLine == null || inputLine.trim().equalsIgnoreCase("quit")) {
                     break;
                 }
                 parser.parse(inputLine, catalog, buffer, dbDirectory, pageSize);
@@ -84,10 +85,12 @@ public class Main {
     public static void writeBufferToHardware() {
         // TODO: implement this
         System.out.println("writeBufferToHardware...");
+        buffer.writeBufferToHardware();
     }
 
     public static void writeCatalogToFile(String catalogPath) throws IOException {
         // TODO: implement this
         System.out.println("writeCatalogToFile...");
+        //catalog.writeCatalogToFile(catalog, catalogPath);
     }
 }
