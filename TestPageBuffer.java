@@ -62,7 +62,7 @@ public class TestPageBuffer {
         Page mockPage = new Page(1, 1, true);
         buffer.addPage(1, mockPage);
         buffer.writePageToHardware(mockPage);
-        System.out.println(mockPage + " write to file");
+        System.out.println(mockPage + " written to hardware");
         /**
         try {
             Page mockPage = new Page(1, 1, true);
