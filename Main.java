@@ -33,7 +33,7 @@ public class Main {
         // Testing begin
         // StorageManagerTest.testGetPage(catalog, storageManager);
         // StorageManagerTest.testGetRecords(catalog, storageManager);
-        StorageManagerTest.testInsert(catalog, storageManager);
+        //StorageManagerTest.testInsert(catalog, storageManager);
         //StorageManagerTest.testLoadFromDisk(storageManager);
         // Testing end
 

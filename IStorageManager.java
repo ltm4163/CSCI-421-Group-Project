@@ -139,7 +139,7 @@ public class IStorageManager implements StorageManager {
     private void splitPage(Page page) {
         List<Record> records = page.getRecords();
 
-        // TODO: Change this implementation from list to arraylist
+        // TODO: Change this implementation from list to arraylist (dont think this is necessary)
         int midIndex = page.getNumRecords() / 2;
     
         // Use List interface for declaration, ArrayList for instantiation
@@ -161,26 +161,27 @@ public class IStorageManager implements StorageManager {
         }
     
         // Assuming Page has a method setRecords that accepts List<Record>
-        page.setRecords(firstHalf); // Keep first half in the original page
-        page.setNumRecords(midIndex);
-        page.setSize(firstPageSize);
-        Page newPage = new Page(page.getTableNumber(), page.getPageNumber()+1, true);
+        Page newPage = new Page(page.getPageNumber()+1, page.getTableNumber(), true);
         newPage.setRecords(secondHalf); // Move second half to the new page
         newPage.setNumRecords(page.getNumRecords() - midIndex);
         newPage.setSize(secondPageSize);
+        page.setRecords(firstHalf); // Keep first half in the original page
+        page.setNumRecords(midIndex);
+        page.setSize(firstPageSize);
     
-        catalog.getTableSchema(page.getTableNumber()).addPage(newPage);
         // catalog.updatePage(page); // Update the original page in the catalog
         // catalog.addPage(newPage); // Add the new page to the catalog
 
         // update pageNumbers of pages in buffer that were moved in pageLocations array
-        for (int i = 0; i < catalog.getTables()[page.getTableNumber()].getNumPages(); i++) {
+        for (int i = 0; i < catalog.getTableSchema(page.getTableNumber()).getNumPages(); i++) {
             Page bufferPage = buffer.getPage(page.getTableNumber(), i);
-            if (bufferPage.getPageNumber() >= newPage.getPageNumber()) {
-                bufferPage.setPageNumber(bufferPage.getPageNumber()+1);
+            int pageNum = bufferPage.getPageNumber();
+            if (pageNum >= newPage.getPageNumber()) {
+                bufferPage.setPageNumber(pageNum+1);
+                buffer.updatePage(bufferPage);
             }
-            buffer.updatePage(bufferPage);
         }
+        catalog.getTableSchema(page.getTableNumber()).addPage(newPage);
     
         // Assuming buffer has methods updatePage and addPage that accept a Page
         buffer.updatePage(page);
@@ -267,7 +268,7 @@ public class IStorageManager implements StorageManager {
             }
             if (index<0) {
                 //throw new Exception("No pages in table");
-                System.out.println("No pages in table");
+                System.out.println("Can't read page: No pages in table");
                 return null;
             }
             int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file

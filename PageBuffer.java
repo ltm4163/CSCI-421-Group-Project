@@ -57,7 +57,7 @@ public class PageBuffer {
             }
             if (index<0) {
                 //throw new Exception("No pages in table");
-                System.out.println("No pages in table");
+                System.out.println("Can't write page: No pages in table");
                 return;
             }
             int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file
