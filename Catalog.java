@@ -109,12 +109,9 @@ public class Catalog implements ICatalog{
             FileOutputStream fos=new FileOutputStream(pathname);
             ObjectOutputStream oos=new ObjectOutputStream(fos);
             oos.writeObject(c);
-            System.out.println("c");
             oos.writeObject(c.tables);
-            System.out.println("tables");
             for(int i=0; i < c.tables.length; i++){
                 oos.writeObject(c.tables[i].getattributes());
-                System.out.println("attr");
             }
         } 
         catch(NotSerializableException e) {

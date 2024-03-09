@@ -71,8 +71,8 @@ public class StorageManagerTest {
 
     // public static void testLoadFromDisk(StorageManager storageManager) {
     //     Main.getBuffer().writeBufferToHardware();
-    //     Page page = storageManager.loadPageFromDisk(0, 0);
-    //     Record rec = page.getRecords().get(1);
+   //     Page page = storageManager.loadPageFromDisk(0, 1);
+    //     Record rec = page.getRecords().get(0);
     //     System.out.println("int2: " + (int)rec.getdata().get(0));
     // }
 
