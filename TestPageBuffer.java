@@ -62,7 +62,7 @@ public class TestPageBuffer {
         PageBuffer buffer = new PageBuffer(3);
         Page mockPage = new Page(1, 1, true);
         buffer.addPage(1, mockPage);
-        buffer.writePageToHardware(mockPage);
+        
         // Call the writePageToHardware method
         buffer.writePageToHardware(mockPage);
 
