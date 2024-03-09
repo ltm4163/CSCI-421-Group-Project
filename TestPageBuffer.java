@@ -1,4 +1,5 @@
 import java.io.ByteArrayOutputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
@@ -62,7 +63,26 @@ public class TestPageBuffer {
         Page mockPage = new Page(1, 1, true);
         buffer.addPage(1, mockPage);
         buffer.writePageToHardware(mockPage);
-        System.out.println(mockPage + " written to hardware");
+        // Call the writePageToHardware method
+        buffer.writePageToHardware(mockPage);
+
+        // Verify the output by checking the file contents manually
+        try {
+            // Define the file path
+            String fileName = Main.getDbDirectory() + "/tables/" + mockPage.getTableNumber() + ".bin";
+
+            // Read the file
+            FileInputStream fileInputStream = new FileInputStream(fileName);
+            byte[] data = new byte[fileInputStream.available()];
+            fileInputStream.read(data);
+            fileInputStream.close();
+
+            // Print the file contents
+            System.out.println("File contents:");
+            System.out.println(new String(data));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         /**
         try {
             Page mockPage = new Page(1, 1, true);
@@ -106,7 +126,25 @@ public class TestPageBuffer {
         buffer.addPage(2, mockPage2);
         buffer.addPage(3, mockPage3);
         buffer.writeBufferToHardware();
-        System.out.println("All finished writing buffer to hardware");
+        for(PageBuffer.Pair<Integer, Integer> key : buffer.getPages().keySet()){
+            Page page = buffer.getPages().get(key);
+            String fileName = Main.getDbDirectory() + "/tables/" + page.getTableNumber() + ".bin";
+            try {
+                // Read the file
+                FileInputStream fileInputStream = new FileInputStream(fileName);
+                byte[] data = new byte[fileInputStream.available()];
+                fileInputStream.read(data);
+                fileInputStream.close();
+
+                // Print the file contents
+                System.out.println("File contents for " + fileName + ":");
+                System.out.println(new String(data));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        
+
         /**
 
         // Create a ByteArrayOutputStream to capture the data written to the file

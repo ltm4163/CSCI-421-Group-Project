@@ -86,6 +86,9 @@ public class PageBuffer {
             addPage(pageNumber, targetPage); // If the page wasn't in the buffer, add it
         }
     }
+    public  LinkedHashMap<Pair<Integer, Integer>, Page> getPages(){
+        return this.pages;
+    }
 
     // Define a custom Pair class to represent the key
     static class Pair<K, V> {
