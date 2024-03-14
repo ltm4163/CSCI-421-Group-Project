@@ -53,6 +53,14 @@ public class parser {
     }
 
     private static void handleDropCommand(String inputLine, Catalog catalog) {
+        int indexOfSemicolon = inputLine.indexOf(';');
+        if (indexOfSemicolon == -1) {  // If there are no semicolons...
+            System.out.println("Expected ';'");
+            return;
+        } else if (!inputLine.endsWith(";")) {  // If the semicolon's position is not at the end of the statement...
+            System.out.println("';' expected at the end of the statement");
+            return;
+        }
         String []splitfromsemicolon=inputLine.split(";");
         String sqlcommand=splitfromsemicolon[0].trim();
         String [] sqlsplits = sqlcommand.split("\\s+");
