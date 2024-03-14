@@ -72,4 +72,8 @@ public class AttributeSchema implements IAttributeSchema{
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'isNonNull'");
     }
+    public boolean isPrimaryKey() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'isPrimaryKey'");
+    }
 }

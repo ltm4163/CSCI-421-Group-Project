@@ -46,7 +46,7 @@ public class Main {
                 if (inputLine == null || inputLine.trim().equalsIgnoreCase("quit")) {
                     break;
                 }
-                parser.parse(inputLine, catalog, buffer, dbDirectory, pageSize);
+                parser.parse(inputLine, catalog, buffer, dbDirectory, pageSize, storageManager);
             }
         } catch (IOException e) {
             System.err.println("Error reading input: " + e.getMessage());
