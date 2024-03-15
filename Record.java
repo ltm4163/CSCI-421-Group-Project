@@ -2,7 +2,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class Record implements IRecord {
-    private ArrayList<Object> data;
+    private ArrayList<Object> data; //tuple of data
     private int size;
 
     // Constructor

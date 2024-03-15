@@ -31,8 +31,7 @@ public class Main {
         StorageManager storageManager = new IStorageManager(catalog, buffer);
 
         // Testing begin
-        // StorageManagerTest.testGetPage(catalog, storageManager);
-        // StorageManagerTest.testGetRecords(catalog, storageManager);
+        //StorageManagerTest.testNonIntPK(storageManager, catalog);
         //StorageManagerTest.testInsert(catalog, storageManager);
         //StorageManagerTest.testLoadFromDisk(storageManager);
         // Testing end

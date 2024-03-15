@@ -15,7 +15,7 @@ public class IStorageManager implements StorageManager {
         this.buffer = buffer;
     }
     
-
+    // Returns an ArrayList of tuples (tuples are of type ArrayList<Object>)
     @Override
     public ArrayList<ArrayList<Object>> getRecords(int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
@@ -40,6 +40,7 @@ public class IStorageManager implements StorageManager {
         return tuples;
     }
     
+    // Looks for page in buffer, retrieves from file if not in buffer
     public Page getPage(int tableNumber, int pageNumber) {
         Page page = buffer.getPage(tableNumber, pageNumber);
         if (page == null) {
@@ -108,6 +109,7 @@ public class IStorageManager implements StorageManager {
         insertPage(table, record, tableNumber, indexFound, pageIndex, recIndex);
     }
 
+    // Insert record into page
     private void insertPage(TableSchema table, Record record, int tableNumber, boolean indexFound, int pageIndex, int recIndex) {
         Page targetPage;
         if (table.getNumPages() == 0) {
@@ -136,6 +138,7 @@ public class IStorageManager implements StorageManager {
         //updateCatalogAndBufferAfterInsertion(catalog, table, targetPage);
     }
 
+    // Split page into two
     private void splitPage(Page page) {
         List<Record> records = page.getRecords();
 
@@ -252,6 +255,7 @@ public class IStorageManager implements StorageManager {
         throw new UnsupportedOperationException("Unimplemented method 'initialize'");
     }
 
+    // Retrieve page from file
     private Page loadPageFromDisk(int tableNumber, int pageNumber) {
         Page page = null;
         String fileName = Main.getDbDirectory() + "/tables/" + tableNumber + ".bin";
