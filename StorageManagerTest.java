@@ -7,7 +7,7 @@ public class StorageManagerTest {
     public static void createTable1(Catalog catalog, int numPages) {
         AttributeSchema[] attributeSchemas = new AttributeSchema[3];
         AttributeSchema attr1 = new AttributeSchema("num", "integer", false, false, true, Integer.BYTES);
-        AttributeSchema attr2 = new AttributeSchema("words", "char", false, false, false, 20);
+        AttributeSchema attr2 = new AttributeSchema("words", "char", false, false, false, 5);
         AttributeSchema attr3 = new AttributeSchema("flag", "boolean", false, false, false, 1);
         attributeSchemas[0] = attr1;
         attributeSchemas[1] = attr2;

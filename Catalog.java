@@ -186,13 +186,11 @@ public class Catalog implements ICatalog{
     }
 
     public int getTableCount() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getTableCount'");
+        return this.tableCount;
     }
 
     public TableSchema[] getTables() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getTables'");
+        return this.tables;
     }
     
 }

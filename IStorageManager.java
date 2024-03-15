@@ -198,27 +198,27 @@ public class IStorageManager implements StorageManager {
     
     // Tells findInsertionPage if current location is where to insert record
     private int compare(AttributeSchema attr, Record record, Record existingRecord, int tupleIndex) {
-        if (attr.gettype().equals("varchar")) {
+        if (attr.gettype().equalsIgnoreCase("varchar")) {
             String attrValueInsert = (String)record.getdata().get(tupleIndex);
             String attrValueExisting = (String)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert.compareTo(attrValueExisting);
         }
-        else if (attr.gettype().equals("char")) {
+        else if (attr.gettype().equalsIgnoreCase("char")) {
             String attrValueInsert = (String)record.getdata().get(tupleIndex);
             String attrValueExisting = (String)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert.compareTo(attrValueExisting);
         }
-        else if (attr.gettype().equals("integer")) {
+        else if (attr.gettype().equalsIgnoreCase("integer")) {
             int attrValueInsert = (int)record.getdata().get(tupleIndex);
             int attrValueExisting = (int)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert-attrValueExisting;
         }
-        else if (attr.gettype().equals("double")) {
+        else if (attr.gettype().equalsIgnoreCase("double")) {
             double attrValueInsert = (double)record.getdata().get(tupleIndex);
             double attrValueExisting = (double)existingRecord.getdata().get(tupleIndex);
             return (int)(attrValueInsert-attrValueExisting);
         }
-        else if (attr.gettype().equals("boolean")) {
+        else if (attr.gettype().equalsIgnoreCase("boolean")) {
             boolean attrValueInsert = (boolean)record.getdata().get(tupleIndex);
             boolean attrValueExisting = (boolean)existingRecord.getdata().get(tupleIndex);
             byte attrValueInsertByte = (byte)(attrValueInsert ? 1 : 0);
