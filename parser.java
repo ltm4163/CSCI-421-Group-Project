@@ -62,11 +62,18 @@ public class parser {
             System.out.println("';' expected at the end of the statement");
             return;
         }
+        
         String []splitfromsemicolon=inputLine.split(";");
         String sqlcommand=splitfromsemicolon[0].trim();
         String [] sqlsplits = sqlcommand.split("\\s+");
         String tablename = sqlsplits[2];
-        catalog.dropTable(catalog, tablename);
+        int tableexists=catalog.tableExists(catalog, tablename);
+        if(tableexists==1){
+            catalog.dropTable(catalog, tablename);
+        }
+        else{
+            System.out.println("Table does not exists.");
+        }
     }
 
     private static void handleAlterCommand(String inputLine, Catalog catalog) {
