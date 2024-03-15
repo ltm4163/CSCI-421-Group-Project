@@ -69,47 +69,35 @@ public class Page {
         // Populate page with records using data from file
         for (int i = 0; i < numRecords; i++) { // iterare through records
             int recordOffset = 0; // used for writing to record byte array
-            byte[] recordData = new byte[Main.getPageSize()];
             ArrayList<Object> attrValues = new ArrayList<>(tableSchema.getnumAttributes());
 
             for (int j = 0; j < tableSchema.getnumAttributes(); j++) { // iterate through attributes
                 AttributeSchema attr = attributeSchemas[j];
                 String attrType = attr.gettype();
-                // int sizeToRead = attr.getsize(); // used to know how many bytes to read for current attribute
 
-                // if (attrType.equals("varchar")) { //if type is varchar, read int that tells length of varchar
-                //     sizeToRead = buffer.getInt();
-                //     byte[] intBytes = ByteBuffer.allocate(Integer.BYTES).putInt(sizeToRead).array();
-                //     System.arraycopy(intBytes, 0, recordData, recordOffset, intBytes.length); // store int in record data
-                //     recordOffset += Integer.BYTES;
-                // }
-
-                // buffer.get(recordData, recordOffset, sizeToRead); // write attribute value to record data
-                // recordOffset += sizeToRead;
-
-                if (attrType.equals("varchar")) {
+                if (attrType.equalsIgnoreCase("varchar")) {
                     int sizeOfString = buffer.getInt(); //if type is varchar, read int that tells length of varchar
                     byte[] attrValueBytes = new byte[sizeOfString];
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
                     attrValues.add(attrValue);
                 }
-                else if (attrType.equals("char")) {
+                else if (attrType.equalsIgnoreCase("char")) {
                     int sizeOfString = attr.getsize(); //used to tell how big string is
                     byte[] attrValueBytes = new byte[sizeOfString];
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
                     attrValues.add(attrValue);
                 }
-                else if (attrType.equals("integer")) {
+                else if (attrType.equalsIgnoreCase("integer")) {
                     int attrValue = buffer.getInt();
                     attrValues.add(attrValue);
                 }
-                else if (attrType.equals("double")) {
+                else if (attrType.equalsIgnoreCase("double")) {
                     double attrValue = buffer.getDouble();
                     attrValues.add(attrValue);
                 }
-                else if (attrType.equals("boolean")) {
+                else if (attrType.equalsIgnoreCase("boolean")) {
                     byte attrValueByte = buffer.get();
                     boolean attrValue = (boolean)(attrValueByte == 1 ? true : false);
                     attrValues.add(attrValue);

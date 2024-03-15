@@ -23,23 +23,23 @@ public class parser {
         for (AttributeSchema attr : attributeSchemas) {
             
             // print value of each attribute in record
-            if (attr.gettype().equals("varchar")) {
+            if (attr.gettype().equalsIgnoreCase("varchar")) {
                 String attrValue = (String)tuple.get(tupleIndex);
                 recordString.append(String.format(" %-10s |", attrValue));
             }
-            else if (attr.gettype().equals("char")) {
+            else if (attr.gettype().equalsIgnoreCase("char")) {
                 String attrValue = (String)tuple.get(tupleIndex);
                 recordString.append(String.format(" %-10s |", attrValue));
             }
-            else if (attr.gettype().equals("integer")) {
+            else if (attr.gettype().equalsIgnoreCase("integer")) {
                 int attrValue = (int)tuple.get(tupleIndex);
                 recordString.append(String.format(" %-10s |", attrValue));
             }
-            else if (attr.gettype().equals("double")) {
+            else if (attr.gettype().equalsIgnoreCase("double")) {
                 double attrValue = (double)tuple.get(tupleIndex);
                 recordString.append(String.format(" %-10s |", attrValue));
             }
-            else if (attr.gettype().equals("boolean")) {
+            else if (attr.gettype().equalsIgnoreCase("boolean")) {
                 boolean attrValue = (boolean)tuple.get(tupleIndex);
                 recordString.append(String.format(" %-10s |", attrValue));
             }
@@ -53,6 +53,7 @@ public class parser {
     }
 
     private static void handleDropCommand(String inputLine, Catalog catalog) {
+        // TODO: Implement the handleDropCommand method
         int indexOfSemicolon = inputLine.indexOf(';');
         if (indexOfSemicolon == -1) {  // If there are no semicolons...
             System.out.println("Expected ';'");
@@ -72,7 +73,7 @@ public class parser {
         // TODO: Implement the handleAlterCommand method
     }
 
-    private static void handleInsertCommand(String inputLine, Catalog c) {
+    private static void handleInsertCommand(String inputLine, Catalog c, StorageManager storageManager) {
         TableSchema t = null;
         AttributeSchema a;
 
@@ -158,14 +159,14 @@ public class parser {
                 a = t.getattributes()[i];  // Grab the i'th attribute
 
                 // Check if the type matches the current attribute
-                if ("integer".equals(a.gettype())) {
+                if ("integer".equalsIgnoreCase(a.gettype())) {
                     if (!token.matches("\\d+")) {  // Checks if the token contains only digits
                         System.out.println("Expected an integer");
                         return;
                     }
                     valueSizes[i] = Integer.SIZE / 8;
                     values.add(Integer.parseInt(token));
-                } else if ("double".equals(a.gettype())) {
+                } else if ("double".equalsIgnoreCase(a.gettype())) {
                     try {
                         double doubleValue = Double.parseDouble(token);
                         valueSizes[i] = Double.SIZE / 8;
@@ -174,21 +175,22 @@ public class parser {
                         System.out.println("Expected a double");
                         return;
                     }
-                } else if ("boolean".equals(a.gettype())) {
+                } else if ("boolean".equalsIgnoreCase(a.gettype())) {
                     if (!"true".equalsIgnoreCase(token) && !"false".equalsIgnoreCase(token)) {
                         System.out.println("Expected a boolean");
                         return;
                     }
                     valueSizes[i] = Byte.SIZE / 8;
                     values.add(Boolean.parseBoolean(token));
-                } else if ("char".equals(a.gettype())) {
+                } else if ("char".equalsIgnoreCase(a.gettype())) {
+                    System.out.println("tokLength: " + token.length());
                     if (token.charAt(0) != '"' || token.length() - 1 != a.getsize() || token.charAt(a.getsize() + 1) != '"') {
                         System.out.println("Expected quotes around char or incorrect size of char");
                         return;
                     }
                     valueSizes[i] = a.getsize();
                     values.add(token);
-                } else if ("varchar".equals(a.gettype())) {
+                } else if ("varchar".equalsIgnoreCase(a.gettype())) {
                     if (token.charAt(0) != '"' || token.length() - 1 > a.getsize() || token.charAt(a.getsize() + 1) != '"') {
                         System.out.println("Expected quotes around varchar or varchar over the size limit");
                         return;
@@ -236,7 +238,7 @@ public class parser {
             }
 
             // Uncomment the following line when the addRecord method is implemented
-            // addRecord(c, r, t.getTableNumber());
+            storageManager.addRecord(c, r, t.gettableNumber());
 
             index++;  // Go to the next tuple
         }
@@ -335,7 +337,7 @@ public class parser {
                 break;
 
             case "insert":
-                handleInsertCommand(inputLine, catalog);
+                handleInsertCommand(inputLine, catalog, storageManager);
                 break;
 
             case "select":

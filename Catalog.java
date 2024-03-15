@@ -186,12 +186,10 @@ public class Catalog implements ICatalog{
     }
 
     public int getTableCount() {
-        // TODO Auto-generated method stub
         return this.tableCount;
     }
 
     public TableSchema[] getTables() {
-        // TODO Auto-generated method stub
         return this.tables;
     }
     

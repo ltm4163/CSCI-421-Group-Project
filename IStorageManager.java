@@ -15,7 +15,7 @@ public class IStorageManager implements StorageManager {
         this.buffer = buffer;
     }
     
-
+    // Returns an ArrayList of tuples (tuples are of type ArrayList<Object>)
     @Override
     public ArrayList<ArrayList<Object>> getRecords(int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
@@ -40,6 +40,7 @@ public class IStorageManager implements StorageManager {
         return tuples;
     }
     
+    // Looks for page in buffer, retrieves from file if not in buffer
     public Page getPage(int tableNumber, int pageNumber) {
         Page page = buffer.getPage(tableNumber, pageNumber);
         if (page == null) {
@@ -108,6 +109,7 @@ public class IStorageManager implements StorageManager {
         insertPage(table, record, tableNumber, indexFound, pageIndex, recIndex);
     }
 
+    // Insert record into page
     private void insertPage(TableSchema table, Record record, int tableNumber, boolean indexFound, int pageIndex, int recIndex) {
         Page targetPage;
         if (table.getNumPages() == 0) {
@@ -136,6 +138,7 @@ public class IStorageManager implements StorageManager {
         //updateCatalogAndBufferAfterInsertion(catalog, table, targetPage);
     }
 
+    // Split page into two
     private void splitPage(Page page) {
         List<Record> records = page.getRecords();
 
@@ -195,27 +198,27 @@ public class IStorageManager implements StorageManager {
     
     // Tells findInsertionPage if current location is where to insert record
     private int compare(AttributeSchema attr, Record record, Record existingRecord, int tupleIndex) {
-        if (attr.gettype().equals("varchar")) {
+        if (attr.gettype().equalsIgnoreCase("varchar")) {
             String attrValueInsert = (String)record.getdata().get(tupleIndex);
             String attrValueExisting = (String)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert.compareTo(attrValueExisting);
         }
-        else if (attr.gettype().equals("char")) {
+        else if (attr.gettype().equalsIgnoreCase("char")) {
             String attrValueInsert = (String)record.getdata().get(tupleIndex);
             String attrValueExisting = (String)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert.compareTo(attrValueExisting);
         }
-        else if (attr.gettype().equals("integer")) {
+        else if (attr.gettype().equalsIgnoreCase("integer")) {
             int attrValueInsert = (int)record.getdata().get(tupleIndex);
             int attrValueExisting = (int)existingRecord.getdata().get(tupleIndex);
             return attrValueInsert-attrValueExisting;
         }
-        else if (attr.gettype().equals("double")) {
+        else if (attr.gettype().equalsIgnoreCase("double")) {
             double attrValueInsert = (double)record.getdata().get(tupleIndex);
             double attrValueExisting = (double)existingRecord.getdata().get(tupleIndex);
             return (int)(attrValueInsert-attrValueExisting);
         }
-        else if (attr.gettype().equals("boolean")) {
+        else if (attr.gettype().equalsIgnoreCase("boolean")) {
             boolean attrValueInsert = (boolean)record.getdata().get(tupleIndex);
             boolean attrValueExisting = (boolean)existingRecord.getdata().get(tupleIndex);
             byte attrValueInsertByte = (byte)(attrValueInsert ? 1 : 0);
@@ -252,6 +255,7 @@ public class IStorageManager implements StorageManager {
         throw new UnsupportedOperationException("Unimplemented method 'initialize'");
     }
 
+    // Retrieve page from file
     private Page loadPageFromDisk(int tableNumber, int pageNumber) {
         Page page = null;
         String fileName = Main.getDbDirectory() + "/tables/" + tableNumber + ".bin";

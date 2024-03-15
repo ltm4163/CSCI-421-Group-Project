@@ -2,7 +2,7 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class Record implements IRecord {
-    private ArrayList<Object> data;
+    private ArrayList<Object> data; //tuple of data
     private int size;
 
     // Constructor
@@ -45,25 +45,25 @@ public class Record implements IRecord {
         ByteBuffer recData = ByteBuffer.allocate(getsize());
         int tupleIndex = 0; // index of current attribute in tuple
         for (AttributeSchema attr : attributeSchemas) {
-            if (attr.gettype().equals("varchar")) {
+            if (attr.gettype().equalsIgnoreCase("varchar")) {
                 String attrValue = (String)this.getdata().get(tupleIndex);
                 byte[] attrBytes = attrValue.getBytes();
                 recData.put(attrBytes);
             }
-            else if (attr.gettype().equals("char")) {
+            else if (attr.gettype().equalsIgnoreCase("char")) {
                 String attrValue = (String)this.getdata().get(tupleIndex);
                 byte[] attrBytes = attrValue.getBytes();
                 recData.put(attrBytes);
             }
-            else if (attr.gettype().equals("integer")) {
+            else if (attr.gettype().equalsIgnoreCase("integer")) {
                 int attrValue = (int)this.getdata().get(tupleIndex);
                 recData.putInt(attrValue);
             }
-            else if (attr.gettype().equals("double")) {
+            else if (attr.gettype().equalsIgnoreCase("double")) {
                 double attrValue = (double)this.getdata().get(tupleIndex);
                 recData.putDouble(attrValue);
             }
-            else if (attr.gettype().equals("boolean")) {
+            else if (attr.gettype().equalsIgnoreCase("boolean")) {
                 boolean attrValue = (boolean)this.getdata().get(tupleIndex);
                 byte attrValueByte = (byte)(attrValue ? 1 : 0);
                 recData.put(attrValueByte);

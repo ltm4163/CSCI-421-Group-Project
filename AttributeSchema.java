@@ -55,7 +55,7 @@ public class AttributeSchema implements IAttributeSchema{
     public void displayAttribute(AttributeSchema attr) {
         System.out.println(attr.getname());
     
-        if((attr.gettype().equals("char")) || (attr.gettype().equals("varchar"))) {
+        if((attr.gettype().equalsIgnoreCase("char")) || (attr.gettype().equalsIgnoreCase("varchar"))) {
             System.out.println(attr.gettype()+","+attr.getsize());
         } else { System.out.println(attr.gettype()); }
     
@@ -65,15 +65,13 @@ public class AttributeSchema implements IAttributeSchema{
         System.out.println("\n");
     }
     public boolean isUnique() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'isUnique'");
+        return this.unique;
     }
     public boolean isNonNull() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'isNonNull'");
+        return this.nonNull;
     }
+
     public boolean isPrimaryKey() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'isPrimaryKey'");
+        return this.primaryKey;
     }
 }
