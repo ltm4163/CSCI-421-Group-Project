@@ -14,7 +14,7 @@ public class StorageManagerTest {
         attributeSchemas[2] = attr3;
         TableSchema tableSchema = new TableSchema(3, "table0", 0, attributeSchemas);
         tableSchema.setNumPages(numPages);
-        catalog.addTable(catalog, tableSchema);
+        catalog.addTable(tableSchema);
     }
 
     public static void createTable2(Catalog catalog, int numPages) {
@@ -27,7 +27,7 @@ public class StorageManagerTest {
         attributeSchemas[2] = attr3;
         TableSchema tableSchema = new TableSchema(3, "table0", 0, attributeSchemas);
         tableSchema.setNumPages(numPages);
-        catalog.addTable(catalog, tableSchema);
+        catalog.addTable(tableSchema);
     }
 
     public static void createNonIntTables(Catalog catalog) {
@@ -37,7 +37,7 @@ public class StorageManagerTest {
         attributeSchemas[0] = attr1;
         attributeSchemas[1] = attr2;
         TableSchema tableSchema = new TableSchema(2, "table0", 0, attributeSchemas);
-        catalog.addTable(catalog, tableSchema);
+        catalog.addTable(tableSchema);
 
         AttributeSchema[] attributeSchema1 = new AttributeSchema[2];
         AttributeSchema attr3 = new AttributeSchema("num", "double", false, false, true, Double.BYTES);
@@ -45,7 +45,7 @@ public class StorageManagerTest {
         attributeSchema1[0] = attr3;
         attributeSchema1[1] = attr4;
         TableSchema tableSchema1 = new TableSchema(2, "table1", 1, attributeSchema1);
-        catalog.addTable(catalog, tableSchema1);
+        catalog.addTable(tableSchema1);
 
         AttributeSchema[] attributeSchema2 = new AttributeSchema[2];
         AttributeSchema attr5 = new AttributeSchema("flag", "boolean", false, false, false, 1);
@@ -53,7 +53,7 @@ public class StorageManagerTest {
         attributeSchema2[0] = attr5;
         attributeSchema2[1] = attr6;
         TableSchema tableSchema2 = new TableSchema(2, "table2", 2, attributeSchema2);
-        catalog.addTable(catalog, tableSchema2);
+        catalog.addTable(tableSchema2);
 
         AttributeSchema[] attributeSchema3 = new AttributeSchema[2];
         AttributeSchema attr7 = new AttributeSchema("flag", "boolean", false, false, true, 1);
@@ -61,7 +61,7 @@ public class StorageManagerTest {
         attributeSchema3[0] = attr7;
         attributeSchema3[1] = attr8;
         TableSchema tableSchema3 = new TableSchema(2, "table3", 3, attributeSchema3);
-        catalog.addTable(catalog, tableSchema3);
+        catalog.addTable(tableSchema3);
     }
 
     public static void testNonIntPK(StorageManager storageManager, Catalog catalog) {
@@ -190,16 +190,16 @@ public class StorageManagerTest {
         }
 
         createTable1(catalog, 1);
-        System.out.println("tableCount: " + catalog.tableCount);
+        System.out.println("tableCount: " + catalog.getTableCount());
 
         Page test = storageManager.getPage(0, 0);
         System.out.println("numRecords: " + test.getNumRecords());
         Record testRecord = test.getRecords().get(0);
-        int testInt = (int)testRecord.getdata().get(0);
+        int testInt = (int)testRecord.getData().get(0);
         System.out.println("testInt: " + testInt);
-        String testString = (String)testRecord.getdata().get(1);
+        String testString = (String)testRecord.getData().get(1);
         System.out.println("testString: " + testString);
-        boolean testFlag = (boolean)testRecord.getdata().get(2);
+        boolean testFlag = (boolean)testRecord.getData().get(2);
         System.out.println("testFlag: " + testFlag);
     }
 
