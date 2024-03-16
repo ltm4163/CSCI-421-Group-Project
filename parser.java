@@ -344,10 +344,7 @@ public class parser {
         System.out.println("Record inserted successfully into table: " + table.getname());
     }
 
-    private static void intToBytes(int i, Object getdata, int ptrIndex) {
-        // TODO: Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'intToBytes'");
-    }
+    
 
     private static void displaySchema(Catalog catalog) {
         System.out.println("\nDB location: " + catalog.getDbDirectory());
@@ -456,6 +453,23 @@ public class parser {
         }
         return size;
     }
+    private static void printRecords(ArrayList<ArrayList<Object>> records, TableSchema table) {
+        // Print header with attribute names
+        System.out.print("|");
+        for (AttributeSchema attr : table.getattributes()) {
+            System.out.print(String.format(" %s |", attr.getname()));
+        }
+        System.out.println();
+
+        // Print each record
+        for (ArrayList<Object> record : records) {
+            System.out.print("|");
+            for (Object field : record) {
+                System.out.print(String.format(" %s |", field.toString()));
+            }
+            System.out.println();
+        }
+    }
 
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
@@ -477,7 +491,7 @@ public class parser {
                     System.err.println("Error while saving catalog: " + e.getMessage());
                 }
                 System.out.println("Exiting the database...\n");
-                System.exit(0); // Use System.exit to terminate the application
+                System.exit(0); // terminate the application
                 break;
 
             case "create":
@@ -501,8 +515,23 @@ public class parser {
                 break;
 
             case "display":
+            if (tokens.length > 2 && tokens[1].equalsIgnoreCase("info")) {
+                String tableName = tokens[2].replaceAll(";", "");
+                if (!catalog.tableExists(tableName)) {
+                    System.out.println("No such table " + tableName + "\nERROR");
+                } else {
+                    boolean found = catalog.findTableDisplay(tableName);
+                    if (found) {
+                        System.out.println("SUCCESS");
+                    } else {
+                        System.out.println("ERROR");
+                    }
+                }
+            } else {
                 displaySchema(catalog);
-                break;
+            }
+            break;
+        
 
             default:
                 System.out.println("Unknown command: " + command);
