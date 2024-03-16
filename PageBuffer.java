@@ -1,10 +1,7 @@
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 
 public class PageBuffer {
@@ -40,12 +37,11 @@ public class PageBuffer {
         return pages.containsKey(key);
     }
 
-    // Adjusted to handle binary data writing
     public void writePageToHardware(Page page) {
         try {
             String fileName = Main.getDbDirectory() + "/tables/" + page.getTableNumber() + ".bin";
             TableSchema tableSchema = Main.getCatalog().getTableSchema(page.getTableNumber());
-            byte[] data = page.toBinary(tableSchema); // Assuming this method exists in Page class
+            byte[] data = page.toBinary(tableSchema); 
             RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
             int index = -1; // placeholder value for compiling
             int[] pageLocations = tableSchema.getPageLocations();
@@ -56,11 +52,10 @@ public class PageBuffer {
                 }
             }
             if (index<0) {
-                //throw new Exception("No pages in table");
                 System.out.println("Can't write page: No pages in table");
                 return;
             }
-            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file
+            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages, seek to page location in file
             fileOut.seek(address);
             fileOut.write(data);
             System.out.println("Page data is saved in binary format at " + fileName);
@@ -79,13 +74,13 @@ public class PageBuffer {
         int pageNumber = targetPage.getPageNumber();
         Pair<Integer, Integer> key = new Pair<>(targetPage.getTableNumber(), pageNumber);
         if (pages.containsKey(key)) {
-            pages.put(key, targetPage); // Replace the old page with the updated one
+            pages.put(key, targetPage); // replace the old page with the updated one
         } else {
-            addPage(pageNumber, targetPage); // If the page wasn't in the buffer, add it
+            addPage(pageNumber, targetPage); // else add page
         }
     }
 
-    // Define a custom Pair class to represent the key
+    // The key is a pair of tableNumber and pageNumber
     static class Pair<K, V> {
         private final K tableNumber;
         private final V pageNumber;
@@ -120,5 +115,31 @@ public class PageBuffer {
             result = 31 * result + pageNumber.hashCode();
             return result;
         }
+    }
+
+    public Page loadPageFromDisk(int tableNumber, int pageNumber) {
+        try {
+            String fileName = getFileNameForPage(tableNumber, pageNumber);
+            File file = new File(fileName);
+            if (!file.exists()) {
+                System.err.println("Page file does not exist: " + fileName);
+                return null;
+            }
+            
+            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+                byte[] pageData = new byte[Main.getPageSize()]; 
+                raf.readFully(pageData);
+                
+                Page page = Page.fromBinary(pageData, tableNumber, pageNumber, Main.getCatalog());
+                return page;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private String getFileNameForPage(int tableNumber, int pageNumber) {
+        return Main.getDbDirectory() + "/tables/" + tableNumber + "/" + pageNumber + ".bin";
     }
 }
