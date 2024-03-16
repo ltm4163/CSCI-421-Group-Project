@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.lang.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class parser {
 
@@ -100,11 +101,52 @@ public class parser {
         }
         String []splitfromsemicolon=inputLine.split(";");
         String sqlcommand=splitfromsemicolon[0].trim();
-        String [] sqlsplits = sqlcommand.split("\\s+");
+        String [] sqlsplits = sqlcommand.split(" ");
+
+        if(!Arrays.asList(sqlsplits).contains("table")){
+            System.out.println("Expected 'table'");
+            return;
+        }
+        int index =2;
         String tablename = sqlsplits[2];
         int tableexists=catalog.tableExists(catalog, tablename);
         if(tableexists==1){
-            
+            index++;
+            if(sqlsplits[index].equalsIgnoreCase("add")){
+                index++;
+                AttributeSchema a=new AttributeSchema(tablename, tablename, false, false, false, 1);
+                String attributename=sqlsplits[index];
+                a.setname(attributename);
+                index++;
+                String attributetype=sqlsplits[index];
+                a.settype(attributetype);
+
+                boolean notnull = Arrays.asList(sqlsplits).contains("not") && Arrays.asList(sqlsplits).contains("null");
+                boolean primarykey=Arrays.asList(sqlsplits).contains("primary") && Arrays.asList(sqlsplits).contains("key");
+                boolean unique = Arrays.asList(sqlsplits).contains("unique");
+                a.setnotnull(notnull);
+                a.setprimarykey(primarykey);
+                a.setunique(unique);
+                int tableid=0;
+                for(int i = 0; i < catalog.tableCount; i++) {
+                    
+                    if(catalog.getTables()[i].getname().equals(tablename)) {
+                        tableid=i;
+                        break;
+                    }
+                }
+                TableSchema table=catalog.getTables()[tableid];
+                int n = table.getnumAttributes();
+                AttributeSchema[]newaAttributeSchemas=new AttributeSchema[table.getnumAttributes()+1];
+                for(int i = 0; i<n; i++) {  
+                    newaAttributeSchemas[i] = table.getattributes()[i];  
+                }
+                newaAttributeSchemas[n]=a;
+                table.setAttributes(newaAttributeSchemas);
+                table.setnumAttributes(n+1);
+
+            }
+
         }
         else{
             System.out.println("Table does not exists.");
