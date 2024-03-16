@@ -377,48 +377,39 @@ public class parser {
     private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
         String[] tokens = inputLine.split(" ");
         int index = 0;
-
+    
         while (index < tokens.length && !tokens[index].equals("select")) {
             index++;
         }
-
-        index++;  // Move to the next token after 'select'
-
+        index++;  // Move past 'select'
         if (index >= tokens.length || !tokens[index].equals("*")) {
-            System.out.println("Expected '*'\nERROR");
+            System.out.println("Expected '*' after 'select'\nERROR");
             return;
         }
-
-        index++;  // Move to the next token after '*'
-
+        index++;  // Move past '*'
         if (index >= tokens.length || !tokens[index].equals("from")) {
-            System.out.println("Expected 'from'\nERROR");
+            System.out.println("Expected 'from' after '*'\nERROR");
             return;
         }
-
-        index++;  // Move to the next token after 'from'
-
-        if (index < tokens.length) {  // Make sure there is a table name
-            String tableName = tokens[index].replaceAll(";", "");  // Strips the table name of the semicolon at the end for comparison
-
-            for (int i = 0; i < c.getTableCount(); i++) {
-                TableSchema t = c.getTableSchema(i);
-                if (tableName.equals(t.getname())) {  // If the token is equal to the current table's name...
-                    storageManager.getRecords(t.gettableNumber());
-                    return;
-                }
+        index++;  // Move past 'from'
+        if (index < tokens.length) {  // Ensure there is a table name
+            String tableName = tokens[index].replaceAll(";", "");  // Remove semicolon
+            TableSchema t = c.getTableSchemaByName(tableName);
+            if (t == null) {
+                System.out.println("No such table: " + tableName + "\nERROR");
+                return;
             }
+    
+            ArrayList<ArrayList<Object>> records = storageManager.getRecords(t.gettableNumber());
+            if (records.isEmpty()) {
+                System.out.println("No records found in table: " + tableName);
+                return;
+            }
+    
+            printRecords(records, t);
+        } else {
+            System.out.println("Expected table name after 'from'\nERROR");
         }
-        else {  // If the table name is not present in the query...
-            System.out.println("Expected table name\nERROR");
-            return;
-        }
-
-        // If this code is reached, a table with a matching name was not found
-        // TODO: get this to display tablename
-        // should be: no such table [tablename here]
-        System.out.println("No such table\nERROR\n\n");
-        return;
 
     }
     private static int calculateRecordSize(ArrayList<Object> values, AttributeSchema[] attributes) {
