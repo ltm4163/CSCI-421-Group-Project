@@ -65,8 +65,20 @@ public class parser {
         
         String []splitfromsemicolon=inputLine.split(";");
         String sqlcommand=splitfromsemicolon[0].trim();
-        String [] sqlsplits = sqlcommand.split("\\s+");
-        String tablename = sqlsplits[2];
+        String [] sqlsplits = sqlcommand.split(" ");
+        int index = 0;
+
+        while (index < sqlsplits.length && !sqlsplits[index].equals("drop")) {
+            index++;
+        }
+        index++;
+
+        if (index >= sqlsplits.length || !sqlsplits[index].equals("table")) {
+            System.out.println("Expected 'table'");
+            return;
+        }
+        index++;
+        String tablename = sqlsplits[index];
         int tableexists=catalog.tableExists(catalog, tablename);
         if(tableexists==1){
             catalog.dropTable(catalog, tablename);
@@ -78,6 +90,25 @@ public class parser {
 
     private static void handleAlterCommand(String inputLine, Catalog catalog) {
         // TODO: Implement the handleAlterCommand method
+        int indexOfSemicolon = inputLine.indexOf(';');
+        if (indexOfSemicolon == -1) {  // If there are no semicolons...
+            System.out.println("Expected ';'");
+            return;
+        } else if (!inputLine.endsWith(";")) {  // If the semicolon's position is not at the end of the statement...
+            System.out.println("';' expected at the end of the statement");
+            return;
+        }
+        String []splitfromsemicolon=inputLine.split(";");
+        String sqlcommand=splitfromsemicolon[0].trim();
+        String [] sqlsplits = sqlcommand.split("\\s+");
+        String tablename = sqlsplits[2];
+        int tableexists=catalog.tableExists(catalog, tablename);
+        if(tableexists==1){
+            
+        }
+        else{
+            System.out.println("Table does not exists.");
+        }
     }
 
     private static void handleInsertCommand(String inputLine, Catalog c, StorageManager storageManager) {
