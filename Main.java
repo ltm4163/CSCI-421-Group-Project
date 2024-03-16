@@ -29,9 +29,9 @@ public class Main {
         catalog = new Catalog(null, 0); 
         buffer = new PageBuffer(bufferSize);
         StorageManager storageManager = new IStorageManager(catalog, buffer);
-
+        
         // Testing begin
-        //StorageManagerTest.createTable1(catalog, 0);
+        StorageManagerTest.createTable1(catalog, 0);
         //StorageManagerTest.testInsert(catalog, storageManager);
         // Testing end
 

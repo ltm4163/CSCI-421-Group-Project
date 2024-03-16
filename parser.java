@@ -204,8 +204,26 @@ public class parser {
                     }    
                 }
                 catalog.getTables()[tableid].getattributes()[attributenumber].setname(newattributename);
-
-
+            }
+            else if(sqlsplits[index].equalsIgnoreCase("alter") &&Arrays.asList(sqlsplits).contains("column")){
+                index+=2;
+                String attributename=sqlsplits[index];
+                index++;
+                String attributetype=sqlsplits[index];
+                int attributenumber=-1;
+                int tableid=-1;
+                for(int i = 0; i < catalog.tableCount; i++) {
+                    TableSchema tableSchema=catalog.getTables()[i];
+                    for(int j = 0; j < tableSchema.getnumAttributes(); j++){
+                        AttributeSchema attributeSchema=tableSchema.getattributes()[j];
+                        if(attributeSchema.getname().equals(attributename)){
+                            attributenumber=j;
+                            tableid=i;
+                            break;
+                        }
+                    }    
+                }
+                catalog.getTables()[tableid].getattributes()[attributenumber].settype(attributetype);
             }
 
 
@@ -288,15 +306,21 @@ public class parser {
             }
 
             token = token.substring(1);  // Removes the '('; always updates token to include the first attribute
-
+            System.out.println(token);
             for (int i = 0; i < t.getnumAttributes(); i++) {
                 boolean last = false;  // A flag to check whether this current attribute is the last in the tuple
 
                 // Check if the current attribute is the last attribute
-                if (token.endsWith(");") || token.endsWith(",")) {
-                    token = token.substring(0, token.length() - 2);  // Remove the parenthesis and comma or semicolon from the attribute
+                if (token.endsWith(");")) {
+                    token = token.substring(0, token.length() - 2);  // Remove the parenthesis and semicolon from the attribute
                     last = true;
                 }
+                else if (token.endsWith(",")) {
+                    token = token.substring(0, token.length() - 1);  // Remove the comma from the attribute
+                }
+
+                System.out.println(token);
+
 
                 a = t.getattributes()[i];  // Grab the i'th attribute
 
@@ -341,24 +365,24 @@ public class parser {
                     values.add(token);
                 }
 
-                if (a.isUnique()) {
-                    // Need to sift through all records and make sure the current data (token) is not the same as an existing data
-                    // TODO: Implement uniqueness check
-                }
+                // if (a.isUnique()) {
+                //     // Need to sift through all records and make sure the current data (token) is not the same as an existing data
+                //     // TODO: Implement uniqueness check
+                // }
 
-                if (a.isNonNull() && "null".equals(token)) {
-                    System.out.println("Attribute should not be null");
-                    return;
-                }
+                // if (a.isNonNull() && "null".equals(token)) {
+                //     System.out.println("Attribute should not be null");
+                //     return;
+                // }
 
-                if (a.isPrimaryKey() && "null".equals(token)) {
-                    System.out.println("Attribute should not be null");
-                    return;
-                }
+                // if (a.isPrimaryKey() && "null".equals(token)) {
+                //     System.out.println("Attribute should not be null");
+                //     return;
+                // }
 
-                if (!last) {
-                    index++;  // Go to next tuple
-                }
+                // if (!last) {
+                //     index++;  // Go to next tuple
+                // }
             }
 
             Record r = new Record(values, t.getnumAttributes() * Integer.BYTES + t.getnumAttributes() * Integer.BYTES);
