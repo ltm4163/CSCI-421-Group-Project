@@ -1,6 +1,8 @@
 import java.io.IOException;
 import java.lang.*;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class parser {
 
@@ -49,15 +51,69 @@ public class parser {
     }
     
     private static void handleCreateCommand(String inputLine, Catalog catalog) {
-        // TODO: Implement the handleCreateCommand method
+        String[] parts = inputLine.split("\\s+", 4);
+        if (parts.length < 4 || !parts[0].equalsIgnoreCase("create") || !parts[1].equalsIgnoreCase("table")) {
+            System.out.println("Syntax error in CREATE TABLE command.");
+            return;
+        }
+        String tableName = parts[2];
+        String attributesLine = parts[3].trim();
+        if (!attributesLine.endsWith(");")) {
+            System.out.println("Expected ');' at the end of the CREATE TABLE command.");
+            return;
+        }
+        // Removing '(', ');', and splitting by ','
+        String[] attributeTokens = attributesLine.substring(1, attributesLine.length() - 2).split(",");
+        ArrayList<AttributeSchema> attributes = new ArrayList<>();
+        for (String token : attributeTokens) {
+            attributes.add(AttributeSchema.parse(token.trim())); // Assuming AttributeSchema.parse() method exists
+        }
+        TableSchema table = new TableSchema(attributes.size(), tableName, catalog.getNextTableNumber(), attributes.toArray(new AttributeSchema[0]));
+        catalog.addTable(table);
+        System.out.println("Table " + tableName + " created successfully.");
     }
-
+    
     private static void handleDropCommand(String inputLine, Catalog catalog) {
-        // TODO: Implement the handleDropCommand method
+        String[] parts = inputLine.split("\\s+");
+        if (parts.length != 3 || !parts[0].equalsIgnoreCase("drop") || !parts[1].equalsIgnoreCase("table")) {
+            System.out.println("Syntax error in DROP TABLE command.");
+            return;
+        }
+        String tableName = parts[2].replace(";", "");
+        catalog.dropTable(tableName);
+        System.out.println("Table " + tableName + " dropped successfully.");
     }
-
+    
     private static void handleAlterCommand(String inputLine, Catalog catalog) {
-        // TODO: Implement the handleAlterCommand method
+        // This is a simplified version. You might need to expand it based on your ALTER TABLE needs.
+        String[] parts = inputLine.split("\\s+", 5);
+        if (parts.length < 5 || !parts[0].equalsIgnoreCase("alter") || !parts[1].equalsIgnoreCase("table")) {
+            System.out.println("Syntax error in ALTER TABLE command.");
+            return;
+        }
+        String tableName = parts[2];
+        TableSchema table = catalog.getTableSchemaByName(tableName); // Assuming such method exists
+        if (table == null) {
+            System.out.println("Table " + tableName + " not found.");
+            return;
+        }
+        String operation = parts[3]; // "add", "drop", etc.
+        String definition = parts[4].replace(";", "");
+    
+        switch (operation.toLowerCase()) {
+            case "add":
+                AttributeSchema newAttr = AttributeSchema.parse(definition); // Assuming AttributeSchema.parse() method exists
+                table.addAttribute(newAttr);
+                System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
+                break;
+            case "drop":
+                // Assuming table has a method to drop an attribute
+                table.dropAttribute(definition);
+                System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
+                break;
+            default:
+                System.out.println("Unsupported ALTER TABLE operation: " + operation);
+        }
     }
 
     private static void handleInsertCommand(String inputLine, Catalog c, StorageManager storageManager) {
@@ -94,9 +150,10 @@ public class parser {
 
         if (index < tokens.length) {  // Make sure there is a table name
             boolean found = false;  // Flag to indicate whether we have found the table or not
+            List<TableSchema> tables = c.getTables(); // Get the List of tables from the Catalog
             for (int i = 0; i < c.getTableCount(); i++) {  // Check each table in the schema to see if a name matches
-                t = c.getTables()[i];
-                if (tokens[index].equals(t.getname())) {  // If the token is equal to the current table's name...
+                t = tables.get(i); // Use .get(i) to access the TableSchema object
+                if (tokens[index].equals(t.getName())) {  // Use .getName() to access the name of the TableSchema
                     found = true;
                     break;
                 }
@@ -237,8 +294,35 @@ public class parser {
     }
 
     private static void displaySchema(Catalog catalog) {
-        // TODO: Implement the displaySchema method
+        // Assuming the Catalog class has methods to retrieve DB directory, page size, buffer size
+        System.out.println("\nDB location: " + catalog.getDbDirectory());
+        System.out.println("Page Size: " + catalog.getPageSize());
+        System.out.println("Buffer Size: " + catalog.getBufferSize() + "\n");
+    
+        List<TableSchema> tables = catalog.getTables(); // Get the List of tables
+        if (tables.isEmpty()) {
+            System.out.println("No tables to display");
+        } else {
+            System.out.println("Tables:\n");
+            for (TableSchema table : tables) {
+                System.out.println("Table name: " + table.getName()); // Assuming there's a getName() method in TableSchema
+                System.out.println("Table schema:");
+                AttributeSchema[] attributes = table.getattributes(); // Assuming there's a getAttributes() method returning an array
+                for (AttributeSchema attr : attributes) {
+                    String attributeDetails = String.format("    %s:%s", attr.getname(), attr.gettype()); // Assuming getters for name and type
+                    if (attr.isPrimaryKey()) attributeDetails += " primarykey";
+                    if (attr.isUnique()) attributeDetails += " unique";
+                    if (attr.isNonNull()) attributeDetails += " notnull";
+                    System.out.println(attributeDetails);
+                }
+                // Assuming TableSchema class has methods to retrieve the number of pages and records
+                System.out.println("Pages: " + table.getNumPages());
+                System.out.println("Records: " + table.getNumRecords() + "\n");
+            }
+        }
+        System.out.println("SUCCESS");
     }
+    
 
     private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
         String[] tokens = inputLine.split(" ");
@@ -332,7 +416,28 @@ public class parser {
                 break;
 
             case "display":
-                displaySchema(catalog);
+                if (tokens.length > 1 && tokens[1].equalsIgnoreCase("info")) {
+                    // Display info about a specific table
+                    if (tokens.length > 2) {
+                        String tableName = tokens[2].replaceAll(";", "");
+                        if (!catalog.tableExists(tableName)) {
+                            System.out.println("No such table " + tableName);
+                            System.out.println("ERROR");
+                        } else {
+                            // Table exists, find and display its info
+                            boolean found = catalog.findTableDisplay(tableName);
+                            if (found) {
+                                System.out.println("SUCCESS");
+                            } else {
+                                // This case may not be necessary, as findTableDisplay already checks for existence
+                                System.out.println("ERROR");
+                            }
+                        }
+                    }
+                } else {
+                    // If the command is just "display schema;", handle it as before
+                    displaySchema(catalog);
+                }
                 break;
 
             default:

@@ -26,7 +26,7 @@ public class Main {
         System.out.println("Welcome to JottQL");
         System.out.println("Looking for catalog at " + catalogPath + "...");
 
-        catalog = new Catalog(null, 0); 
+        catalog = new Catalog(dbDirectory, pageSize, bufferSize); 
         buffer = new PageBuffer(bufferSize);
         StorageManager storageManager = new IStorageManager(catalog, buffer);
 
