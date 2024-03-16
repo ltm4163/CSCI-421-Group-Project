@@ -138,12 +138,14 @@ public class parser {
                 TableSchema table=catalog.getTables()[tableid];
                 int n = table.getnumAttributes();
                 AttributeSchema[]newaAttributeSchemas=new AttributeSchema[table.getnumAttributes()+1];
-                for(int i = 0; i<n; i++) {  
-                    newaAttributeSchemas[i] = table.getattributes()[i];  
+                for(int b = 0; b<n; b++) {  
+                    newaAttributeSchemas[b] = table.getattributes()[b];  
                 }
                 newaAttributeSchemas[n]=a;
                 table.setAttributes(newaAttributeSchemas);
                 table.setnumAttributes(n+1);
+                catalog.getTables()[tableid]=table;
+
 
             }
             else if(sqlsplits[index].equalsIgnoreCase("drop") && Arrays.asList(sqlsplits).contains("column")){
@@ -151,6 +153,7 @@ public class parser {
                 String attributename=sqlsplits[index];
                 int attributenumber=-1;
                 int tableid=-1;
+                AttributeSchema[] attributes;
                 for(int i = 0; i < catalog.tableCount; i++) {
                     TableSchema tableSchema=catalog.getTables()[i];
                     for(int j = 0; j < tableSchema.getnumAttributes(); j++){
@@ -163,7 +166,7 @@ public class parser {
                     }    
                 }
                 if (attributenumber != -1 && tableid !=-1) {
-                    AttributeSchema []attributes=catalog.getTables()[tableid].getattributes();
+                    attributes=catalog.getTables()[tableid].getattributes();
                     for (int a = attributenumber; a < attributes.length - 1; a++) {
                         attributes[a] = attributes[a + 1];
                     }
@@ -172,8 +175,39 @@ public class parser {
                     AttributeSchema[] newArray = new AttributeSchema[attributes.length - 1];
                     System.arraycopy(attributes, 0, newArray, 0, newArray.length);
                     attributes = newArray;
+                    catalog.getTables()[tableid].setAttributes(attributes);
+                    
                 }
+                
             }
+            else if(sqlsplits[index].equalsIgnoreCase("rename") &&Arrays.asList(sqlsplits).contains("column")){
+                index+=2;
+                String oldattributename=sqlsplits[index];
+                index++;
+                if(sqlsplits[index].equalsIgnoreCase("to")){
+                    System.out.println("Expected 'to'");
+                    return;
+                }
+                index++;
+                String newattributename=sqlsplits[index];
+                int attributenumber=-1;
+                int tableid=-1;
+                for(int i = 0; i < catalog.tableCount; i++) {
+                    TableSchema tableSchema=catalog.getTables()[i];
+                    for(int j = 0; j < tableSchema.getnumAttributes(); j++){
+                        AttributeSchema attributeSchema=tableSchema.getattributes()[j];
+                        if(attributeSchema.getname().equals(oldattributename)){
+                            attributenumber=j;
+                            tableid=i;
+                            break;
+                        }
+                    }    
+                }
+                catalog.getTables()[tableid].getattributes()[attributenumber].setname(newattributename);
+
+
+            }
+
 
         }
         else{
