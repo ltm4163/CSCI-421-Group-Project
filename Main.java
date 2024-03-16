@@ -26,12 +26,12 @@ public class Main {
         System.out.println("Welcome to JottQL");
         System.out.println("Looking for catalog at " + catalogPath + "...");
 
-        catalog = new Catalog(null, 0); 
+        catalog = new Catalog(dbDirectory, pageSize, bufferSize); 
         buffer = new PageBuffer(bufferSize);
-        StorageManager storageManager = new IStorageManager(catalog, buffer);
-        
+        StorageManager storageManager = new StorageManager(catalog, buffer);
+
         // Testing begin
-        StorageManagerTest.createTable1(catalog, 0);
+        //StorageManagerTest.createTable1(catalog, 0);
         //StorageManagerTest.testInsert(catalog, storageManager);
         // Testing end
 
@@ -87,8 +87,8 @@ public class Main {
     }
 
     public static void writeCatalogToFile(String catalogPath) throws IOException {
-        // TODO: implement this
+        // TODO: idk if this works?? not tested
         System.out.println("writeCatalogToFile...");
-        //catalog.writeCatalogToFile(catalog, catalogPath);
+        catalog.writeCatalogToFile(catalogPath);
     }
 }

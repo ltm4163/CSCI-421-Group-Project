@@ -1,17 +1,12 @@
-import java.io.FileOutputStream;
+import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.io.RandomAccessFile;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Consumer;
 
 public class PageBuffer {
     private final int capacity;
-    private final LinkedHashMap<Pair<Integer, Integer>, Page> pages;
-    private Consumer<Page> writePageToHardware;
+    final LinkedHashMap<Pair<Integer, Integer>, Page> pages;
 
     public PageBuffer(int capacity) {
         this.capacity = capacity;
@@ -41,13 +36,16 @@ public class PageBuffer {
         Pair<Integer, Integer> key = new Pair<>(tableNumber, pageNumber);
         return pages.containsKey(key);
     }
+    public  LinkedHashMap<Pair<Integer, Integer>, Page> getPages(){
+        return this.pages;
+    }
 
-    // Adjusted to handle binary data writing
+
     public void writePageToHardware(Page page) {
         try {
             String fileName = Main.getDbDirectory() + "/tables/" + page.getTableNumber() + ".bin";
             TableSchema tableSchema = Main.getCatalog().getTableSchema(page.getTableNumber());
-            byte[] data = page.toBinary(tableSchema); // Assuming this method exists in Page class
+            byte[] data = page.toBinary(tableSchema); 
             RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
             int index = -1; // placeholder value for compiling
             int[] pageLocations = tableSchema.getPageLocations();
@@ -58,11 +56,10 @@ public class PageBuffer {
                 }
             }
             if (index<0) {
-                //throw new Exception("No pages in table");
                 System.out.println("Can't write page: No pages in table");
                 return;
             }
-            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file
+            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages, seek to page location in file
             fileOut.seek(address);
             fileOut.write(data);
             System.out.println("Page data is saved in binary format at " + fileName);
@@ -81,16 +78,13 @@ public class PageBuffer {
         int pageNumber = targetPage.getPageNumber();
         Pair<Integer, Integer> key = new Pair<>(targetPage.getTableNumber(), pageNumber);
         if (pages.containsKey(key)) {
-            pages.put(key, targetPage); // Replace the old page with the updated one
+            pages.put(key, targetPage); // replace the old page with the updated one
         } else {
-            addPage(pageNumber, targetPage); // If the page wasn't in the buffer, add it
+            addPage(pageNumber, targetPage); // else add page
         }
     }
-    public  LinkedHashMap<Pair<Integer, Integer>, Page> getPages(){
-        return this.pages;
-    }
 
-    // Define a custom Pair class to represent the key
+    // The key is a pair of tableNumber and pageNumber
     static class Pair<K, V> {
         private final K tableNumber;
         private final V pageNumber;
@@ -127,8 +121,29 @@ public class PageBuffer {
         }
     }
 
-    public void setWritePageToHardware(Consumer<Page> writePageToHardware) {
-        // TODO Auto-generated method stub
-        this.writePageToHardware = writePageToHardware;
+    public Page loadPageFromDisk(int tableNumber, int pageNumber) {
+        try {
+            String fileName = getFileNameForPage(tableNumber, pageNumber);
+            File file = new File(fileName);
+            if (!file.exists()) {
+                System.err.println("Page file does not exist: " + fileName);
+                return null;
+            }
+            
+            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+                byte[] pageData = new byte[Main.getPageSize()]; 
+                raf.readFully(pageData);
+                
+                Page page = Page.fromBinary(pageData, tableNumber, pageNumber, Main.getCatalog());
+                return page;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private String getFileNameForPage(int tableNumber, int pageNumber) {
+        return Main.getDbDirectory() + "/tables/" + tableNumber + "/" + pageNumber + ".bin";
     }
 }
