@@ -146,6 +146,34 @@ public class parser {
                 table.setnumAttributes(n+1);
 
             }
+            else if(sqlsplits[index].equalsIgnoreCase("drop") && Arrays.asList(sqlsplits).contains("column")){
+                index+=2;
+                String attributename=sqlsplits[index];
+                int attributenumber=-1;
+                int tableid=-1;
+                for(int i = 0; i < catalog.tableCount; i++) {
+                    TableSchema tableSchema=catalog.getTables()[i];
+                    for(int j = 0; j < tableSchema.getnumAttributes(); j++){
+                        AttributeSchema attributeSchema=tableSchema.getattributes()[j];
+                        if(attributeSchema.getname().equals(attributename)){
+                            attributenumber=j;
+                            tableid=i;
+                            break;
+                        }
+                    }    
+                }
+                if (attributenumber != -1 && tableid !=-1) {
+                    AttributeSchema []attributes=catalog.getTables()[tableid].getattributes();
+                    for (int a = attributenumber; a < attributes.length - 1; a++) {
+                        attributes[a] = attributes[a + 1];
+                    }
+                    
+                    // Resize the array
+                    AttributeSchema[] newArray = new AttributeSchema[attributes.length - 1];
+                    System.arraycopy(attributes, 0, newArray, 0, newArray.length);
+                    attributes = newArray;
+                }
+            }
 
         }
         else{
