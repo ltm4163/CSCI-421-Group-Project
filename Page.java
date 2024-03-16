@@ -6,25 +6,23 @@ public class Page {
     private List<Record> records;
     private int pageNumber;
     private int tableNumber;
-    private boolean updated; // Indicates whether the page needs to be written to disk
-    private int size; // Number of bytes of data in page
+    private boolean updated; // does this page need to be written to disk?
+    private int size; 
     private int numRecords;
 
-    // Constructor initializes the page with basic information and an empty list of records.
     public Page(int pageNumber, int tableNumber, boolean updated) {
         this.pageNumber = pageNumber;
         this.tableNumber = tableNumber;
         this.updated = updated;
         this.records = new ArrayList<>();
-        this.size = Integer.BYTES; //accounts for numRecs int
+        this.size = Integer.BYTES; 
         this.numRecords = 0;
     }
 
-    // Adds a record to the page, marking it as updated.
     public void addRecord(Record record) {
         this.records.add(record);
         this.numRecords++;
-        this.size += record.getsize();
+        this.size += record.getSize();
         this.updated = true;
     }
 
@@ -35,16 +33,15 @@ public class Page {
         }
         this.records.set(startingIndex, rec);
         this.numRecords++;
-        this.size += rec.getsize();
+        this.size += rec.getSize();
         this.updated = true;
     }
 
-    // Check if the page is overfull.
     public boolean isOverfull() {
         return getSize() > Main.getPageSize();
     }
 
-    // Serializes the page and its records to a binary format.
+    // page + records -> binary
     public byte[] toBinary(TableSchema tableSchema) {
         ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
         buffer.putInt(getNumRecords()); // First 4 bytes for the number of records
@@ -57,7 +54,7 @@ public class Page {
         return buffer.array();
     }
 
-    // Deserializes a page from a binary format.
+    // binary -> page + records
     public static Page fromBinary(byte[] data, int tableNumber, int pageNumber, Catalog catalog) {
         ByteBuffer buffer = ByteBuffer.wrap(data);
         TableSchema tableSchema = catalog.getTableSchema(tableNumber);
@@ -112,14 +109,13 @@ public class Page {
         return page;
     }
 
-    // Getters and setters
     public List<Record> getRecords() {
         return records;
     }
 
     public void setRecords(List<Record> records) {
         this.records = records;
-        this.updated = true; // Mark as updated since the records have been modified
+        this.updated = true;
     }
 
     public int getPageNumber() {
@@ -160,5 +156,9 @@ public class Page {
 
     public void setNumRecords(int numRecords) {
         this.numRecords = numRecords;
+    }
+
+    public int getRecordCount() {
+        return records.size();
     }
 }

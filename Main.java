@@ -28,7 +28,7 @@ public class Main {
 
         catalog = new Catalog(dbDirectory, pageSize, bufferSize); 
         buffer = new PageBuffer(bufferSize);
-        StorageManager storageManager = new IStorageManager(catalog, buffer);
+        StorageManager storageManager = new StorageManager(catalog, buffer);
 
         // Testing begin
         //StorageManagerTest.createTable1(catalog, 0);
@@ -87,8 +87,8 @@ public class Main {
     }
 
     public static void writeCatalogToFile(String catalogPath) throws IOException {
-        // TODO: implement this
+        // TODO: idk if this works?? not tested
         System.out.println("writeCatalogToFile...");
-        //catalog.writeCatalogToFile(catalog, catalogPath);
+        catalog.writeCatalogToFile(catalogPath);
     }
 }
