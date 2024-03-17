@@ -46,15 +46,25 @@ public class Main {
         }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
+            StringBuilder commandBuilder = new StringBuilder();
             String inputLine;
             System.out.println("\nPlease enter commands, enter <quit> to shutdown the db\n");
             while (true) {
                 System.out.print("JottQL> ");
                 inputLine = reader.readLine();
                 if (inputLine == null || inputLine.trim().equalsIgnoreCase("quit")) {
+                    if (commandBuilder.length() > 0) {
+                        parser.parse(commandBuilder.toString(), catalog, buffer, dbDirectory, pageSize, storageManager);
+                        commandBuilder.setLength(0); 
+                    }
                     break;
                 }
-                parser.parse(inputLine, catalog, buffer, dbDirectory, pageSize, storageManager);
+                commandBuilder.append(inputLine.trim());
+                
+                if (inputLine.trim().endsWith(";")) {
+                    parser.parse(commandBuilder.toString(), catalog, buffer, dbDirectory, pageSize, storageManager);
+                    commandBuilder.setLength(0);
+                }
             }
         } catch (IOException e) {
             System.err.println("Error reading input: " + e.getMessage());

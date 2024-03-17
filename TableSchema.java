@@ -1,4 +1,3 @@
-
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -77,7 +76,7 @@ public class TableSchema {
     }
 
     public void addPage(Page newPage) {
-        PageBuffer buffer = Main.getBuffer(); // Assuming you have a way to access your PageBuffer globally or passed as a parameter
+        PageBuffer buffer = Main.getBuffer(); 
         buffer.addPage(newPage.getPageNumber(), newPage);
         this.numPages++;
         updatePageLocations(newPage.getPageNumber());
@@ -100,7 +99,7 @@ public class TableSchema {
     }
 
     public void updatePage(Page page) {
-        PageBuffer buffer = Main.getBuffer(); // Same assumption as above
+        PageBuffer buffer = Main.getBuffer(); 
         buffer.updatePage(page);
     }
 
@@ -111,22 +110,18 @@ public class TableSchema {
     public String getNumRecords() {
         int totalRecords = 0;
         for (int pageLocation : this.pageLocations) {
-            // Assuming you have a way to retrieve a Page object by its location
-            // This could involve a method in your Catalog or elsewhere that can fetch a Page object given its number
             Page page = getPageByNumber(pageLocation);
             if (page != null) {
-                totalRecords += page.getRecordCount(); // Assuming Page has getRecordCount()
+                totalRecords += page.getRecordCount(); 
             }
         }
         return String.valueOf(totalRecords);
     }
 
     public Page getPageByNumber(int pageNumber) {
-        PageBuffer buffer = Main.getBuffer(); // Assuming global access or passed as a parameter
+        PageBuffer buffer = Main.getBuffer(); 
         Page page = buffer.getPage(this.tableNumber, pageNumber);
         if (page == null) {
-            // Logic to load the page from disk if it's not in the buffer
-            // For example:
             page = buffer.loadPageFromDisk(this.tableNumber, pageNumber);
         }
         return page;
@@ -181,20 +176,16 @@ public class TableSchema {
     }
 
     public void displayTable() {
-        // Display table name and number of attributes
         System.out.println("Table name: " + this.name);
         System.out.println("Number of attributes: " + this.numAttributes);
         System.out.println("Table Number: " + this.tableNumber);
         System.out.println("Number of pages: " + this.numPages);
     
-        // Display attribute details
         System.out.println("Attributes:");
         for (AttributeSchema attr : this.attributes) {
-            // Using displayAttribute method from AttributeSchema, assuming it prints the attribute details
             attr.displayAttribute();
         }
     
-        // Optionally, display page locations if needed
         System.out.println("Page locations (Page numbers):");
         if (this.pageLocations.length > 0) {
             for (int location : this.pageLocations) {
@@ -204,8 +195,6 @@ public class TableSchema {
             System.out.println("No pages currently associated with this table.");
         }
     
-        // Displaying total number of records, assuming getNumRecords returns a string representation of the count
         System.out.println("Total records: " + this.getNumRecords());
     }
-    
 }

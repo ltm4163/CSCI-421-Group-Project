@@ -2,10 +2,9 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 public class Record {
-    private ArrayList<Object> data; // Tuple of data
+    private ArrayList<Object> data;
     private int size;
 
-    // Constructor
     public Record(ArrayList<Object> data, int size) {
         this.data = data;
         this.size = size;
@@ -29,20 +28,17 @@ public class Record {
 
     public byte[] toBinary(AttributeSchema[] attributeSchemas) {
         ByteBuffer recData = ByteBuffer.allocate(this.size);
-        int tupleIndex = 0; // Index of the current attribute in the tuple
+        int tupleIndex = 0; 
     
         for (AttributeSchema attr : attributeSchemas) {
             switch (attr.gettype().toLowerCase()) {
                 case "varchar":
-                    // Handle varchar similar to the original code
                     String varcharValue = (String) this.data.get(tupleIndex);
                     byte[] varcharBytes = varcharValue.getBytes();
                     recData.put(varcharBytes);
                     break;
                 case "char":
-                    // Ensure that char attributes are handled according to their fixed length
                     String charValue = (String) this.data.get(tupleIndex);
-                    // Pad the string with spaces to match the expected size or truncate if necessary
                     String paddedCharValue = String.format("%-" + attr.getsize() + "." + attr.getsize() + "s", charValue);
                     byte[] charBytes = paddedCharValue.getBytes();
                     recData.put(charBytes);
@@ -67,9 +63,8 @@ public class Record {
     }
     
 
-    // Simplified getByteArray that directly calls toBinary assuming a schema is available
     public byte[] getByteArray(AttributeSchema[] attributeSchemas) {
-        return toBinary(attributeSchemas); // Use the provided attribute schemas for serialization
+        return toBinary(attributeSchemas); 
     }
 
     public boolean matchesPrimaryKey(Object primaryKey, TableSchema tableSchema) {
