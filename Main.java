@@ -1,9 +1,9 @@
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 
 public class Main {
     private static Catalog catalog;
@@ -18,22 +18,32 @@ public class Main {
             return;
         }
 
-        dbDirectory = args[0];
+        dbDirectory = args[0].endsWith("/") ? args[0] : args[0] + "/";
         pageSize = Integer.parseInt(args[1]);
         bufferSize = Integer.parseInt(args[2]);
-        
-        String catalogPath = dbDirectory + "/catalog.bin";
+
+        new File(dbDirectory + "tables").mkdirs(); 
+
+        String catalogPath = dbDirectory + "catalog.bin";
         System.out.println("Welcome to JottQL");
         System.out.println("Looking for catalog at " + catalogPath + "...");
 
-        catalog = new Catalog(dbDirectory, pageSize, bufferSize); 
+        catalog = new Catalog(dbDirectory, pageSize, bufferSize);
         buffer = new PageBuffer(bufferSize);
         StorageManager storageManager = new StorageManager(catalog, buffer);
 
-        // Testing begin
-        //StorageManagerTest.createTable1(catalog, 0);
-        //StorageManagerTest.testInsert(catalog, storageManager);
-        // Testing end
+        // Load/init the catalog
+        try {
+            if (new File(catalogPath).exists()) {
+                catalog.readCatalogFromFile(catalogPath);
+                System.out.println("Catalog loaded successfully.");
+            } else {
+                System.out.println("No existing catalog found. A new one will be created.");
+            }
+        } catch (IOException e) {
+            System.err.println("Failed to load catalog: " + e.getMessage());
+            return;
+        }
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
             String inputLine;
@@ -50,9 +60,10 @@ public class Main {
             System.err.println("Error reading input: " + e.getMessage());
         }
 
-        writeBufferToHardware();
+        // Write buffer and catalog to disk before exiting
+        buffer.writeBufferToHardware();
         try {
-            writeCatalogToFile(catalogPath);
+            catalog.writeCatalogToFile(catalogPath);
         } catch (IOException e) {
             System.err.println("Error saving catalog: " + e.getMessage());
         }
@@ -81,14 +92,10 @@ public class Main {
     }
 
     public static void writeBufferToHardware() {
-        // TODO: implement this
-        System.out.println("writeBufferToHardware...");
         buffer.writeBufferToHardware();
     }
 
     public static void writeCatalogToFile(String catalogPath) throws IOException {
-        // TODO: idk if this works?? not tested
-        System.out.println("writeCatalogToFile...");
         catalog.writeCatalogToFile(catalogPath);
     }
 }
