@@ -119,112 +119,86 @@ public class parser {
         }
     }
 
-    private static void handleInsertCommand(String inputLine, Catalog c, StorageManager storageManager) {
-        TableSchema table = null;
     
-        if (!inputLine.endsWith(";")) {
-            System.out.println("';' expected at the end of the statement");
+    private static void handleInsertCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
+        String[] parts = inputLine.trim().split("\\s+", 4);
+    
+        if (parts.length < 4 || !parts[0].equalsIgnoreCase("insert") || !parts[1].equalsIgnoreCase("into")) {
+            System.out.println("Syntax error in INSERT INTO command.");
             return;
         }
     
-        String[] tokens = inputLine.split("\\s+");
-        int index = 0;
-    
-        while (index < tokens.length && !tokens[index].equalsIgnoreCase("insert")) {
-            index++;
-        }
-    
-        index++; // Skip "insert"
-    
-        if (index >= tokens.length || !tokens[index].equalsIgnoreCase("into")) {
-            System.out.println("Expected 'into'");
+        String tableName = parts[2];
+        TableSchema table = catalog.getTableSchemaByName(tableName);
+        if (table == null) {
+            System.out.println("Table not found: " + tableName);
             return;
         }
     
-        index++; // Skip "into"
+        String valuesPart = parts[3].substring(parts[3].indexOf("("));
+        if (!valuesPart.endsWith(";")) {
+            System.out.println("Expected ';' at the end of the command.");
+            return;
+        }
     
-        if (index < tokens.length) {
-            String tableName = tokens[index];
-            table = c.getTableSchemaByName(tableName);
-            if (table == null) {
-                System.out.println("Table not found: " + tableName);
+        valuesPart = valuesPart.substring(0, valuesPart.length() - 1); 
+    
+        String[] individualValueSets = valuesPart.split("\\),\\s*\\(");
+        for (String valueSet : individualValueSets) {
+            valueSet = valueSet.trim().replaceAll("^\\(|\\)$", ""); 
+            String[] values = valueSet.split(",\\s*(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+    
+            if (values.length != table.getnumAttributes()) {
+                System.out.println("Mismatch between number of columns and values provided.");
                 return;
             }
-        } else {
-            System.out.println("Expected table name");
-            return;
-        }
     
-        index++; // Skip table name
-    
-        if (index >= tokens.length || !tokens[index].equalsIgnoreCase("values")) {
-            System.out.println("Expected 'values'");
-            return;
-        }
-    
-        index++; // Skip "values"
-    
-        // Assuming values are directly after "values" keyword and are properly enclosed in parentheses
-        String valuesString = inputLine.substring(inputLine.indexOf("(", index)).trim();
-        if (!valuesString.endsWith(";")) {
-            System.out.println("Expected semicolon at the end of the values");
-            return;
-        }
-        valuesString = valuesString.substring(1, valuesString.length() - 2); // Remove surrounding parentheses and semicolon
-    
-        // Split values by commas outside of quotes
-        String[] valueTokens = valuesString.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
-    
-        if (valueTokens.length != table.getnumAttributes()) {
-            System.out.println("Mismatch between number of columns and values provided");
-            return;
-        }
-    
-        ArrayList<Object> values = new ArrayList<>();
-        AttributeSchema[] attributes = table.getattributes();
-    
-        for (int i = 0; i < valueTokens.length; i++) {
-            String value = valueTokens[i].trim();
-            AttributeSchema attribute = attributes[i];
-    
-            try {
-                switch (attribute.gettype().toLowerCase()) {
-                    case "integer":
-                        values.add(Integer.parseInt(value));
-                        break;
-                    case "double":
-                        values.add(Double.parseDouble(value));
-                        break;
-                    case "boolean":
-                        values.add(Boolean.parseBoolean(value));
-                        break;
-                    case "char":  // continues to "varchar"
-                    case "varchar":
-                        if (!value.startsWith("\"") || !value.endsWith("\"")) {
-                            throw new IllegalArgumentException("Expected quotes around string value");
-                        }
-                        // Remove quotes
-                        value = value.substring(1, value.length() - 1);
-                        values.add(value);
-                        break;
-                    default:
-                        System.out.println("Unsupported attribute type: " + attribute.gettype());
-                        return;
+            ArrayList<Object> recordValues = new ArrayList<>();
+            for (int i = 0; i < values.length; i++) {
+                String value = values[i].trim();
+                AttributeSchema attribute = table.getattributes()[i];
+                Object parsedValue = parseValueBasedOnType(value, attribute);
+                if (parsedValue == null) {
+                    System.out.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
+                    return;
                 }
-            } catch (NumberFormatException e) {
-                System.out.println("Error parsing value for attribute '" + attribute.getname() + "': " + e.getMessage());
-                return;
-            } catch (IllegalArgumentException e) {
-                System.out.println(e.getMessage());
-                return;
+                recordValues.add(parsedValue);
             }
+    
+            int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size 
+            Record newRecord = new Record(recordValues, recordSize);
+            storageManager.addRecord(catalog, newRecord, table.gettableNumber());
         }
     
-        Record record = new Record(values, calculateRecordSize(values, attributes));
-        storageManager.addRecord(c, record, table.gettableNumber());
-    
-        System.out.println("Record inserted successfully into table: " + table.getname());
+        System.out.println("Record(s) inserted successfully into table: " + tableName);
     }
+    
+    private static Object parseValueBasedOnType(String value, AttributeSchema attribute) {
+        try {
+            switch (attribute.gettype().toLowerCase()) {
+                case "integer":
+                    return Integer.parseInt(value);
+                case "double":
+                    return Double.parseDouble(value);
+                case "boolean":
+                    return Boolean.parseBoolean(value);
+                case "char":
+                case "varchar":
+                    if(value.startsWith("'") && value.endsWith("'")) {
+                        return value.substring(1, value.length() - 1);
+                    }
+                    // Handle error or assume it's a correct string
+                    return value;
+                default:
+                    System.out.println("Unsupported attribute type: " + attribute.gettype());
+                    return null;
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Error parsing value: " + value);
+            return null;
+        }
+    }
+    
     
     private static int calculateRecordSize(ArrayList<Object> values, AttributeSchema[] attributes) {
         int size = 0;
@@ -234,25 +208,25 @@ public class parser {
     
             switch (attr.gettype().toLowerCase()) {
                 case "integer":
-                    size += Integer.BYTES; // Integer.SIZE / Byte.SIZE;
+                    size += Integer.BYTES;
                     break;
                 case "double":
-                    size += Double.BYTES; // Double.SIZE / Byte.SIZE;
+                    size += Double.BYTES;
                     break;
-                case "boolean": // 0 = false, 1 = true
-                    size += 1; 
+                case "boolean":
+                    size += 1;
                     break;
                 case "char":
                     size += attr.getsize();
                     break;
                 case "varchar":
-                    // 4 bytes (int) plus the length of the string
                     String stringValue = (String) value;
-                    size += Integer.BYTES + stringValue.getBytes().length;
+                    size += stringValue.getBytes().length;
+                    // Include 4 bytes to store the length of varchar if needed
+                    size += Integer.BYTES;
                     break;
                 default:
                     System.out.println("Unsupported attribute type: " + attr.gettype());
-                    // Consider throwing an exception or handling this case appropriately
                     break;
             }
         }

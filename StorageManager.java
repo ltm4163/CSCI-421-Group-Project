@@ -189,11 +189,6 @@ public class StorageManager {
         buffer.addPage(newPage.getPageNumber(), newPage);
     }
     
-    // private void updateCatalogAndBufferAfterInsertion(Catalog catalog, TableSchema table, Page targetPage) {
-    //     catalog.updatePage(targetPage); 
-    //     buffer.updatePage(targetPage);
-    // }
-    
     // Tells findInsertionPage if current location is where to insert record
     private int compare(AttributeSchema attr, Record record, Record existingRecord, int tupleIndex) {
         if (attr.gettype().equalsIgnoreCase("varchar")) {
@@ -255,7 +250,7 @@ public class StorageManager {
         TableSchema tableSchema = catalog.getTableSchema(tableNumber);
         try (RandomAccessFile fileIn = new RandomAccessFile(fileName, "r")) {
             byte[] data = new byte[Main.getPageSize()];
-            int index = -1; // placeholder value for compiling
+            int index = -1;
             int[] pageLocations = tableSchema.getPageLocations();
             for (int i = 0; i < tableSchema.getNumPages(); i++) { // find location of page in file
                 if (pageLocations[i] == pageNumber) {
@@ -264,7 +259,6 @@ public class StorageManager {
                 }
             }
             if (index<0) {
-                //throw new Exception("No pages in table");
                 System.out.println("Can't read page: No pages in table");
                 return null;
             }
