@@ -166,13 +166,8 @@ public class parser {
     
         String[] individualValueSets = valuesPart.split("\\),\\s*\\(");
         for (String valueSet : individualValueSets) {
-            System.out.println(valueSet);
             valueSet = valueSet.trim().replaceAll("^\\(|\\)$", "");
             String[] values = valueSet.split("\\s+(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
-            System.out.println(Arrays.toString(values));
-
-            System.out.println(values.length);
-            System.out.println(table.getnumAttributes());
     
             if (values.length != table.getnumAttributes()) {
                 System.out.println("Mismatch between number of columns and values provided.");
@@ -182,11 +177,25 @@ public class parser {
             ArrayList<Object> recordValues = new ArrayList<>();
             for (int i = 0; i < values.length; i++) {
                 String value = values[i].trim();
+                System.out.println(value);
                 AttributeSchema attribute = table.getattributes()[i];
                 Object parsedValue = parseValueBasedOnType(value, attribute);
                 if (parsedValue == null) {
                     System.out.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
                     return;
+                }
+                else if (parsedValue instanceof String) {  // If the parsed value is a char or varchar
+                    // char
+                    if (attribute.gettype().equals("char") && ((String) parsedValue).length() != attribute.getsize()) {
+                        System.err.println("Expected char length of: " + attribute.getsize() +
+                                " for attribute: " + attribute.getname());
+                    }
+                    // varchar
+                    else if (attribute.gettype().equals("varchar") &&
+                            ((String) parsedValue).length() > attribute.getsize()){
+                        System.err.println("Expected varchar length of less than or equal to: " + attribute.getsize() +
+                                " for attribute: " + attribute.getname());
+                    }
                 }
                 recordValues.add(parsedValue);
             }
