@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 public class parser {
@@ -155,8 +156,13 @@ public class parser {
     
         String[] individualValueSets = valuesPart.split("\\),\\s*\\(");
         for (String valueSet : individualValueSets) {
-            valueSet = valueSet.trim().replaceAll("^\\(|\\)$", ""); 
-            String[] values = valueSet.split(",\\s*(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            System.out.println(valueSet);
+            valueSet = valueSet.trim().replaceAll("^\\(|\\)$", "");
+            String[] values = valueSet.split("\\s+(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            System.out.println(Arrays.toString(values));
+
+            System.out.println(values.length);
+            System.out.println(table.getnumAttributes());
     
             if (values.length != table.getnumAttributes()) {
                 System.out.println("Mismatch between number of columns and values provided.");
