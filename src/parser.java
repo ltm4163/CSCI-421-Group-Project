@@ -177,7 +177,6 @@ public class parser {
             ArrayList<Object> recordValues = new ArrayList<>();
             for (int i = 0; i < values.length; i++) {
                 String value = values[i].trim();
-                System.out.println(value);
                 AttributeSchema attribute = table.getattributes()[i];
                 Object parsedValue = parseValueBasedOnType(value, attribute);
                 if (parsedValue == null) {
@@ -186,15 +185,18 @@ public class parser {
                 }
                 else if (parsedValue instanceof String) {  // If the parsed value is a char or varchar
                     // char
-                    if (attribute.gettype().equals("char") && ((String) parsedValue).length() != attribute.getsize()) {
+                    if (attribute.gettype().equals("char") &&
+                            ((String) parsedValue).length() - 2 != attribute.getsize()) {
                         System.err.println("Expected char length of: " + attribute.getsize() +
                                 " for attribute: " + attribute.getname());
+                        return;
                     }
                     // varchar
                     else if (attribute.gettype().equals("varchar") &&
-                            ((String) parsedValue).length() > attribute.getsize()){
+                            ((String) parsedValue).length() - 2 > attribute.getsize()){
                         System.err.println("Expected varchar length of less than or equal to: " + attribute.getsize() +
                                 " for attribute: " + attribute.getname());
+                        return;
                     }
                 }
                 recordValues.add(parsedValue);
@@ -202,7 +204,10 @@ public class parser {
     
             int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size 
             Record newRecord = new Record(recordValues, recordSize);
-            storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+            boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+            if (!worked) {
+                return;
+            }
         }
     
         System.out.println("Record(s) inserted successfully into table: " + tableName);

@@ -48,7 +48,7 @@ public class StorageManager {
         return page;
     }
     
-    public void addRecord(Catalog catalog, Record record, int tableNumber) {
+    public boolean addRecord(Catalog catalog, Record record, int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
         
         // Find an appropriate page to insert the record, or create a new page if necessary
@@ -78,7 +78,7 @@ public class StorageManager {
                         if (comparisonResult == 0) {
                             System.err.println("Can't insert: duplicate primary key");
                             System.err.println("ERROR");
-                            return;
+                            return false;
                         }
                         else if (comparisonResult < 0) {
                             indexFound = true;
@@ -92,7 +92,7 @@ public class StorageManager {
                             if (comparisonResult == 0) {
                                 System.err.println("Can't insert: duplicate primary key");
                                 System.err.println("ERROR");
-                                return;
+                                return false;
                             }
                         }
                         if (attr.getnotnull()) {
@@ -107,6 +107,7 @@ public class StorageManager {
         }
         // Insert the record into the page
         insertPage(table, record, tableNumber, indexFound, pageIndex, recIndex);
+        return true;
     }
 
     // Insert record into page
