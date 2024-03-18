@@ -108,7 +108,7 @@ public class parser {
         System.out.println("Table " + tableName + " dropped successfully.");
     }
     
-    private static void handleAlterCommand(String inputLine, Catalog catalog) {
+    private static void handleAlterCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
         // This is a simplified version. You might need to expand it based on your ALTER TABLE needs.
         String[] parts = inputLine.split("\\s+", 5);
         if (parts.length < 5 || !parts[0].equalsIgnoreCase("alter") || !parts[1].equalsIgnoreCase("table")) {
@@ -123,11 +123,20 @@ public class parser {
         }
         String operation = parts[3]; // "add", "drop", etc.
         String definition = parts[4].replace(";", "");
-    
+
         switch (operation.toLowerCase()) {
             case "add":
                 AttributeSchema newAttr = AttributeSchema.parse(definition); // Assuming AttributeSchema.parse() method exists
                 table.addAttribute(newAttr);
+                for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
+                    System.out.println(record.getData());
+                    ArrayList<Object> data = record.getData();
+                    AttributeSchema[] attributes = table.getattributes();
+                    int newAttributeIndex = attributes.length - 1;
+                    System.out.println(attributes[newAttributeIndex].getname());
+                    data.add(attributes[newAttributeIndex].getDefaultValue());
+                    record.setData(data);
+                }
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
             case "drop":
@@ -392,7 +401,7 @@ public class parser {
                 break;
 
             case "alter":
-                handleAlterCommand(inputLine, catalog);
+                handleAlterCommand(inputLine, catalog, storageManager);
                 break;
 
             case "insert":

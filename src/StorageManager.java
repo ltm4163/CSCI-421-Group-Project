@@ -38,6 +38,27 @@ public class StorageManager {
         }
         return tuples;
     }
+
+    public ArrayList<Record> getPhysicalRecords(int tableNumber) {
+        TableSchema table = catalog.getTableSchema(tableNumber);
+        List<Page> pages = new ArrayList<>();
+        ArrayList<Record> tuples = new ArrayList<>();
+
+        for (int i = 0; i < table.getNumPages(); i++) { // get all pages for table from buffer and file
+            Page page;
+            if (buffer.isPageInBuffer(tableNumber, i)) {
+                page = buffer.getPage(tableNumber, i); // get page from buffer
+            } else {
+                page = getPage(tableNumber, i); // get page from file
+            }
+            pages.add(page);
+        }
+
+        for (Page page : pages) {
+            tuples.addAll(page.getRecords());
+        }
+        return tuples;
+    }
     
     // Looks for page in buffer, retrieves from file if not in buffer
     public Page getPage(int tableNumber, int pageNumber) {

@@ -10,6 +10,8 @@ public class AttributeSchema {
     private boolean primaryKey;
     private int size; // size of attr type
 
+    private Object defaultValue;
+
     public AttributeSchema(String name, String type, boolean unique, boolean nonNull, boolean pK, int size) {
         this.name = name;
         this.type = type;
@@ -17,6 +19,7 @@ public class AttributeSchema {
         this.nonNull = nonNull;
         this.primaryKey = pK;
         this.size = size;
+        this.defaultValue = null;
     }
 
     public void setname(String name){
@@ -65,6 +68,14 @@ public class AttributeSchema {
 
     public int getsize(){
         return this.size;
+    }
+
+    public void setDefaultValue(Object defaultValue) {
+        this.defaultValue = defaultValue;
+    }
+
+    public Object getDefaultValue() {
+        return this.defaultValue;
     }
 
     public void displayAttribute() {
