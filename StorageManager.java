@@ -76,7 +76,8 @@ public class StorageManager {
                     if (attr.getprimarykey()) {
                         int comparisonResult = compare(attr, record, existingRecord, tupleIndex);
                         if (comparisonResult == 0) {
-                            // TODO: cancel insert
+                            System.err.println("Can't insert: duplicate primary key");
+                            System.err.println("ERROR");
                             return;
                         }
                         else if (comparisonResult < 0) {
@@ -89,7 +90,8 @@ public class StorageManager {
                         if (attr.getunique()) {
                             int comparisonResult = compare(attr, record, existingRecord, tupleIndex);
                             if (comparisonResult == 0) {
-                                // TODO: cancel insert
+                                System.err.println("Can't insert: duplicate primary key");
+                                System.err.println("ERROR");
                                 return;
                             }
                         }
