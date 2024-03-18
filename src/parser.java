@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 public class parser {
 
@@ -70,6 +72,14 @@ public class parser {
         ArrayList<AttributeSchema> attributes = new ArrayList<>();
         for (String token : attributeTokens) {
             attributes.add(AttributeSchema.parse(token.trim()));
+        }
+
+        List<AttributeSchema> attributesWithPrimaryKey = attributes.stream().filter(attr -> attr.getprimarykey() == true)
+                                                            .collect(Collectors.toList());
+        if (attributesWithPrimaryKey.size()!=1) {
+            System.err.println("Tables should have 1 primary key");
+            System.err.println("Error");
+            return;
         }
 
         TableSchema foundTable = catalog.getTables().stream()
