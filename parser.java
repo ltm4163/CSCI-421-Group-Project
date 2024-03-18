@@ -70,6 +70,16 @@ public class parser {
         for (String token : attributeTokens) {
             attributes.add(AttributeSchema.parse(token.trim()));
         }
+
+        TableSchema foundTable = catalog.getTables().stream()
+                                 .filter(table -> table.getName().equals(tableName))
+                                 .findFirst()
+                                 .orElse(null);
+        if (foundTable != null) {
+            System.err.println("Table of name " + tableName + " already exists");
+            System.err.println("ERROR");
+            return;
+        }
     
         TableSchema table = new TableSchema(attributes.size(), tableName, catalog.getNextTableNumber(), attributes.toArray(new AttributeSchema[0]));
         catalog.addTable(table);

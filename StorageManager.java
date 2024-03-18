@@ -238,6 +238,7 @@ public class StorageManager {
         return null;
     }
 
+    //I don't think we need this
     public void initialize() {
         // TODO: Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'initialize'");
@@ -259,7 +260,7 @@ public class StorageManager {
                 }
             }
             if (index<0) {
-                System.out.println("Can't read page: No pages in table");
+                System.err.println("Can't read page: No pages in table");
                 return null;
             }
             int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages int, seek to page location in file
