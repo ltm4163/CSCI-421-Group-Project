@@ -1,6 +1,9 @@
 import java.io.IOException;
 import java.lang.*;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class parser {
 
@@ -241,52 +244,90 @@ public class parser {
     }
 
     private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
-        String[] tokens = inputLine.split(" ");
-        int index = 0;
+        // Regular expressions to match SELECT, FROM, and WHERE clauses
+        Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
+        Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE|$)", Pattern.CASE_INSENSITIVE);
+        Pattern wherePattern = Pattern.compile("WHERE (.+)$", Pattern.CASE_INSENSITIVE);
 
-        while (index < tokens.length && !tokens[index].equals("select")) {
-            index++;
-        }
-
-        index++;  // Move to the next token after 'select'
-
-        if (index >= tokens.length || !tokens[index].equals("*")) {
-            System.out.println("Expected '*'\nERROR");
+        // Match SELECT clause
+        Matcher selectMatcher = selectPattern.matcher(inputLine);
+        if (selectMatcher.find()) {
+            String selectClause = selectMatcher.group(1);
+            System.out.println("Columns to select: " + selectClause);
+        } else {
+            System.out.println("Error: No SELECT clause found");
             return;
         }
 
-        index++;  // Move to the next token after '*'
-
-        if (index >= tokens.length || !tokens[index].equals("from")) {
-            System.out.println("Expected 'from'\nERROR");
+        // Match FROM clause
+        Matcher fromMatcher = fromPattern.matcher(inputLine);
+        if (fromMatcher.find()) {
+            String tableName = fromMatcher.group(1);
+            System.out.println("Table name: " + tableName);
+        } else {
+            System.out.println("Error: No FROM clause found");
             return;
         }
 
-        index++;  // Move to the next token after 'from'
-
-        if (index < tokens.length) {  // Make sure there is a table name
-            String tableName = tokens[index].replaceAll(";", "");  // Strips the table name of the semicolon at the end for comparison
-
-            for (int i = 0; i < c.getTableCount(); i++) {
-                TableSchema t = c.getTableSchema(i);
-                if (tableName.equals(t.getname())) {  // If the token is equal to the current table's name...
-                    storageManager.getRecords(t.gettableNumber());
-                    return;
-                }
-            }
+        // Match WHERE clause if present
+        Matcher whereMatcher = wherePattern.matcher(inputLine);
+        if (whereMatcher.find()) {
+            String whereClause = whereMatcher.group(1);
+            System.out.println("Where conditions: " + whereClause);
+            List<List<WhereParse.Condition>> whereClauseList = WhereParse.parseWhereClause(whereClause);
+            System.out.println(whereClauseList);
+        } else {
+            System.out.println("No WHERE conditions specified");
         }
-        else {  // If the table name is not present in the query...
-            System.out.println("Expected table name\nERROR");
-            return;
-        }
-
-        // If this code is reached, a table with a matching name was not found
-        // TODO: get this to display tablename
-        // should be: no such table [tablename here]
-        System.out.println("No such table\nERROR\n\n");
-        return;
-
     }
+
+//    private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
+//        String[] tokens = inputLine.split(" ");
+//        int index = 0;
+//
+//        while (index < tokens.length && !tokens[index].equals("select")) {
+//            index++;
+//        }
+//
+//        index++;  // Move to the next token after 'select'
+//
+//        if (index >= tokens.length || !tokens[index].equals("*")) {
+//            System.out.println("Expected '*'\nERROR");
+//            return;
+//        }
+//
+//        index++;  // Move to the next token after '*'
+//
+//        if (index >= tokens.length || !tokens[index].equals("from")) {
+//            System.out.println("Expected 'from'\nERROR");
+//            return;
+//        }
+//
+//        index++;  // Move to the next token after 'from'
+//
+//        if (index < tokens.length) {  // Make sure there is a table name
+//            String tableName = tokens[index].replaceAll(";", "");  // Strips the table name of the semicolon at the end for comparison
+//
+//            for (int i = 0; i < c.getTableCount(); i++) {
+//                TableSchema t = c.getTableSchema(i);
+//                if (tableName.equals(t.getname())) {  // If the token is equal to the current table's name...
+//                    storageManager.getRecords(t.gettableNumber());
+//                    return;
+//                }
+//            }
+//        }
+//        else {  // If the table name is not present in the query...
+//            System.out.println("Expected table name\nERROR");
+//            return;
+//        }
+//
+//        // If this code is reached, a table with a matching name was not found
+//        // TODO: get this to display tablename
+//        // should be: no such table [tablename here]
+//        System.out.println("No such table\nERROR\n\n");
+//        return;
+//
+//    }
 
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
