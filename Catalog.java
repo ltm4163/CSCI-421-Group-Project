@@ -72,6 +72,7 @@ public class Catalog {
                                  .orElse(null);
         if (foundTable != null) {
             foundTable.displayTable();
+            return true;
         }
         return false;
     }

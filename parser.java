@@ -73,6 +73,15 @@ public class parser {
         for (String token : attributeTokens) {
             attributes.add(AttributeSchema.parse(token.trim()));
         }
+        TableSchema foundTable = catalog.getTables().stream()
+                                 .filter(table -> table.getName().equals(tableName))
+                                 .findFirst()
+                                 .orElse(null);
+        if (foundTable != null) {
+            System.err.println("Table of name " + tableName + " already exists");
+            System.err.println("ERROR");
+            return;
+        }
     
         TableSchema table = new TableSchema(attributes.size(), tableName, catalog.getNextTableNumber(), attributes.toArray(new AttributeSchema[0]));
         catalog.addTable(table);
@@ -113,29 +122,24 @@ public class parser {
         int index =2;
         String tablename = sqlsplits[2];
         boolean tableexists=catalog.tableExists(tablename);
+        String attributestring="";
+
         if(tableexists==true){
             index++;
             if(sqlsplits[index].equalsIgnoreCase("add")){
                 index++;
-                AttributeSchema a=new AttributeSchema(tablename, tablename, false, false, false, 1);
-                String attributename=sqlsplits[index];
-                a.setname(attributename);
-                index++;
-                String attributetype=sqlsplits[index];
-                a.settype(attributetype);
-
-                boolean notnull = Arrays.asList(sqlsplits).contains("not") && Arrays.asList(sqlsplits).contains("null");
-                boolean primarykey=Arrays.asList(sqlsplits).contains("primary") && Arrays.asList(sqlsplits).contains("key");
-                boolean unique = Arrays.asList(sqlsplits).contains("unique");
-                a.setnotnull(notnull);
-                a.setprimarykey(primarykey);
-                a.setunique(unique);
+                attributestring=sqlsplits[index];
+                for(int i=index+1; i < sqlsplits.length; i++){
+                    attributestring+=" "+sqlsplits[i];
+                }
+                attributestring.trim();
+                AttributeSchema attributeSchema=AttributeSchema.parse(attributestring);
                 int tableid=0;
-                for(int i = 0; i < catalog.getTableCount(); i++) {
+                for(int a = 0; a < catalog.getTableCount(); a++) {
                     
-                    if(catalog.getTables().get(i).getname().equals(tablename)) {
-                        tableid=i;
-                        catalog.getTables().get(tableid).addAttribute(a);
+                    if(catalog.getTables().get(a).getname().equals(tablename)) {
+                        tableid=a;
+                        catalog.getTables().get(tableid).addAttribute(attributeSchema);
                         break;
                     }
                 }
