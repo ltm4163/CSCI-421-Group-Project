@@ -1,6 +1,6 @@
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,8 +20,8 @@ public class WhereParse {
     public static List<List<Condition>> parseWhereClause(String whereClause) {
         List<List<Condition>> subClauses = new ArrayList<>();
 
-        // Split WHERE clause by OR operator
-        String[] clauses = whereClause.split("\\s+AND\\s+", Pattern.CASE_INSENSITIVE);
+        // Split WHERE clause by AND operator; keeps OR operations together
+        String[] clauses = whereClause.split("(?i)\\s+AND\\s+");
 
         for (String clause : clauses) {
             List<Condition> conditions = new ArrayList<>();
@@ -56,4 +56,9 @@ public class WhereParse {
     }
 }
 
-// select * from table0 where age >= 18 AND (name = 'John' OR city = 'New York' OR age = salary)
+// select * from table0 where age >= 18 AND (name = 'John' OR city = 'New York' OR age = salary) -- works
+//      should output [[name = 'John', city = 'New York', age = salary], [age >= 18]]
+// select * from table0 where (name = 'John' OR city = 'New York' OR age = salary) AND age >= 18 -- works
+//      should output [[name = 'John', city = 'New York', age = salary], [age >= 18]]
+// select * from table0 where (name = 'John' OR (city = 'New York' AND age = salary)) AND age >= 18 -- doesn't work
+//      should output [[name = 'John', [[city = 'New York'], [age = salary]]], [age >= 18]], or something to that nature

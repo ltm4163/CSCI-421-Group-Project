@@ -275,6 +275,8 @@ public class parser {
             String whereClause = whereMatcher.group(1);
             System.out.println("Where conditions: " + whereClause);
             List<List<WhereParse.Condition>> whereClauseList = WhereParse.parseWhereClause(whereClause);
+            List<String> testList= WhereParse.splitByParentheses(whereClause);
+            System.out.println(testList);
             System.out.println(whereClauseList);
         } else {
             System.out.println("No WHERE conditions specified");
