@@ -112,9 +112,6 @@ public class AttributeSchema {
         boolean unique = attributeString.contains("unique");
         boolean notNull = attributeString.contains("notnull");
         boolean primaryKey = attributeString.contains("primarykey");
-        if (attributeString.contains("default")) {
-            //setDefaultValue(parts[parts.length - 1]);
-        }
         int size = 0;
 
         // Extract size for char and varchar types

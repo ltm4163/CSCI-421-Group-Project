@@ -135,7 +135,11 @@ public class parser {
                     ArrayList<Object> data = record.getData();
                     AttributeSchema[] attributes = table.getattributes();
                     int newAttributeIndex = attributes.length - 1;
-                    System.out.println(attributes[newAttributeIndex].getname());
+                    if (definition.contains("default")) {
+                        String[] definitionParts = definition.split("\\s+");
+                        String defaultValue = definitionParts[definitionParts.length - 1];
+                        attributes[newAttributeIndex].setDefaultValue(defaultValue);
+                    }
                     data.add(attributes[newAttributeIndex].getDefaultValue());
                     record.setData(data);
                 }
@@ -363,7 +367,12 @@ public class parser {
         for (ArrayList<Object> record : records) {
             System.out.print("|");
             for (Object field : record) {
-                System.out.print(String.format(" %s |", field.toString()));
+                if (field != null) {
+                    System.out.print(String.format(" %s |", field.toString()));
+                }
+                else {
+                    System.out.println(" null |");
+                }
             }
             System.out.println();
         }
