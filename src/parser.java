@@ -144,13 +144,8 @@ public class parser {
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
             case "drop":
-                String[] split = definition.split("\\s+");
-                String attrName = split[0];
-                table.dropAttribute(attrName);
-                // Removes values for dropped attribute from each existing record
-                for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
-                    for
-                }
+                // Assuming table has a method to drop an attribute
+                table.dropAttribute(definition);
                 System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
                 break;
             default:
