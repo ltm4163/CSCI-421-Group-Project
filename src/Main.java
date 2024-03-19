@@ -8,6 +8,7 @@ import java.nio.file.Paths;
 public class Main {
     private static Catalog catalog;
     private static PageBuffer buffer;
+    private static StorageManager storageManager;
     private static String dbDirectory;
     private static int pageSize;
     private static int bufferSize;
@@ -30,7 +31,7 @@ public class Main {
 
         catalog = new Catalog(dbDirectory, pageSize, bufferSize);
         buffer = new PageBuffer(bufferSize);
-        StorageManager storageManager = new StorageManager(catalog, buffer);
+        storageManager = new StorageManager(catalog, buffer);
 
         // Load/init the catalog
         try {
@@ -87,6 +88,10 @@ public class Main {
 
     public static PageBuffer getBuffer() {
         return buffer;
+    }
+
+    public static StorageManager getStorageManager() {
+        return storageManager;
     }
 
     public static String getDbDirectory() {

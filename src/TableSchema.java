@@ -119,11 +119,8 @@ public class TableSchema {
     }
 
     public Page getPageByNumber(int pageNumber) {
-        PageBuffer buffer = Main.getBuffer(); 
-        Page page = buffer.getPage(this.tableNumber, pageNumber);
-        if (page == null) {
-            page = buffer.loadPageFromDisk(this.tableNumber, pageNumber);
-        }
+        StorageManager storageManager = Main.getStorageManager();
+        Page page = storageManager.getPage(this.tableNumber, pageNumber);
         return page;
     }
 
