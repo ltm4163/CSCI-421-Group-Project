@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class parser {
 
@@ -144,6 +145,21 @@ public class parser {
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
             case "drop":
+                AttributeSchema[] attributes = table.getattributes();
+                IntStream.range(0, attributes.length).forEach(i -> {
+                    AttributeSchema attribute = attributes[i];
+                    System.out.println(attribute.getname());
+                    System.out.println(definition);
+                    System.out.println(i);
+                    if (attribute.getname().equals(definition)) {
+                        for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
+                            ArrayList<Object> data = record.getData();
+                            data.remove(i);
+                            System.out.println(data);
+                            record.setData(data);
+                        }
+                    }
+                });
                 // Assuming table has a method to drop an attribute
                 table.dropAttribute(definition);
                 System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
@@ -305,7 +321,6 @@ public class parser {
                     if (attr.isPrimaryKey()) attributeDetails += " primarykey";
                     if (attr.isUnique()) attributeDetails += " unique";
                     if (attr.isNonNull()) attributeDetails += " notnull";
-                    System.out.println(attributeDetails);
                 }
                 System.out.println("Pages: " + table.getNumPages());
                 System.out.println("Records: " + table.getNumRecords() + "\n");
