@@ -126,8 +126,10 @@ public class parser {
 
         switch (operation.toLowerCase()) {
             case "add":
+                System.out.println(definition);
                 AttributeSchema newAttr = AttributeSchema.parse(definition); // Assuming AttributeSchema.parse() method exists
                 table.addAttribute(newAttr);
+                // Adds new attribute's default value to each existing record
                 for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
                     System.out.println(record.getData());
                     ArrayList<Object> data = record.getData();

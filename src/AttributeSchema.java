@@ -1,6 +1,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class AttributeSchema {
     private String name;
@@ -105,11 +106,15 @@ public class AttributeSchema {
     public static AttributeSchema parse(String attributeString) {
         // Example input: "name varchar(255) unique notnull primarykey"
         String[] parts = attributeString.split("\\s+");
+        System.out.println(Arrays.toString(parts));
         String name = parts[0];
         String type = parts[1];
         boolean unique = attributeString.contains("unique");
         boolean notNull = attributeString.contains("notnull");
         boolean primaryKey = attributeString.contains("primarykey");
+        if (attributeString.contains("default")) {
+            //setDefaultValue(parts[parts.length - 1]);
+        }
         int size = 0;
 
         // Extract size for char and varchar types
