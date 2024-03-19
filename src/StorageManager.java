@@ -38,6 +38,27 @@ public class StorageManager {
         }
         return tuples;
     }
+
+    public ArrayList<Record> getPhysicalRecords(int tableNumber) {
+        TableSchema table = catalog.getTableSchema(tableNumber);
+        List<Page> pages = new ArrayList<>();
+        ArrayList<Record> tuples = new ArrayList<>();
+
+        for (int i = 0; i < table.getNumPages(); i++) { // get all pages for table from buffer and file
+            Page page;
+            if (buffer.isPageInBuffer(tableNumber, i)) {
+                page = buffer.getPage(tableNumber, i); // get page from buffer
+            } else {
+                page = getPage(tableNumber, i); // get page from file
+            }
+            pages.add(page);
+        }
+
+        for (Page page : pages) {
+            tuples.addAll(page.getRecords());
+        }
+        return tuples;
+    }
     
     // Looks for page in buffer, retrieves from file if not in buffer
     public Page getPage(int tableNumber, int pageNumber) {
@@ -48,7 +69,7 @@ public class StorageManager {
         return page;
     }
     
-    public void addRecord(Catalog catalog, Record record, int tableNumber) {
+    public boolean addRecord(Catalog catalog, Record record, int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
         
         // Find an appropriate page to insert the record, or create a new page if necessary
@@ -78,7 +99,7 @@ public class StorageManager {
                         if (comparisonResult == 0) {
                             System.err.println("Can't insert: duplicate primary key");
                             System.err.println("ERROR");
-                            return;
+                            return false;
                         }
                         else if (comparisonResult < 0) {
                             indexFound = true;
@@ -92,7 +113,7 @@ public class StorageManager {
                             if (comparisonResult == 0) {
                                 System.err.println("Can't insert: duplicate primary key");
                                 System.err.println("ERROR");
-                                return;
+                                return false;
                             }
                         }
                         if (attr.getnotnull()) {
@@ -107,6 +128,7 @@ public class StorageManager {
         }
         // Insert the record into the page
         insertPage(table, record, tableNumber, indexFound, pageIndex, recIndex);
+        return true;
     }
 
     // Insert record into page

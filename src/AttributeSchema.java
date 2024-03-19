@@ -1,6 +1,7 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.Arrays;
 
 public class AttributeSchema {
     private String name;
@@ -10,6 +11,8 @@ public class AttributeSchema {
     private boolean primaryKey;
     private int size; // size of attr type
 
+    private Object defaultValue;
+
     public AttributeSchema(String name, String type, boolean unique, boolean nonNull, boolean pK, int size) {
         this.name = name;
         this.type = type;
@@ -17,6 +20,7 @@ public class AttributeSchema {
         this.nonNull = nonNull;
         this.primaryKey = pK;
         this.size = size;
+        this.defaultValue = null;
     }
 
     public void setname(String name){
@@ -67,6 +71,14 @@ public class AttributeSchema {
         return this.size;
     }
 
+    public void setDefaultValue(Object defaultValue) {
+        this.defaultValue = defaultValue;
+    }
+
+    public Object getDefaultValue() {
+        return this.defaultValue;
+    }
+
     public void displayAttribute() {
         System.out.println(this.name);
         System.out.print(this.type);
@@ -94,6 +106,7 @@ public class AttributeSchema {
     public static AttributeSchema parse(String attributeString) {
         // Example input: "name varchar(255) unique notnull primarykey"
         String[] parts = attributeString.split("\\s+");
+        System.out.println(Arrays.toString(parts));
         String name = parts[0];
         String type = parts[1];
         boolean unique = attributeString.contains("unique");

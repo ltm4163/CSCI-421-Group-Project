@@ -108,7 +108,7 @@ public class parser {
         System.out.println("Table " + tableName + " dropped successfully.");
     }
     
-    private static void handleAlterCommand(String inputLine, Catalog catalog) {
+    private static void handleAlterCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
         // This is a simplified version. You might need to expand it based on your ALTER TABLE needs.
         String[] parts = inputLine.split("\\s+", 5);
         if (parts.length < 5 || !parts[0].equalsIgnoreCase("alter") || !parts[1].equalsIgnoreCase("table")) {
@@ -123,11 +123,26 @@ public class parser {
         }
         String operation = parts[3]; // "add", "drop", etc.
         String definition = parts[4].replace(";", "");
-    
+
         switch (operation.toLowerCase()) {
             case "add":
+                System.out.println(definition);
                 AttributeSchema newAttr = AttributeSchema.parse(definition); // Assuming AttributeSchema.parse() method exists
                 table.addAttribute(newAttr);
+                // Adds new attribute's default value to each existing record
+                for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
+                    System.out.println(record.getData());
+                    ArrayList<Object> data = record.getData();
+                    AttributeSchema[] attributes = table.getattributes();
+                    int newAttributeIndex = attributes.length - 1;
+                    if (definition.contains("default")) {
+                        String[] definitionParts = definition.split("\\s+");
+                        String defaultValue = definitionParts[definitionParts.length - 1];
+                        attributes[newAttributeIndex].setDefaultValue(defaultValue);
+                    }
+                    data.add(attributes[newAttributeIndex].getDefaultValue());
+                    record.setData(data);
+                }
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
             case "drop":
@@ -183,12 +198,31 @@ public class parser {
                     System.out.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
                     return;
                 }
+                else if (parsedValue instanceof String) {  // If the parsed value is a char or varchar
+                    // char
+                    if (attribute.gettype().equals("char") &&
+                            ((String) parsedValue).length() - 2 != attribute.getsize()) {
+                        System.err.println("Expected char length of: " + attribute.getsize() +
+                                " for attribute: " + attribute.getname());
+                        return;
+                    }
+                    // varchar
+                    else if (attribute.gettype().equals("varchar") &&
+                            ((String) parsedValue).length() - 2 > attribute.getsize()){
+                        System.err.println("Expected varchar length of less than or equal to: " + attribute.getsize() +
+                                " for attribute: " + attribute.getname());
+                        return;
+                    }
+                }
                 recordValues.add(parsedValue);
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size 
             Record newRecord = new Record(recordValues, recordSize);
-            storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+            boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+            if (!worked) {
+                return;
+            }
         }
     
         System.out.println("Record(s) inserted successfully into table: " + tableName);
@@ -333,7 +367,12 @@ public class parser {
         for (ArrayList<Object> record : records) {
             System.out.print("|");
             for (Object field : record) {
-                System.out.print(String.format(" %s |", field.toString()));
+                if (field != null) {
+                    System.out.print(String.format(" %s |", field.toString()));
+                }
+                else {
+                    System.out.println(" null |");
+                }
             }
             System.out.println();
         }
@@ -373,7 +412,7 @@ public class parser {
                 break;
 
             case "alter":
-                handleAlterCommand(inputLine, catalog);
+                handleAlterCommand(inputLine, catalog, storageManager);
                 break;
 
             case "insert":

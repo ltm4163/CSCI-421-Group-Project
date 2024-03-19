@@ -173,25 +173,17 @@ public class TableSchema {
     }
 
     public void displayTable() {
-        System.out.println("Table name: " + this.name);
-        System.out.println("Number of attributes: " + this.numAttributes);
-        System.out.println("Table Number: " + this.tableNumber);
-        System.out.println("Number of pages: " + this.numPages);
-    
-        System.out.println("Attributes:");
-        for (AttributeSchema attr : this.attributes) {
-            attr.displayAttribute();
+        System.out.println("Table name: " + this.getName());
+        System.out.println("Table schema:");
+        AttributeSchema[] attributes = this.getattributes();
+        for (AttributeSchema attr : attributes) {
+            String attributeDetails = String.format("    %s:%s", attr.getname(), attr.gettype());
+            if (attr.isPrimaryKey()) attributeDetails += " primarykey";
+            if (attr.isUnique()) attributeDetails += " unique";
+            if (attr.isNonNull()) attributeDetails += " notnull";
+            System.out.println(attributeDetails);
         }
-    
-        System.out.println("Page locations (Page numbers):");
-        if (this.pageLocations.length > 0) {
-            for (int location : this.pageLocations) {
-                System.out.println(" - Page number: " + location);
-            }
-        } else {
-            System.out.println("No pages currently associated with this table.");
-        }
-    
-        System.out.println("Total records: " + this.getNumRecords());
+        System.out.println("Pages: " + this.getNumPages());
+        System.out.println("Records: " + this.getNumRecords() + "\n");
     }
 }
