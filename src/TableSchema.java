@@ -127,6 +127,7 @@ public class TableSchema {
     public void addAttribute(AttributeSchema newAttr) {
         this.attributes = Arrays.copyOf(this.attributes, this.attributes.length + 1);
         this.attributes[this.attributes.length - 1] = newAttr;
+        this.numAttributes++;
         System.out.println("Attribute " + newAttr.getname() + " added to table " + this.name);
     }
 
@@ -134,6 +135,7 @@ public class TableSchema {
         this.attributes = Arrays.stream(this.attributes)
                                 .filter(attr -> !attr.getname().equals(attrName))
                                 .toArray(AttributeSchema[]::new);
+        this.numAttributes--;
         System.out.println("Attribute " + attrName + " removed from table " + this.name);
     }
 

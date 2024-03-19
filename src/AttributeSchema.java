@@ -106,7 +106,6 @@ public class AttributeSchema {
     public static AttributeSchema parse(String attributeString) {
         // Example input: "name varchar(255) unique notnull primarykey"
         String[] parts = attributeString.split("\\s+");
-        System.out.println(Arrays.toString(parts));
         String name = parts[0];
         String type = parts[1];
         boolean unique = attributeString.contains("unique");

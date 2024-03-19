@@ -31,28 +31,30 @@ public class Record {
         int tupleIndex = 0; 
     
         for (AttributeSchema attr : attributeSchemas) {
+            Object value = this.getData().get(tupleIndex);
+            if (value == null) continue; //TODO: replace this with actually handling writing null to file
             switch (attr.gettype().toLowerCase()) {
                 case "varchar":
-                    String varcharValue = (String) this.data.get(tupleIndex);
+                    String varcharValue = (String) value;
                     byte[] varcharBytes = varcharValue.getBytes();
                     recData.put(varcharBytes);
                     break;
                 case "char":
-                    String charValue = (String) this.data.get(tupleIndex);
+                    String charValue = (String) value;
                     String paddedCharValue = String.format("%-" + attr.getsize() + "." + attr.getsize() + "s", charValue);
                     byte[] charBytes = paddedCharValue.getBytes();
                     recData.put(charBytes);
                     break;
                 case "integer":
-                    int intValue = (int) this.data.get(tupleIndex);
+                    int intValue = (int) value;
                     recData.putInt(intValue);
                     break;
                 case "double":
-                    double doubleValue = (double) this.data.get(tupleIndex);
+                    double doubleValue = (double) value;
                     recData.putDouble(doubleValue);
                     break;
                 case "boolean":
-                    boolean booleanValue = (boolean) this.data.get(tupleIndex);
+                    boolean booleanValue = (boolean) value;
                     byte booleanByte = (byte) (booleanValue ? 1 : 0);
                     recData.put(booleanByte);
                     break;

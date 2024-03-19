@@ -126,12 +126,10 @@ public class parser {
 
         switch (operation.toLowerCase()) {
             case "add":
-                System.out.println(definition);
-                AttributeSchema newAttr = AttributeSchema.parse(definition); // Assuming AttributeSchema.parse() method exists
+                AttributeSchema newAttr = AttributeSchema.parse(definition);
                 table.addAttribute(newAttr);
                 // Adds new attribute's default value to each existing record
                 for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
-                    System.out.println(record.getData());
                     ArrayList<Object> data = record.getData();
                     AttributeSchema[] attributes = table.getattributes();
                     int newAttributeIndex = attributes.length - 1;
@@ -146,8 +144,13 @@ public class parser {
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
             case "drop":
-                // Assuming table has a method to drop an attribute
-                table.dropAttribute(definition);
+                String[] split = definition.split("\\s+");
+                String attrName = split[0];
+                table.dropAttribute(attrName);
+                // Removes values for dropped attribute from each existing record
+                for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
+                    for
+                }
                 System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
                 break;
             default:
@@ -344,10 +347,6 @@ public class parser {
             }
     
             ArrayList<ArrayList<Object>> records = storageManager.getRecords(t.gettableNumber());
-            if (records.isEmpty()) {
-                System.out.println("No records found in table: " + tableName);
-                return;
-            }
     
             printRecords(records, t);
         } else {
@@ -371,7 +370,7 @@ public class parser {
                     System.out.print(String.format(" %s |", field.toString()));
                 }
                 else {
-                    System.out.println(" null |");
+                    System.out.print(" null |");
                 }
             }
             System.out.println();
