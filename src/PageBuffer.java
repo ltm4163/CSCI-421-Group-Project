@@ -117,28 +117,6 @@ public class PageBuffer {
         }
     }
 
-    public Page loadPageFromDisk(int tableNumber, int pageNumber) {
-        try {
-            String fileName = getFileNameForPage(tableNumber, pageNumber);
-            File file = new File(fileName);
-            if (!file.exists()) {
-                System.err.println("Page file does not exist: " + fileName);
-                return null;
-            }
-            
-            try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
-                byte[] pageData = new byte[Main.getPageSize()]; 
-                raf.readFully(pageData);
-                
-                Page page = Page.fromBinary(pageData, tableNumber, pageNumber, Main.getCatalog());
-                return page;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
     private String getFileNameForPage(int tableNumber, int pageNumber) {
         return Main.getDbDirectory() + "/tables/" + tableNumber + "/" + pageNumber + ".bin";
     }

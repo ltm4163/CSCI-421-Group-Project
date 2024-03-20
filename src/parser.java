@@ -140,6 +140,10 @@ public class parser {
                         attributes[newAttributeIndex].setDefaultValue(defaultValue);
                     }
                     data.add(attributes[newAttributeIndex].getDefaultValue());
+                    if (attributes[newAttributeIndex].gettype().equals("varchar")) {
+                        record.setSize(record.getSize() + "NULL".length() + Integer.SIZE);
+                    }
+                    else record.setSize(record.getSize() + attributes[newAttributeIndex].getsize());
                     record.setData(data);
                 }
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
@@ -290,6 +294,7 @@ public class parser {
                     break;
                 case "varchar":
                     String stringValue = (String) value;
+                    if (value == null) stringValue = "NULL";
                     size += stringValue.getBytes().length;
                     // Include 4 bytes to store the length of varchar if needed
                     size += Integer.BYTES;

@@ -185,7 +185,6 @@ public class StorageManager {
             secondPageSize += record.getSize();
         }
     
-        // Assuming Page has a method setRecords that accepts List<Record>
         Page newPage = new Page(page.getPageNumber()+1, page.getTableNumber(), true);
         newPage.setRecords(secondHalf); // Move second half to the new page
         newPage.setNumRecords(page.getNumRecords() - midIndex);
@@ -208,7 +207,6 @@ public class StorageManager {
         }
         catalog.getTableSchema(page.getTableNumber()).addPage(newPage);
     
-        // Assuming buffer has methods updatePage and addPage that accept a Page
         buffer.updatePage(page);
         buffer.addPage(newPage.getPageNumber(), newPage);
     }

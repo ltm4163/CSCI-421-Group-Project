@@ -78,7 +78,8 @@ public class Page {
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
                     recordSize += attrValue.length() + Integer.SIZE;
-                    attrValues.add(attrValue);
+                    if (attrValue.equals("NULL")) attrValues.add(null);
+                    else attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("char")) {
                     int sizeOfString = attr.getsize(); //used to tell how big string is
@@ -86,23 +87,27 @@ public class Page {
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
                     recordSize += sizeOfString;
-                    attrValues.add(attrValue);
+                    if (attrValue.equals("NULL")) attrValues.add(null);
+                    else attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("integer")) {
                     int attrValue = buffer.getInt();
                     recordSize += Integer.SIZE;
-                    attrValues.add(attrValue);
+                    if (attrValue == -1) attrValues.add(null);
+                    else attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("double")) {
                     double attrValue = buffer.getDouble();
                     recordSize += Double.SIZE;
-                    attrValues.add(attrValue);
+                    if (attrValue == -1.0) attrValues.add(null);
+                    else attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("boolean")) {
                     byte attrValueByte = buffer.get();
                     boolean attrValue = (boolean)(attrValueByte == 1 ? true : false);
                     recordSize += 1;
-                    attrValues.add(attrValue);
+                    if (attrValueByte == -1) attrValues.add(null);
+                    else attrValues.add(attrValue);
                 }
             }
 

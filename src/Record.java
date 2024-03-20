@@ -32,31 +32,37 @@ public class Record {
     
         for (AttributeSchema attr : attributeSchemas) {
             Object value = this.getData().get(tupleIndex);
-            if (value == null) continue; //TODO: replace this with actually handling writing null to file
             switch (attr.gettype().toLowerCase()) {
                 case "varchar":
-                    String varcharValue = (String) value;
+                    String varcharValue = "NULL";
+                    if (value != null) varcharValue = (String) value;
                     byte[] varcharBytes = varcharValue.getBytes();
                     recData.putInt(varcharValue.length());
                     recData.put(varcharBytes);
                     break;
                 case "char":
-                    String charValue = (String) value;
+                    String charValue = "NULL";
+                    if (value != null) charValue = (String) value;
                     String paddedCharValue = String.format("%-" + attr.getsize() + "." + attr.getsize() + "s", charValue);
                     byte[] charBytes = paddedCharValue.getBytes();
                     recData.put(charBytes);
                     break;
                 case "integer":
-                    int intValue = (int) value;
+                    int intValue = -1;
+                    if (value != null) intValue = (int) value;
                     recData.putInt(intValue);
                     break;
                 case "double":
-                    double doubleValue = (double) value;
+                    double doubleValue = -1.0;
+                    if (value != null) doubleValue = (double) value;
                     recData.putDouble(doubleValue);
                     break;
                 case "boolean":
-                    boolean booleanValue = (boolean) value;
-                    byte booleanByte = (byte) (booleanValue ? 1 : 0);
+                    byte booleanByte = -1;
+                    if (value != null) {
+                        boolean booleanValue = (boolean) value;
+                        booleanByte = (byte) (booleanValue ? 1 : 0);
+                    }
                     recData.put(booleanByte);
                     break;
             }
