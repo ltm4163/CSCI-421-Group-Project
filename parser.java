@@ -3,6 +3,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.locks.Condition;
 
 
 public class parser {
@@ -100,7 +101,51 @@ public class parser {
     }
     
 
-    
+    private static void handleDeleteCommand(String inputLine,StorageManager storageManager, Catalog catalog)
+    {
+        String[] parts = inputLine.split("\\s+");
+        int indexOfSemicolon = inputLine.indexOf(';');
+
+        if (indexOfSemicolon == -1) {  // If there are no semicolons...
+            System.out.println("Expected ';'");
+            return;
+        } else if (!inputLine.endsWith(";")) {  // If the semicolon's position is not at the end of the statement...
+            System.out.println("';' expected at the end of the statement");
+            return;
+        }
+        
+        if(!Arrays.asList(parts).contains("from")){
+            System.out.println("Expected 'from'");
+            return;
+        }
+        int index=2;
+        String tablename=parts[index];
+        boolean tableexists=catalog.tableExists(tablename);
+        if(tableexists){
+            int tableid=-1;
+            for(TableSchema table: catalog.getTables()){
+                if(table.getname().equals(tablename)){
+                    tableid=table.gettableNumber();
+                    break;
+                }
+            }
+            index++;
+            if(parts[index].equalsIgnoreCase("where")){
+                System.out.println("Expected 'where'");
+                return;
+            }
+            int startingindex=inputLine.indexOf("where");
+            String whereclauseString=inputLine.substring(startingindex);
+            ArrayList<ArrayList<Object>> records = storageManager.getRecords(tableid);
+            List<List<WhereParse.Condition>> condition= WhereParse.parseWhereClause(whereclauseString);
+
+
+
+        }
+        else{
+            System.out.println("Table does not exists.");
+        }
+    }
 
     private static void handleAlterCommand(String inputLine, Catalog catalog) {
         int indexOfSemicolon = inputLine.indexOf(';');
