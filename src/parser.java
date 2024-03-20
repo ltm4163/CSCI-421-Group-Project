@@ -209,7 +209,7 @@ public class parser {
                 AttributeSchema attribute = table.getattributes()[i];
                 Object parsedValue = parseValueBasedOnType(value, attribute);
                 if (parsedValue == null) {
-                    System.out.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
+                    System.err.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
                     return;
                 }
                 else if (parsedValue instanceof String) {  // If the parsed value is a char or varchar

@@ -65,7 +65,7 @@ public class Page {
 
         // Populate page with records using data from file
         for (int i = 0; i < numRecords; i++) { // iterare through records
-            int recordOffset = 0; // used for writing to record byte array
+            int recordSize = 0; // used for recording size of record
             ArrayList<Object> attrValues = new ArrayList<>(tableSchema.getnumAttributes());
 
             for (int j = 0; j < tableSchema.getnumAttributes(); j++) { // iterate through attributes
@@ -77,6 +77,7 @@ public class Page {
                     byte[] attrValueBytes = new byte[sizeOfString];
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
+                    recordSize += attrValue.length() + Integer.SIZE;
                     attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("char")) {
@@ -84,26 +85,30 @@ public class Page {
                     byte[] attrValueBytes = new byte[sizeOfString];
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
+                    recordSize += sizeOfString;
                     attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("integer")) {
                     int attrValue = buffer.getInt();
+                    recordSize += Integer.SIZE;
                     attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("double")) {
                     double attrValue = buffer.getDouble();
+                    recordSize += Double.SIZE;
                     attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("boolean")) {
                     byte attrValueByte = buffer.get();
                     boolean attrValue = (boolean)(attrValueByte == 1 ? true : false);
+                    recordSize += 1;
                     attrValues.add(attrValue);
                 }
             }
 
-            Record record = new Record(attrValues, recordOffset);
+            Record record = new Record(attrValues, recordSize);
             page.addRecord(record);
-            page.size += recordOffset;
+            page.size += recordSize;
         }
 
         return page;

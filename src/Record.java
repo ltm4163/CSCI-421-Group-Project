@@ -37,6 +37,7 @@ public class Record {
                 case "varchar":
                     String varcharValue = (String) value;
                     byte[] varcharBytes = varcharValue.getBytes();
+                    recData.putInt(varcharValue.length());
                     recData.put(varcharBytes);
                     break;
                 case "char":
