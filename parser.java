@@ -2,8 +2,13 @@ import java.io.IOException;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.locks.Condition;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class parser {
@@ -121,6 +126,7 @@ public class parser {
         int index=2;
         String tablename=parts[index];
         boolean tableexists=catalog.tableExists(tablename);
+        
         if(tableexists){
             int tableid=-1;
             for(TableSchema table: catalog.getTables()){
@@ -137,10 +143,336 @@ public class parser {
             int startingindex=inputLine.indexOf("where");
             String whereclauseString=inputLine.substring(startingindex);
             ArrayList<ArrayList<Object>> records = storageManager.getRecords(tableid);
-            List<List<WhereParse.Condition>> condition= WhereParse.parseWhereClause(whereclauseString);
+            Set<String> attributeNames = new HashSet<>();
 
+            // Define regex pattern for attribute names
+            Pattern pattern = Pattern.compile("\\b(\\w+)\\b");
+            Matcher matcher = pattern.matcher(whereclauseString);
 
+            // Find all matches and add them to the set
+            while (matcher.find()) {
+                attributeNames.add(matcher.group());
+            }
 
+            TableSchema tableSchema=catalog.getTables().get(tableid);
+            AttributeSchema [] tableatAttributeSchemas=tableSchema.getattributes();
+            HashMap<String, Integer> attributemap = new HashMap<>();
+            int valuenumber=0;
+            for(AttributeSchema attributeSchema : tableatAttributeSchemas){
+                valuenumber++;
+                if(attributeNames.contains(attributeSchema.getname())){
+                    attributemap.put(attributeSchema.getname(), valuenumber);
+                }
+            }
+        
+            ArrayList<String> splitConditions = new ArrayList<>();
+            // Check if the condition contains logical operators
+            if (whereclauseString.contains("AND") || whereclauseString.contains("OR")) {
+                // Split the condition at the OR operator
+                String[] orConditions = whereclauseString.split("(?i)\\s+OR\\s+");
+
+                for (String orCondition : orConditions) {
+                    // Split each part at the AND operator
+                    String[] andConditions = orCondition.split("(?i)\\s+AND\\s+");
+
+                    // Add each split condition to the list
+                    for (String andCondition : andConditions) {
+                        splitConditions.add(andCondition.trim());
+                    }
+                }
+            } else {
+                // If there are no logical operators, treat it as a single condition
+                splitConditions.add(whereclauseString);
+            }
+            ArrayList<ArrayList<Object>> selectedrecords=new ArrayList<>();
+            for(int i=0; i<splitConditions.size(); i++){
+                
+                ArrayList<ArrayList<Object>>operatorrecords=new ArrayList<>();
+                String splitconditionString=splitConditions.get(i);
+                ArrayList<String> subsplitConditions = new ArrayList<>();
+                if (splitconditionString.contains("AND") || splitconditionString.contains("OR")) {
+                    // Split the condition at the OR operator
+                    String[] orConditions = whereclauseString.split("(?i)\\s+OR\\s+");
+    
+                    for (String orCondition : orConditions) {
+                        // Split each part at the AND operator
+                        String[] andConditions = orCondition.split("(?i)\\s+AND\\s+");
+    
+                        // Add each split condition to the list
+                        for (String andCondition : andConditions) {
+                            subsplitConditions.add(andCondition.trim());
+                        }
+                    }
+                } else {
+                    // If there are no logical operators, treat it as a single condition
+                    subsplitConditions.add(whereclauseString);
+                }
+                for(String subsplitcondition: subsplitConditions){
+                    String[]subsplitconditionparts=subsplitcondition.split(" ");
+                    String operatorString=subsplitconditionparts[1];
+                    String conditionvalue=subsplitconditionparts[2];
+                    int recordindex=0;
+                    if(attributemap.containsKey(subsplitconditionparts[0])){
+                        recordindex=attributemap.get(subsplitconditionparts[0]);
+                    }
+                    switch (operatorString) {
+                        case "=":
+                            for(ArrayList<Object> record: records){
+                                if (record.get(recordindex) instanceof Integer) {
+                                    if(record.get(recordindex)==conditionvalue){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else if (record.get(recordindex) instanceof Double) {
+                                    if(record.get(recordindex)==conditionvalue){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else if (record.get(recordindex) instanceof String) {
+                                    if(record.get(recordindex).equals(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else {
+                                    System.out.println("Value is of unknown type.");
+                                    return;
+                                }
+                            }
+                            if(operatorString.equals("AND")){
+                                Set<List<Object>> set = new HashSet<>();
+                                for (ArrayList<Object> oprecord : operatorrecords) {
+                                    if (!set.add(oprecord)){
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                            else if(operatorString.equals("OR")){
+                                for(ArrayList<Object> oprecord: operatorrecords){
+                                    if(selectedrecords.contains(oprecord)){
+                                        continue;
+                                    }
+                                    else{
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }       
+                        
+                        case ">":
+                            for(ArrayList<Object> record: records){
+                                if (record.get(recordindex) instanceof Integer) {
+                                    if((Integer)record.get(recordindex) > Integer.parseInt(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }   
+                                } 
+                                else if (record.get(recordindex) instanceof Double) {
+                                    if((Double)record.get(recordindex) > Double.parseDouble(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else if (record.get(recordindex) instanceof String) {
+                                    int result=((String) record.get(recordindex)).compareTo((String) conditionvalue);
+                                    if(result==1){
+                                        operatorrecords.add(record);
+                                    }
+
+                                } 
+                                else {
+                                    System.out.println("Value is of unknown type.");
+                                    return;
+                                }
+                            }
+                            if(operatorString.equals("AND")){
+                                Set<List<Object>> set = new HashSet<>();
+                                for (ArrayList<Object> oprecord : operatorrecords) {
+                                    if (!set.add(oprecord)){
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                            else if(operatorString.equals("OR")){
+                                for(ArrayList<Object> oprecord: operatorrecords){
+                                    if(selectedrecords.contains(oprecord)){
+                                        continue;
+                                    }
+                                    else{
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                            
+                        case "<":
+                            for(ArrayList<Object> record: records){
+                                if (record.get(recordindex) instanceof Integer) {
+                                    if((Integer)record.get(recordindex) < Integer.parseInt(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }   
+                                } 
+                                else if (record.get(recordindex) instanceof Double) {
+                                    if((Double)record.get(recordindex) < Double.parseDouble(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else if (record.get(recordindex) instanceof String) {
+                                    int result=((String) record.get(recordindex)).compareTo((String) conditionvalue);
+                                    if(result==-1){
+                                        operatorrecords.add(record);
+                                    }
+
+                                } 
+                                else {
+                                    System.out.println("Value is of unknown type.");
+                                    return;
+                                }
+                            }
+                            
+                            if(operatorString.equals("AND")){
+                                Set<List<Object>> set = new HashSet<>();
+                                for (ArrayList<Object> oprecord : operatorrecords) {
+                                    if (!set.add(oprecord)){
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                            else if(operatorString.equals("OR")){
+                                for(ArrayList<Object> oprecord: operatorrecords){
+                                    if(selectedrecords.contains(oprecord)){
+                                        continue;
+                                    }
+                                    else{
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                        case ">=":
+                            for(ArrayList<Object> record: records){
+                                if (record.get(recordindex) instanceof Integer) {
+                                    if((Integer)record.get(recordindex) >= Integer.parseInt(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }   
+                                } 
+                                else if (record.get(recordindex) instanceof Double) {
+                                    if((Double)record.get(recordindex) >= Double.parseDouble(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else if (record.get(recordindex) instanceof String) {
+                                    int result=((String) record.get(recordindex)).compareTo((String) conditionvalue);
+                                    if(result==1 || result==0){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else {
+                                    System.out.println("Value is of unknown type.");
+                                    return;
+                                }
+                            }
+                            if(operatorString.equals("AND")){
+                                Set<List<Object>> set = new HashSet<>();
+                                for (ArrayList<Object> oprecord : operatorrecords) {
+                                    if (!set.add(oprecord)){
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                            else if(operatorString.equals("OR")){
+                                for(ArrayList<Object> oprecord: operatorrecords){
+                                    if(selectedrecords.contains(oprecord)){
+                                        continue;
+                                    }
+                                    else{
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                        case "<=":
+                            for(ArrayList<Object> record: records){
+                                if (record.get(recordindex) instanceof Integer) {
+                                    if((Integer)record.get(recordindex) <= Integer.parseInt(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }   
+                                } 
+                                else if (record.get(recordindex) instanceof Double) {
+                                    if((Double)record.get(recordindex) <= Double.parseDouble(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else if (record.get(recordindex) instanceof String) {
+                                    int result=((String) record.get(recordindex)).compareTo((String) conditionvalue);
+                                    if(result==-1 || result != 0){
+                                        operatorrecords.add(record);
+                                    }
+
+                                } 
+                                else {
+                                    System.out.println("Value is of unknown type.");
+                                    return;
+                                }
+                            }
+                            if(operatorString.equals("AND")){
+                                Set<List<Object>> set = new HashSet<>();
+                                for (ArrayList<Object> oprecord : operatorrecords) {
+                                    if (!set.add(oprecord)){
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                            else if(operatorString.equals("OR")){
+                                for(ArrayList<Object> oprecord: operatorrecords){
+                                    if(selectedrecords.contains(oprecord)){
+                                        continue;
+                                    }
+                                    else{
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                        case "!=":
+                            for(ArrayList<Object> record: records){
+                                if (record.get(recordindex) instanceof Integer) {
+                                    if((Integer)record.get(recordindex) != Integer.parseInt(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }   
+                                } 
+                                else if (record.get(recordindex) instanceof Double) {
+                                    if((Double)record.get(recordindex) != Double.parseDouble(conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else if (record.get(recordindex) instanceof String) {
+                                    
+                                    if(!(record.get(recordindex).equals(conditionvalue))){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
+                                else {
+                                    System.out.println("Value is of unknown type.");
+                                    return;
+                                }
+                            }
+                            if(operatorString.equals("AND")){
+                                Set<List<Object>> set = new HashSet<>();
+                                for (ArrayList<Object> oprecord : operatorrecords) {
+                                    if (!set.add(oprecord)){
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                            else if(operatorString.equals("OR")){
+                                for(ArrayList<Object> oprecord: operatorrecords){
+                                    if(selectedrecords.contains(oprecord)){
+                                        continue;
+                                    }
+                                    else{
+                                        selectedrecords.add(oprecord);
+                                    }
+                                }
+                            }
+                        default:
+                            System.err.println(operatorString + " is invalid operator");
+                            return;
+                    }
+                }
+            }
         }
         else{
             System.out.println("Table does not exists.");
