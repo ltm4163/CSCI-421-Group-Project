@@ -233,6 +233,11 @@ public class parser {
                                         operatorrecords.add(record);
                                     }
                                 } 
+                                else if (record.get(recordindex) instanceof Boolean) {
+                                    if(record.get(recordindex)==conditionvalue){
+                                        operatorrecords.add(record);
+                                    }
+                                } 
                                 else {
                                     System.out.println("Value is of unknown type.");
                                     return;
@@ -443,7 +448,12 @@ public class parser {
                                     if(!(record.get(recordindex).equals(conditionvalue))){
                                         operatorrecords.add(record);
                                     }
-                                } 
+                                }
+                                else if (record.get(recordindex) instanceof Boolean) {
+                                    if(!(record.get(recordindex)==conditionvalue)){
+                                        operatorrecords.add(record);
+                                    }
+                                }  
                                 else {
                                     System.out.println("Value is of unknown type.");
                                     return;
@@ -472,6 +482,10 @@ public class parser {
                             return;
                     }
                 }
+                
+            }
+            for(ArrayList<Object>selectrec: selectedrecords){
+                records.remove(selectrec);
             }
         }
         else{
