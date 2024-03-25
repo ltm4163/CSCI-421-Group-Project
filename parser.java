@@ -123,36 +123,13 @@ public class parser {
             System.out.println("Expected 'from'");
             return;
         }
-        Set<String> tableNames = new HashSet<>();
-        // Regular expression to match table names after DELETE FROM and JOIN
-        Pattern pattern = Pattern.compile("\\b(?:DELETE\\s+FROM|JOIN)\\s+([\\w_]+)");
-        Matcher matcher = pattern.matcher(inputLine);
-        while (matcher.find()) {
-            tableNames.add(matcher.group(1));
-        }
-        HashMap<Integer, AttributeSchema[]>tableHashMap=new HashMap<>();
-        int tableid=0;
-        for(String tablename: tableNames){
-            boolean tableexists=catalog.tableExists(tablename);
-            if(tableexists){
-                for(TableSchema table: catalog.getTables()){
-                    if(table.getname().equals(tablename)){
-                        tableid=table.gettableNumber();
-                        tableHashMap.put(tableid, catalog.getTables().get(tableid).getattributes());
-                    }
-                }
-            }
-            else{
-                System.out.println(tablename + " does not exists.");
-            }
-            
-        }
+        
         int index=2;
         String tablename=parts[index];
         boolean tableexists=catalog.tableExists(tablename);
         
         if(tableexists){
-            
+            int tableid=0;
             for(TableSchema table: catalog.getTables()){
                 if(table.getname().equals(tablename)){
                     tableid=table.gettableNumber();
@@ -174,7 +151,7 @@ public class parser {
             Matcher m = p.matcher(whereclauseString);
 
             // Find all matches and add them to the set
-            while (matcher.find()) {
+            while (m.find()) {
                 attributeNames.add(m.group());
             }
 
