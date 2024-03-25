@@ -459,7 +459,7 @@ public class parser {
                                     return;
                                 }
                             }
-                            if(operatorString.equals("AND")){
+                            if(splitconditionString.contains("AND")){
                                 Set<List<Object>> set = new HashSet<>();
                                 for (ArrayList<Object> oprecord : operatorrecords) {
                                     if (!set.add(oprecord)){
@@ -467,7 +467,7 @@ public class parser {
                                     }
                                 }
                             }
-                            else if(operatorString.equals("OR")){
+                            else if(splitconditionString.contains("OR")){
                                 for(ArrayList<Object> oprecord: operatorrecords){
                                     if(selectedrecords.contains(oprecord)){
                                         continue;
@@ -484,9 +484,31 @@ public class parser {
                 }
                 
             }
-            for(ArrayList<Object>selectrec: selectedrecords){
-                records.remove(selectrec);
+            if(whereclauseString.contains("AND")){
+                Set<List<Object>> newset = new HashSet<>();
+
+                for (ArrayList<Object> selrecord : selectedrecords) {
+                    if (!newset.add(selrecord)) {
+                        selectedrecords.remove(selrecord);
+                    }
+                }
             }
+            else if(whereclauseString.contains("OR")){
+                for(ArrayList<Object> selrecord: selectedrecords){
+                    if(selectedrecords.contains(selrecord)){
+                        continue;
+                    }
+                    else{
+                        selectedrecords.remove(selrecord);
+                    }
+                }
+            }
+            else{
+                for(ArrayList<Object>selectrec: selectedrecords){
+                    records.remove(selectrec);
+                }
+            }
+            
         }
         else{
             System.out.println("Table does not exists.");
