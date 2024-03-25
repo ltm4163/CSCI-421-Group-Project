@@ -1,6 +1,7 @@
 import java.io.File;
 import java.io.IOException;
 import java.io.RandomAccessFile;
+import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -65,8 +66,25 @@ public class PageBuffer {
     }
 
     public void writeBufferToHardware() {
+        Catalog catalog = Main.getCatalog();
+        byte[] tableUpdatedArray = new byte[catalog.getTableCount()]; //Track which tables have had numpages written to file
+        Arrays.fill(tableUpdatedArray, (byte)0);
         for(Pair<Integer, Integer> key : this.pages.keySet()) {
-            this.writePageToHardware(this.pages.get(key));
+            Page page = this.pages.get(key);
+            int tableNum = page.getTableNumber();
+            if (tableUpdatedArray[tableNum-1] == (byte)0) {
+                TableSchema tableSchema = catalog.getTableSchema(tableNum);
+                try {
+                    String fileName = Main.getDbDirectory() + "/tables/" + tableNum + ".bin";
+                    RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
+                    fileOut.write(tableSchema.getNumPages());
+                    tableUpdatedArray[tableNum-1] = (byte)1;
+                } catch(IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            this.writePageToHardware(page);
         }
     }
 

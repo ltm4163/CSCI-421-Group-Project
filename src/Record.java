@@ -1,13 +1,18 @@
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
 
 public class Record {
     private ArrayList<Object> data;
     private int size;
+    private ArrayList<Byte> nullBitMap;
 
-    public Record(ArrayList<Object> data, int size) {
+    public Record(ArrayList<Object> data, int size, int numAttributes) {
         this.data = data;
-        this.size = size;
+        this.nullBitMap = new ArrayList<>(Collections.nCopies(numAttributes, (byte) 0));
+        this.size = size + nullBitMap.size();
     }
 
     public void setData(ArrayList<Object> data) {
@@ -26,43 +31,62 @@ public class Record {
         return this.size;
     }
 
+    public void setBitMapValue(int index) {
+        if (index >= this.nullBitMap.size()) {
+            this.nullBitMap.add((byte)1);
+            this.size++;
+        }
+        this.nullBitMap.set(index, (byte)1);
+    }
+
+    public byte getBitMapValue(int index) {
+        return this.nullBitMap.get(index);
+    }
+
+    public void setNullBitMap(ArrayList<Byte> nullBitMap) {
+        this.nullBitMap = nullBitMap;
+    }
+
     public byte[] toBinary(AttributeSchema[] attributeSchemas) {
         ByteBuffer recData = ByteBuffer.allocate(this.size);
         int tupleIndex = 0; 
-    
+
+        byte[] bitMap = new byte[nullBitMap.size()];
+        for (int i = 0; i < nullBitMap.size(); i++) {
+            bitMap[i] = nullBitMap.get(i);
+        }
+        recData.put(bitMap);
+
         for (AttributeSchema attr : attributeSchemas) {
+            if (this.getBitMapValue(tupleIndex) == (byte)1) {
+                tupleIndex++;
+                continue;
+            }
             Object value = this.getData().get(tupleIndex);
             switch (attr.gettype().toLowerCase()) {
                 case "varchar":
-                    String varcharValue = "NULL";
-                    if (value != null) varcharValue = (String) value;
+                    String varcharValue = (String) value;
                     byte[] varcharBytes = varcharValue.getBytes();
                     recData.putInt(varcharValue.length());
                     recData.put(varcharBytes);
                     break;
                 case "char":
-                    String charValue = "NULL";
-                    if (value != null) charValue = (String) value;
-                    String paddedCharValue = String.format("%-" + attr.getsize() + "." + attr.getsize() + "s", charValue);
+                    String charValue =  (String) value;
+                    String paddedCharValue = String.format("%-" + attr.getsize() + "s", charValue);
                     byte[] charBytes = paddedCharValue.getBytes();
                     recData.put(charBytes);
                     break;
                 case "integer":
-                    int intValue = -1;
-                    if (value != null) intValue = (int) value;
+                    int intValue = (int) value;
                     recData.putInt(intValue);
                     break;
                 case "double":
-                    double doubleValue = -1.0;
-                    if (value != null) doubleValue = (double) value;
+                    double doubleValue = (double) value;
                     recData.putDouble(doubleValue);
                     break;
                 case "boolean":
-                    byte booleanByte = -1;
-                    if (value != null) {
-                        boolean booleanValue = (boolean) value;
-                        booleanByte = (byte) (booleanValue ? 1 : 0);
-                    }
+                    boolean booleanValue = (boolean) value;
+                    byte booleanByte = (byte) (booleanValue ? 1 : 0);
                     recData.put(booleanByte);
                     break;
             }

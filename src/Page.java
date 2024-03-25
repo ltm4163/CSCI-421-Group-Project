@@ -67,8 +67,18 @@ public class Page {
         for (int i = 0; i < numRecords; i++) { // iterare through records
             int recordSize = 0; // used for recording size of record
             ArrayList<Object> attrValues = new ArrayList<>(tableSchema.getnumAttributes());
+            byte[] bitMap = new byte[tableSchema.getnumAttributes()];
+            buffer.get(bitMap, 0, tableSchema.getnumAttributes());
+            ArrayList<Byte> nullBitMap = new ArrayList<>();
+            for (byte b : bitMap) {
+                nullBitMap.add(b);
+            }
 
             for (int j = 0; j < tableSchema.getnumAttributes(); j++) { // iterate through attributes
+                if (nullBitMap.get(j) == (byte)1) {
+                    attrValues.add(null);
+                    continue;
+                }
                 AttributeSchema attr = attributeSchemas[j];
                 String attrType = attr.gettype();
 
@@ -77,9 +87,8 @@ public class Page {
                     byte[] attrValueBytes = new byte[sizeOfString];
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
-                    recordSize += attrValue.length() + Integer.SIZE;
-                    if (attrValue.equals("NULL")) attrValues.add(null);
-                    else attrValues.add(attrValue);
+                    recordSize += attrValue.length() + Integer.BYTES;
+                    attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("char")) {
                     int sizeOfString = attr.getsize(); //used to tell how big string is
@@ -87,31 +96,28 @@ public class Page {
                     buffer.get(attrValueBytes, 0, sizeOfString);
                     String attrValue = new String(attrValueBytes);
                     recordSize += sizeOfString;
-                    if (attrValue.equals("NULL")) attrValues.add(null);
-                    else attrValues.add(attrValue);
+                    attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("integer")) {
                     int attrValue = buffer.getInt();
-                    recordSize += Integer.SIZE;
-                    if (attrValue == -1) attrValues.add(null);
-                    else attrValues.add(attrValue);
+                    recordSize += Integer.BYTES;
+                    attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("double")) {
                     double attrValue = buffer.getDouble();
-                    recordSize += Double.SIZE;
-                    if (attrValue == -1.0) attrValues.add(null);
-                    else attrValues.add(attrValue);
+                    recordSize += Double.BYTES;
+                    attrValues.add(attrValue);
                 }
                 else if (attrType.equalsIgnoreCase("boolean")) {
                     byte attrValueByte = buffer.get();
                     boolean attrValue = (boolean)(attrValueByte == 1 ? true : false);
                     recordSize += 1;
-                    if (attrValueByte == -1) attrValues.add(null);
-                    else attrValues.add(attrValue);
+                    attrValues.add(attrValue);
                 }
             }
 
-            Record record = new Record(attrValues, recordSize);
+            Record record = new Record(attrValues, recordSize, tableSchema.getnumAttributes());
+            record.setNullBitMap(nullBitMap);
             page.addRecord(record);
             page.size += recordSize;
         }

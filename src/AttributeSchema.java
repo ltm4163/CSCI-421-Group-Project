@@ -118,6 +118,9 @@ public class AttributeSchema {
             size = Integer.parseInt(type.replaceAll("[^0-9]", ""));
             type = type.replaceAll("\\(.*\\)", ""); // Remove size from type string
         }
+        else if (type.startsWith("integer")) size = Integer.BYTES;
+        else if (type.startsWith("double")) size = Double.BYTES;
+        else if (type.startsWith("boolean")) size = 1;
 
         return new AttributeSchema(name, type, unique, notNull, primaryKey, size);
     }

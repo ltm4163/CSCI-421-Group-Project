@@ -140,11 +140,8 @@ public class parser {
                         attributes[newAttributeIndex].setDefaultValue(defaultValue);
                     }
                     data.add(attributes[newAttributeIndex].getDefaultValue());
-                    if (attributes[newAttributeIndex].gettype().equals("varchar")) {
-                        record.setSize(record.getSize() + "NULL".length() + Integer.SIZE);
-                    }
-                    else record.setSize(record.getSize() + attributes[newAttributeIndex].getsize());
                     record.setData(data);
+                    record.setBitMapValue(table.getnumAttributes()-1);
                 }
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
@@ -235,8 +232,8 @@ public class parser {
                 recordValues.add(parsedValue);
             }
     
-            int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size 
-            Record newRecord = new Record(recordValues, recordSize);
+            int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size
+            Record newRecord = new Record(recordValues, recordSize, table.getnumAttributes());
             boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
             if (!worked) {
                 return;
@@ -279,6 +276,7 @@ public class parser {
             Object value = values.get(i);
             AttributeSchema attr = attributes[i];
     
+            if (value == null) continue;
             switch (attr.gettype().toLowerCase()) {
                 case "integer":
                     size += Integer.BYTES;
@@ -294,7 +292,6 @@ public class parser {
                     break;
                 case "varchar":
                     String stringValue = (String) value;
-                    if (value == null) stringValue = "NULL";
                     size += stringValue.getBytes().length;
                     // Include 4 bytes to store the length of varchar if needed
                     size += Integer.BYTES;
