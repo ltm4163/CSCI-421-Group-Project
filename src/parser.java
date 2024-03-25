@@ -204,10 +204,19 @@ public class parser {
                 return;
             }
     
+            ArrayList<Byte> nullBitMap = new ArrayList<>(table.getnumAttributes());
             ArrayList<Object> recordValues = new ArrayList<>();
             for (int i = 0; i < values.length; i++) {
                 String value = values[i].trim();
                 AttributeSchema attribute = table.getattributes()[i];
+
+                // if null value
+                if (value instanceof String && ((String) value).equalsIgnoreCase("null")) {
+                    recordValues.add(null);
+                    nullBitMap.add((byte)1);
+                    continue;
+                }
+
                 Object parsedValue = parseValueBasedOnType(value, attribute);
                 if (parsedValue == null) {
                     System.err.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
@@ -230,10 +239,11 @@ public class parser {
                     }
                 }
                 recordValues.add(parsedValue);
+                nullBitMap.add((byte)0);
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size
-            Record newRecord = new Record(recordValues, recordSize, table.getnumAttributes());
+            Record newRecord = new Record(recordValues, recordSize, nullBitMap);
             boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
             if (!worked) {
                 return;

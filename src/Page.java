@@ -116,8 +116,7 @@ public class Page {
                 }
             }
 
-            Record record = new Record(attrValues, recordSize, tableSchema.getnumAttributes());
-            record.setNullBitMap(nullBitMap);
+            Record record = new Record(attrValues, recordSize, nullBitMap);
             page.addRecord(record);
             page.size += recordSize;
         }

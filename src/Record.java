@@ -9,9 +9,9 @@ public class Record {
     private int size;
     private ArrayList<Byte> nullBitMap;
 
-    public Record(ArrayList<Object> data, int size, int numAttributes) {
+    public Record(ArrayList<Object> data, int size, ArrayList<Byte> nullBitMap) {
         this.data = data;
-        this.nullBitMap = new ArrayList<>(Collections.nCopies(numAttributes, (byte) 0));
+        this.nullBitMap = nullBitMap;
         this.size = size + nullBitMap.size();
     }
 
