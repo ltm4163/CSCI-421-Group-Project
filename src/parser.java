@@ -216,14 +216,14 @@ public class parser {
                 else if (parsedValue instanceof String) {  // If the parsed value is a char or varchar
                     // char
                     if (attribute.gettype().equals("char") &&
-                            ((String) parsedValue).length() - 2 != attribute.getsize()) {
+                            ((String) parsedValue).length() > attribute.getsize()) {
                         System.err.println("Expected char length of: " + attribute.getsize() +
                                 " for attribute: " + attribute.getname());
                         return;
                     }
                     // varchar
                     else if (attribute.gettype().equals("varchar") &&
-                            ((String) parsedValue).length() - 2 > attribute.getsize()){
+                            ((String) parsedValue).length() > attribute.getsize()){
                         System.err.println("Expected varchar length of less than or equal to: " + attribute.getsize() +
                                 " for attribute: " + attribute.getname());
                         return;
