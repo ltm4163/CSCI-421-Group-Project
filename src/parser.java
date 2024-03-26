@@ -344,57 +344,174 @@ public class parser {
     }
     
 
-    private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
-        // Regular expressions to match SELECT, FROM, and WHERE clauses
-        Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
-        Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE|$)", Pattern.CASE_INSENSITIVE);
-        Pattern wherePattern = Pattern.compile("WHERE (.+)$", Pattern.CASE_INSENSITIVE);
-
-        List<String> columnList;
-        List<TableSchema> tableSchemas;
-        List<List<WhereParse.Condition>> whereClauseList;
-
-        // Match SELECT clause
-        Matcher selectMatcher = selectPattern.matcher(inputLine);
-        if (selectMatcher.find()) {
-            String columnNames = selectMatcher.group(1);
-            System.out.println("Columns to select: " + columnNames);
-            columnList = SelectParse.parseSelectClause(columnNames);
-        } else {
-            System.out.println("Error: No SELECT clause found");
+    private static void handleSelectCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
+        Pattern selectPattern = Pattern.compile("SELECT\\s+(\\*|[\\w,\\s]+)\\s+FROM\\s+(\\w+)(\\s+WHERE\\s+(.*))?", Pattern.CASE_INSENSITIVE);
+        Matcher matcher = selectPattern.matcher(inputLine);
+        if (!matcher.find()) {
+            System.out.println("Syntax error in SELECT command.");
             return;
         }
-
-        // Match FROM clause
-        Matcher fromMatcher = fromPattern.matcher(inputLine);
-        if (fromMatcher.find()) {
-            String tableNames = fromMatcher.group(1);
-            System.out.println("Table names: " + tableNames);
-            tableSchemas = FromParse.parseFromClause(tableNames, c);
-        } else {
-            System.out.println("Error: No FROM clause found");
+    
+        String columnNames = matcher.group(1).trim();
+        String tableName = matcher.group(2);
+        String whereClause = matcher.group(4);
+        
+        if(whereClause != null) {
+            whereClause = whereClause.trim().replaceAll(";$", "");
+        }
+    
+        TableSchema tableSchema = catalog.getTableSchemaByName(tableName);
+        if (tableSchema == null) {
+            System.out.println("Table '" + tableName + "' does not exist.");
             return;
         }
+    
+        List<String> columnsToSelect = Arrays.asList(columnNames.split("\\s*,\\s*"));
+        if (!columnsToSelect.contains("*")) {
+            for (String columnName : columnsToSelect) {
+                if (!tableSchema.hasAttribute(columnName)) {
+                    System.out.println("Error: Column '" + columnName + "' does not exist in table '" + tableName + "'.");
+                    return;
+                }
+            }
+        } else {
+            columnsToSelect = tableSchema.getAttributeNames();
+        }
+    
+        WhereCondition whereRoot = null;
+        if (whereClause != null && !whereClause.isBlank()) {
+            whereRoot = parseWhereClause(whereClause);
 
-        if (!(columnList.size() == 1 && columnList.get(0).equals("*"))) {
-            // Ensures column names exist in tables
-            if (!SelectParse.parseSelectClause2(columnList, tableSchemas, c)) {
-                return;
+            if (whereClause != null && !whereClause.isBlank()) {
+                whereRoot = parseWhereClause(whereClause);
+                System.out.println("Debug: Parsed WHERE clause: " + whereRoot); // Add this line
+            }
+            
+        }
+
+        final WhereCondition finalWhereRoot = whereRoot;
+
+        if (whereRoot != null) {
+            System.out.println("Debug: Where condition parse tree - " + whereRoot.toString());
+    
+            List<Record> records = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+                .filter(record -> {
+                    System.out.println("Debug: Evaluating record: " + record);
+                    return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
+                })
+                .collect(Collectors.toList());
+        
+    
+            System.out.println(records);
+        } else {
+            System.out.println("No WHERE condition present or WHERE condition is null.");
+            List<Record> records = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                    .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+                    .collect(Collectors.toList());
+    
+            printSelectedRecords(records, tableSchema, columnsToSelect);
+        }
+    }
+
+    private static void printSelectedRecords(List<Record> records, TableSchema tableSchema, List<String> columnsToSelect) {
+        // Print header row
+        if (columnsToSelect.contains("*")) {
+            // Print all attribute names as headers if '*' is selected
+            for (AttributeSchema attr : tableSchema.getattributes()) {
+                System.out.print(attr.getname() + "\t");
+            }
+        } else {
+            // Print only the selected attribute names
+            for (String columnName : columnsToSelect) {
+                System.out.print(columnName + "\t");
             }
         }
-
-        // Match WHERE clause if present
-        Matcher whereMatcher = wherePattern.matcher(inputLine);
-        if (whereMatcher.find()) {
-            String whereClause = whereMatcher.group(1);
-            System.out.println("Where conditions: " + whereClause);
-            whereClauseList = WhereParse.parseWhereClause(whereClause);
-            System.out.println(whereClauseList);
-        } else {
-            System.out.println("No WHERE conditions specified");
+        System.out.println(); 
+    
+        // Record rows
+        for (Record record : records) {
+            for (String columnName : columnsToSelect) {
+                if (columnName.equals("*")) {
+                    // Print all column vales
+                    for (AttributeSchema attr : tableSchema.getattributes()) {
+                        Object value = record.getAttributeValue(attr.getname(), tableSchema.getattributes());
+                        System.out.print(value + "\t");
+                    }
+                } else {
+                    // Print specified columns
+                    Object value = record.getAttributeValue(columnName, tableSchema.getattributes());
+                    System.out.print(value + "\t");
+                }
+            }
+            System.out.println();  
         }
     }
     
+    static WhereCondition parseWhereClause(String whereClause) {
+        if (whereClause == null || whereClause.trim().isEmpty()) {
+            System.err.println("parseWhereClause: WHERE clause is null or empty.");
+            return null;
+        }
+    
+        final Pattern conditionPattern = Pattern.compile("(\\w+)\\s*(=|!=|<|>|<=|>=)\\s*('?\\w+'?|\\d+(\\.\\d+)?)");
+        final Pattern logicalPattern = Pattern.compile("\\s+(AND|OR)\\s+", Pattern.CASE_INSENSITIVE);
+    
+        List<String> logicalOperators = new ArrayList<>();
+        Matcher logicalMatcher = logicalPattern.matcher(whereClause);
+        while (logicalMatcher.find()) {
+            logicalOperators.add(logicalMatcher.group(1).toUpperCase());
+        }
+    
+        String[] conditions = logicalPattern.split(whereClause);
+        WhereCondition rootCondition = null;
+    
+        for (int i = 0; i < conditions.length; i++) {
+            Matcher conditionMatcher = conditionPattern.matcher(conditions[i].trim());
+            if (!conditionMatcher.matches()) {
+                System.err.println("parseWhereClause: Failed to match condition pattern in part: " + conditions[i]);
+                continue;
+            }
+
+            System.out.println("Attempting to match condition: " + conditions[i].trim());
+            if (!conditionMatcher.matches()) {
+                System.err.println("Failed to match condition pattern in part: " + conditions[i]);
+                continue;
+            }
+    
+            String attribute = conditionMatcher.group(1);
+            String operator = conditionMatcher.group(2);
+            String value = conditionMatcher.group(3).replace("'", ""); // Removing single quotes
+            WhereCondition.Operator parsedOperator = WhereCondition.Operator.fromSymbol(operator);
+            if (parsedOperator == null) {
+                System.err.println("parseWhereClause: Unknown operator: " + operator);
+                continue;
+            }
+    
+            WhereCondition currentCondition = new WhereCondition(attribute, parsedOperator, value);
+            if (rootCondition == null) {
+                rootCondition = currentCondition;
+            } else if (i - 1 < logicalOperators.size()) {
+                String logicalOp = logicalOperators.get(i - 1);
+                WhereCondition.Operator logicalOperator = WhereCondition.Operator.fromSymbol(logicalOp);
+                if (logicalOperator == null) {
+                    System.err.println("parseWhereClause: Unknown logical operator: " + logicalOp);
+                    continue;
+                }
+                rootCondition = new WhereCondition(rootCondition, logicalOperator, currentCondition);
+            }
+        }
+    
+        if (rootCondition == null) {
+            System.err.println("parseWhereClause: Root condition is null after parsing, indicating an error in the WHERE clause.");
+        } else {
+            System.out.println("parseWhereClause: Successfully parsed WHERE condition.");
+        }
+    
+        return rootCondition;
+    }
+      
+    // This should not be needed anymore
     private static void printRecords(ArrayList<ArrayList<Object>> records, TableSchema table) {
         // Print header with attribute names
         System.out.print("|");
@@ -419,7 +536,6 @@ public class parser {
     }
     
     
-
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
         if (tokens.length == 0) {
