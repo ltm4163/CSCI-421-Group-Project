@@ -1,7 +1,9 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 public class TableSchema {
     
@@ -51,6 +53,15 @@ public class TableSchema {
 
     public AttributeSchema[] getattributes(){
         return this.attributes;
+    }
+
+    public List<String> getAttributeNames() {
+        List<String> attributeNames = new ArrayList<>();
+        for (AttributeSchema attribute : this.attributes) {
+            attributeNames.add(attribute.getname());
+        }
+
+        return attributeNames;
     }
     
     public boolean hasPrimaryKey(TableSchema table) { 
@@ -187,5 +198,10 @@ public class TableSchema {
         }
         System.out.println("Pages: " + this.getNumPages());
         System.out.println("Records: " + this.getNumRecords() + "\n");
+    }
+
+    @Override
+    public String toString() {
+        return this.name;
     }
 }

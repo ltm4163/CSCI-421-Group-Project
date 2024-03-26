@@ -2,6 +2,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -343,36 +345,48 @@ public class parser {
     
 
     private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
-        String[] tokens = inputLine.split(" ");
-        int index = 0;
-    
-        while (index < tokens.length && !tokens[index].equals("select")) {
-            index++;
-        }
-        index++;  // Move past 'select'
-        if (index >= tokens.length || !tokens[index].equals("*")) {
-            System.out.println("Expected '*' after 'select'\nERROR");
-            return;
-        }
-        index++;  // Move past '*'
-        if (index >= tokens.length || !tokens[index].equals("from")) {
-            System.out.println("Expected 'from' after '*'\nERROR");
-            return;
-        }
-        index++;  // Move past 'from'
-        if (index < tokens.length) {  // Ensure there is a table name
-            String tableName = tokens[index].replaceAll(";", "");  // Remove semicolon
-            TableSchema t = c.getTableSchemaByName(tableName);
-            if (t == null) {
-                System.out.println("No such table: " + tableName + "\nERROR");
-                return;
-            }
-    
-            ArrayList<ArrayList<Object>> records = storageManager.getRecords(t.gettableNumber());
-    
-            printRecords(records, t);
+        // Regular expressions to match SELECT, FROM, and WHERE clauses
+        Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
+        Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE|$)", Pattern.CASE_INSENSITIVE);
+        Pattern wherePattern = Pattern.compile("WHERE (.+)$", Pattern.CASE_INSENSITIVE);
+
+        List<String> columnList;
+        List<TableSchema> tableSchemas;
+        List<List<WhereParse.Condition>> whereClauseList;
+
+        // Match SELECT clause
+        Matcher selectMatcher = selectPattern.matcher(inputLine);
+        if (selectMatcher.find()) {
+            String columnNames = selectMatcher.group(1);
+            System.out.println("Columns to select: " + columnNames);
+            columnList = SelectParse.parseSelectClause(columnNames);
         } else {
-            System.out.println("Expected table name after 'from'\nERROR");
+            System.out.println("Error: No SELECT clause found");
+            return;
+        }
+
+        // Match FROM clause
+        Matcher fromMatcher = fromPattern.matcher(inputLine);
+        if (fromMatcher.find()) {
+            String tableNames = fromMatcher.group(1);
+            System.out.println("Table names: " + tableNames);
+            tableSchemas = FromParse.parseFromClause(tableNames, c);
+        } else {
+            System.out.println("Error: No FROM clause found");
+            return;
+        }
+
+        SelectParse.parseSelectClause2(columnList, tableSchemas, c);  // Ensures column names exist in tables
+
+        // Match WHERE clause if present
+        Matcher whereMatcher = wherePattern.matcher(inputLine);
+        if (whereMatcher.find()) {
+            String whereClause = whereMatcher.group(1);
+            System.out.println("Where conditions: " + whereClause);
+            whereClauseList = WhereParse.parseWhereClause(whereClause);
+            System.out.println(whereClauseList);
+        } else {
+            System.out.println("No WHERE conditions specified");
         }
     }
     
