@@ -376,9 +376,11 @@ public class parser {
             return;
         }
 
-        // Ensures column names exist in tables
-        if (!SelectParse.parseSelectClause2(columnList, tableSchemas, c)) {
-            return;
+        if (!(columnList.size() == 1 && columnList.get(0).equals("*"))) {
+            // Ensures column names exist in tables
+            if (!SelectParse.parseSelectClause2(columnList, tableSchemas, c)) {
+                return;
+            }
         }
 
         // Match WHERE clause if present
