@@ -55,6 +55,11 @@ public class TableSchema {
         return this.attributes;
     }
 
+    public boolean hasAttribute(String columnName) {
+        return Arrays.stream(this.attributes)
+                     .anyMatch(attr -> attr.getname().equals(columnName));
+    }
+
     public List<String> getAttributeNames() {
         List<String> attributeNames = new ArrayList<>();
         for (AttributeSchema attribute : this.attributes) {
@@ -62,6 +67,15 @@ public class TableSchema {
         }
 
         return attributeNames;
+    }
+
+    public AttributeSchema getAttributeByName(String attrName) {
+        for (AttributeSchema attribute : this.attributes) {
+            if (attribute.getname().equalsIgnoreCase(attrName)) {
+                return attribute;
+            }
+        }
+        return null;
     }
     
     public boolean hasPrimaryKey(TableSchema table) { 
