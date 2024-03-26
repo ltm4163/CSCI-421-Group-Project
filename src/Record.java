@@ -24,6 +24,41 @@ public class Record {
         return this.data;
     }
 
+    public int addValue(Object value, int indexInRecord, AttributeSchema attr) {
+        int sizeAdded = 1;
+        if (value == null) this.setBitMapValue(indexInRecord, 1);
+        else {
+            this.setBitMapValue(indexInRecord, 0);
+            switch (attr.gettype()) {
+                case "varchar":
+                    sizeAdded += ((String)value).length() + Integer.BYTES;
+                    break;
+                default:
+                    sizeAdded += attr.getsize();
+                    break;
+            }
+        }
+        this.data.add(value);
+        this.size += sizeAdded;
+        return sizeAdded;
+    }
+
+    public int removeValue(int indexInRecord, AttributeSchema attr) {
+        Object value = this.data.remove(indexInRecord);
+        this.nullBitMap.remove(indexInRecord);
+        int sizeLost = 1;
+        switch (attr.gettype()) {
+            case "varchar":
+                sizeLost += (((String)value).length() + Integer.BYTES);
+                break;
+            default:
+                sizeLost += attr.getsize();
+                break;
+        }
+        this.size -= sizeLost;
+        return sizeLost;
+    }
+
     public void setSize(int size) {
         this.size = size;
     }
@@ -31,7 +66,6 @@ public class Record {
     public int getSize() {
         return this.size;
     }
-
    
     @Override
     public String toString() {
@@ -50,12 +84,12 @@ public class Record {
     }
 
 
-    public void setBitMapValue(int index) {
+    public void setBitMapValue(int index, int isNull) {
         if (index >= this.nullBitMap.size()) {
-            this.nullBitMap.add((byte)1);
+            this.nullBitMap.add((byte)isNull);
             this.size++;
         }
-        this.nullBitMap.set(index, (byte)1);
+        else this.nullBitMap.set(index, (byte)isNull);
     }
 
     public byte getBitMapValue(int index) {

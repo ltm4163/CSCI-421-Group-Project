@@ -85,9 +85,30 @@ class WhereCondition {
                         return recordValueInt > valueInt;
                     case LESS_THAN:
                         return recordValueInt < valueInt;
-                    // Add other cases
+                    case GREATER_OR_EQUALS:
+                        return recordValueInt >= valueInt;
+                    case LESS_OR_EQUALS:
+                        return recordValueInt <= valueInt;
                 }
                 break;
+            case "double":
+                double recordValueDouble = (Double) recordValue;
+                double valueDouble = Double.parseDouble(value);
+                switch (operator) {
+                    case EQUALS:
+                        return recordValueDouble == valueDouble;
+                    case NOT_EQUALS:
+                        return recordValueDouble != valueDouble;
+                    case GREATER_THAN:
+                        return recordValueDouble > valueDouble;
+                    case LESS_THAN:
+                        return recordValueDouble < valueDouble;
+                    case GREATER_OR_EQUALS:
+                        return recordValueDouble >= valueDouble;
+                    case LESS_OR_EQUALS:
+                        return recordValueDouble <= valueDouble;
+                }
+            break;
             // TODO: Handle other types similarly
         }
         throw new IllegalArgumentException("Unsupported operation for condition.");

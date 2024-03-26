@@ -131,38 +131,43 @@ public class parser {
             case "add":
                 AttributeSchema newAttr = AttributeSchema.parse(definition);
                 table.addAttribute(newAttr);
+                AttributeSchema[] attributes = table.getattributes();
+                int newAttributeIndex = attributes.length - 1;
                 // Adds new attribute's default value to each existing record
-                for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
-                    ArrayList<Object> data = record.getData();
-                    AttributeSchema[] attributes = table.getattributes();
-                    int newAttributeIndex = attributes.length - 1;
-                    if (definition.contains("default")) {
-                        String[] definitionParts = definition.split("\\s+");
-                        String defaultValue = definitionParts[definitionParts.length - 1];
-                        attributes[newAttributeIndex].setDefaultValue(defaultValue);
+                List<Page> pages = storageManager.getPages(table.gettableNumber());
+                for (Page page : pages) {
+                    for (Record record : page.getRecords()) {
+                        if (definition.contains("default")) {
+                            String[] definitionParts = definition.split("\\s+");
+                            String defaultValue = definitionParts[definitionParts.length - 1];
+                            attributes[newAttributeIndex].setDefaultValue(defaultValue);
+                        }
+                        int sizeAdded = record.addValue(attributes[newAttributeIndex].getDefaultValue(), newAttributeIndex, attributes[newAttributeIndex]);
+                        page.setSize(page.getSize() + sizeAdded);
                     }
-                    data.add(attributes[newAttributeIndex].getDefaultValue());
-                    record.setData(data);
-                    record.setBitMapValue(table.getnumAttributes()-1);
+                    if (page.getSize() > Main.getPageSize()) storageManager.splitPage(page);
                 }
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
             case "drop":
-                AttributeSchema[] attributes = table.getattributes();
-                IntStream.range(0, attributes.length).forEach(i -> {
-                    AttributeSchema attribute = attributes[i];
+                AttributeSchema[] attributes2 = table.getattributes();
+                int newAttributeIndex2 = attributes2.length - 1;
+                List<Page> pages2 = storageManager.getPages(table.gettableNumber());
+                IntStream.range(0, attributes2.length).forEach(i -> {
+                    AttributeSchema attribute = attributes2[i];
                     System.out.println(attribute.getname());
                     System.out.println(definition);
                     System.out.println(i);
                     if (attribute.getname().equals(definition)) {
-                        for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
-                            ArrayList<Object> data = record.getData();
-                            data.remove(i);
-                            System.out.println(data);
-                            record.setData(data);
+                        for (Page page : pages2) {
+                            for (Record record : page.getRecords()) {
+                                int sizeLost = record.removeValue(newAttributeIndex2, attributes2[newAttributeIndex2]);
+                                page.setSize(page.getSize() - sizeLost);
+                            }
                         }
                     }
                 });
+
                 // Assuming table has a method to drop an attribute
                 table.dropAttribute(definition);
                 System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
