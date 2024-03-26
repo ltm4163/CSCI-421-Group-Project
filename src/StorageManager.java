@@ -39,10 +39,9 @@ public class StorageManager {
         return tuples;
     }
 
-    public ArrayList<Record> getPhysicalRecords(int tableNumber) {
+    public List<Page> getPages(int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
         List<Page> pages = new ArrayList<>();
-        ArrayList<Record> tuples = new ArrayList<>();
 
         for (int i = 0; i < table.getNumPages(); i++) { // get all pages for table from buffer and file
             Page page;
@@ -54,10 +53,7 @@ public class StorageManager {
             pages.add(page);
         }
 
-        for (Page page : pages) {
-            tuples.addAll(page.getRecords());
-        }
-        return tuples;
+        return pages;
     }
     
     // Looks for page in buffer, retrieves from file if not in buffer
@@ -161,7 +157,7 @@ public class StorageManager {
     }
 
     // Split page into two
-    private void splitPage(Page page) {
+    public void splitPage(Page page) {
         List<Record> records = page.getRecords();
 
         // TODO: Change this implementation from list to arraylist (dont think this is necessary)
