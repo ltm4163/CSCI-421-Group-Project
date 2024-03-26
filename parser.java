@@ -893,7 +893,10 @@ public class parser {
             case "select":
                 handleSelectCommand(inputLine, catalog, storageManager);
                 break;
-
+            
+            case "delete":
+                handleDeleteCommand(inputLine, storageManager, catalog);
+                break;
             case "display":
             if (tokens.length > 2 && tokens[1].equalsIgnoreCase("info")) {
                 String tableName = tokens[2].replaceAll(";", "");
