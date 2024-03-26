@@ -376,7 +376,10 @@ public class parser {
             return;
         }
 
-        SelectParse.parseSelectClause2(columnList, tableSchemas, c);  // Ensures column names exist in tables
+        // Ensures column names exist in tables
+        if (!SelectParse.parseSelectClause2(columnList, tableSchemas, c)) {
+            return;
+        }
 
         // Match WHERE clause if present
         Matcher whereMatcher = wherePattern.matcher(inputLine);
