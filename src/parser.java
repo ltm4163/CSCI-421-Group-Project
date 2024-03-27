@@ -7,6 +7,8 @@ import java.util.regex.Pattern;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class parser {
 
@@ -558,22 +560,35 @@ public class parser {
     }
 
     public static void handleUpdateCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
-        String[] parts = inputLine.split("\\bwhere\\b");
+        Pattern pattern = Pattern.compile("^update\\s+(\\w+)\\s+set\\s+(\\w+)\\s*=\\s*([\\d.]+)\\s+where\\s+(.+);$");
 
-        String[] updateInfo = parts[0].split("\\s+");
-        String tableName = updateInfo[1];
-        String columnName = updateInfo[3];
-        double updateVal = Double.parseDouble(updateInfo[5]);
+        // Create a Matcher object to apply the pattern to the input update statement
+        Matcher matcher = pattern.matcher(inputLine);
 
-        String[] conditions = parts[1].split("\\band\\b");
+        String tableName;
+        String columnName;
+        double value;
+        String condition;
 
-        System.out.println("Tablename: " + tableName);
-        System.out.println("columnName: " + columnName);
-        System.out.println("updateVal: " + updateVal);
+        // Check if the update statement matches the pattern
+        if (matcher.matches()) {
+            tableName = matcher.group(1);
+            columnName = matcher.group(2);
+            value = Double.parseDouble(matcher.group(3));
+            condition = matcher.group(4);
 
-        System.out.println("conditions:");
-        for (String condition : conditions)
-            System.out.println(condition);
+            System.out.println("tableName: " + tableName);
+            System.out.println("columnName: " + columnName);
+            System.out.println("value : " + value);
+            System.out.println("condition: " + condition);
+        } else {
+            System.out.println("Invalid update statement format");
+            return;
+        }
+
+        if(condition != null) {
+            condition = condition.trim().replaceAll(";$", "");
+        }
 
 
     }
