@@ -1,5 +1,4 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class SelectParse {
     public static List<String> parseSelectClause(String columnNames) {
@@ -43,7 +42,6 @@ public class SelectParse {
                 column = columnName;
                 List<TableSchema> foundInTables = new ArrayList<>();
                 for (TableSchema table : tableSchemas) {
-                    System.out.println(table.getName());
                     List<String> attributeNames = table.getAttributeNames();
                     if (attributeNames.contains(column)) {
                         foundInTables.add(table);
@@ -62,6 +60,17 @@ public class SelectParse {
                 return null;
             }
         }
-        return columnsListWithTables;
+
+        // Reorders attributes in the order that the tableSchemas were input in the from clause
+        List<String> returnList = new ArrayList<>();
+        for (TableSchema tableSchema : tableSchemas) {
+            for (String column : columnsListWithTables) {
+                if (column.substring(0, column.indexOf('.')).equals(tableSchema.getName())) {
+                    returnList.add(column);
+                }
+            }
+        }
+
+        return returnList;
     }
 }

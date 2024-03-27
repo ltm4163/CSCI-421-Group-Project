@@ -356,7 +356,6 @@ public class parser {
         Matcher selectMatcher = selectPattern.matcher(inputLine);
         if (selectMatcher.find()) {
             String columnNames = selectMatcher.group(1);
-            System.out.println("Columns to select: " + columnNames);
             columnList = SelectParse.parseSelectClause(columnNames);
         } else {
             System.out.println("Error: No SELECT clause found");
@@ -367,7 +366,6 @@ public class parser {
         Matcher fromMatcher = fromPattern.matcher(inputLine);
         if (fromMatcher.find()) {
             String tableNames = fromMatcher.group(1);
-            System.out.println("Table names: " + tableNames);
             tableSchemas = FromParse.parseFromClause(tableNames, c);
             if (tableSchemas == null) {
                 return;
@@ -395,7 +393,6 @@ public class parser {
         Matcher whereMatcher = wherePattern.matcher(inputLine);
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
-            System.out.println("Where conditions: " + whereClause);
             whereClause = whereClause.trim().replaceAll(";$", "");
             whereRoot = WhereParse.parseWhereClause(whereClause);
             System.out.println("Debug: Parsed WHERE clause: " + whereRoot);
@@ -432,9 +429,6 @@ public class parser {
 
     // Take in Map<TableSchema, List<Record>> that has all records already mapped to their specific table schema?
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
-        System.out.println(records);
-        System.out.println(tableSchemas);
-        System.out.println(columnsToSelect);
         Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
