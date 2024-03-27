@@ -1,7 +1,5 @@
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collector;
@@ -397,8 +395,8 @@ public class parser {
         Matcher whereMatcher = wherePattern.matcher(inputLine);
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
-            System.out.println(whereClause);
             System.out.println("Where conditions: " + whereClause);
+            whereClause = whereClause.trim().replaceAll(";$", "");
             whereRoot = WhereParse.parseWhereClause(whereClause);
             System.out.println("Debug: Parsed WHERE clause: " + whereRoot);
 
@@ -407,50 +405,61 @@ public class parser {
             if (whereRoot != null) {
                 System.out.println("Debug: Where condition parse tree - " + whereRoot.toString());
 
+                List<List<Record>> records = new ArrayList<>();
                 for (TableSchema tableSchema : tableSchemas) {
-                    List<Record> records = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                    List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                             .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
                             .filter(record -> {
                                 System.out.println("Debug: Evaluating record: " + record);
                                 return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
                             }).toList();
+                    records.add(tableRecords);
                 }
+                printSelectedRecords(records, tableSchemas, columnList);
             }
         } else {
             System.out.println("No WHERE conditions specified");
-            List<Record> records = new ArrayList<>();
+            List<List<Record>> records = new ArrayList<>();
             for (TableSchema tableSchema : tableSchemas) {
-                records.addAll(storageManager.getRecords(tableSchema.gettableNumber()).stream()
-                        .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>())).toList());
+                List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                        .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+                        .toList();
+                records.add(tableRecords);
             }
             printSelectedRecords(records, tableSchemas, columnList);
         }
     }
 
-    private static void printSelectedRecords(List<Record> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
-            for (String columnName : columnsToSelect) {
-                System.out.print(columnName + "\t");
-//                columnName = columnName.substring(columnName.indexOf('.') + 1);
-            }
-            System.out.println();
+    private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
+        Map<String, List<Record>> tableValues = new HashMap<>();
+        int maxSize = 0;
 
-//        // Record rows
-//        for (Record record : records) {
-//            for (String columnName : columnsToSelect) {
-//                if (columnName.equals("*")) {
-//                    // Print all column values
-//                    for (AttributeSchema attr : tableSchema.getattributes()) {
-//                        Object value = record.getAttributeValue(attr.getname(), tableSchema.getattributes());
-//                        System.out.print(value + "\t");
-//                    }
-//                } else {
-//                    // Print specified columns
-//                    Object value = record.getAttributeValue(columnName, tableSchema.getattributes());
-//                    System.out.print(value + "\t");
-//                }
-//            }
-//            System.out.println();
-//        }
+        for (String columnName : columnsToSelect) {
+            System.out.print(columnName + " | ");
+            tableValues.putIfAbsent(columnName, new ArrayList<>());
+        }
+        System.out.println();
+
+        // Record rows
+        for (int i = 0; i < records.size(); i++) {
+            tableValues.get(columnsToSelect.get(i)).addAll(records.get(i));
+            if (records.get(i).size() > maxSize) {
+                maxSize = records.get(i).size();
+            }
+        }
+
+        for (int i = 0; i < maxSize; i++) {
+            StringBuilder row = new StringBuilder();
+            for (String column : columnsToSelect) {
+                try {
+                    row.append(tableValues.get(column).get(i).getData().get(0)).append("\t\t");
+                }
+                catch (Exception e) {
+                    row.append("null\t\t");  // Using null as a placeholder for this since there is no value
+                }
+            }
+            System.out.println(row.toString().trim());
+        }
     }
 
     // Unnecessary method
