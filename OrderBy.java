@@ -49,8 +49,9 @@ public class OrderBy {
         }
         Pattern patternorder = Pattern.compile("ORDER\\s+BY\\s+(.+?)(?:;|$)", Pattern.CASE_INSENSITIVE);
         Matcher matcheroder = patternorder.matcher(inputlineString);
+        String orderByClause="";
         if(matcheroder.find()) {
-            String orderByClause = matcheroder.group(1);
+            orderByClause = matcheroder.group(1);
         } else {
             System.out.println("ORDER BY clause not found!");
         }
@@ -81,6 +82,7 @@ public class OrderBy {
                 attributemap.put(attributeSchema.getname(), valuenumber);
             }
         }
+        /**
         ArrayList<ArrayList<Object>>newrecords=new ArrayList<>();
         for(ArrayList<Object>record: records){
             ArrayList<Object>newrecord=new ArrayList<>();
@@ -88,6 +90,72 @@ public class OrderBy {
                 newrecord.add(record.get(entry.getValue()));
             }
             newrecords.add(newrecord);
+        }
+        */
+        ArrayList<ArrayList<Object>>displayrecords=new ArrayList<>();
+        String [] orderbyparts=orderByClause.split(" ");
+        if(orderbyparts.length ==1){
+            String orderattribute=orderbyparts[0];
+            int recordindex=attributemap.get(orderattribute);
+            ArrayList<Object> firstRecord= records.get(0);
+            Object object=firstRecord.get(recordindex);
+            if(object instanceof Integer){
+                for(int i=0; i < records.size(); i++){
+                    int currentint=(Integer)records.get(i).get(recordindex);
+                    for(int j=0; j < records.size(); j++){
+                        if(currentint > (Integer)records.get(j).get(recordindex)){
+                            ArrayList<Object>tempArrayList=records.get(j);
+                            records.set(j, records.get(i));
+                            records.set(i, tempArrayList);
+                        }
+                    }
+                }
+            }
+            if(object instanceof Double){
+                for(int i=0; i < records.size(); i++){
+                    double currentdouble=(Double)records.get(i).get(recordindex);
+                    for(int j=0; j < records.size(); j++){
+                        if(currentdouble > (Double)records.get(j).get(recordindex)){
+                            ArrayList<Object>tempArrayList=records.get(j);
+                            records.set(j, records.get(i));
+                            records.set(i, tempArrayList);
+                        }
+                    }
+                }
+
+            }
+            if(object instanceof Float){
+                for(int i=0; i < records.size(); i++){
+                    float currentfloat=(Float)records.get(i).get(recordindex);
+                    for(int j=0; j < records.size(); j++){
+                        if(currentfloat > (Float)records.get(j).get(recordindex)){
+                            ArrayList<Object>tempArrayList=records.get(j);
+                            records.set(j, records.get(i));
+                            records.set(i, tempArrayList);
+                        }
+                    }
+                }
+            }
+            if(object instanceof String){
+                for(int i=0; i < records.size(); i++){
+                    String currentstring=(String)records.get(i).get(recordindex);
+                    for(int j=0; j < records.size(); j++){
+                        int result=currentstring.compareTo((String)records.get(j).get(recordindex));
+                        if(result > 0){
+                            ArrayList<Object>tempArrayList=records.get(j);
+                            records.set(j, records.get(i));
+                            records.set(i, tempArrayList);
+                        }
+                    }
+                }
+            }
+        }
+        for(ArrayList<Object>record: records){
+            ArrayList<Object>newrecord=new ArrayList<>();
+            for(Map.Entry<String, Integer> entry : attributemap.entrySet()){
+                newrecord.add(record.get(entry.getValue()));
+            }
+            displayrecords.add(newrecord);
         }
      }
 }
