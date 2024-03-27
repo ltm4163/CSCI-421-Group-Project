@@ -345,7 +345,7 @@ public class parser {
     
 
     private static void handleSelectCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
-        Pattern selectPattern = Pattern.compile("SELECT\\s+(\\*|[\\w,\\s]+)\\s+FROM\\s+(\\w+)(\\s+WHERE\\s+(.*))?", Pattern.CASE_INSENSITIVE);
+        Pattern selectPattern = Pattern.compile("SELECT\\s(.+?)\\s+FROM\\s+(\\w+)(\\s+WHERE\\s+(.*))?", Pattern.CASE_INSENSITIVE);
         Matcher matcher = selectPattern.matcher(inputLine);
         if (!matcher.find()) {
             System.out.println("Syntax error in SELECT command.");
@@ -379,14 +379,10 @@ public class parser {
         }
     
         WhereCondition whereRoot = null;
+
         if (whereClause != null && !whereClause.isBlank()) {
             whereRoot = parseWhereClause(whereClause);
-
-            if (whereClause != null && !whereClause.isBlank()) {
-                whereRoot = parseWhereClause(whereClause);
-                System.out.println("Debug: Parsed WHERE clause: " + whereRoot); // Add this line
-            }
-            
+            System.out.println("Debug: Parsed WHERE clause: " + whereRoot); // Add this line
         }
 
         final WhereCondition finalWhereRoot = whereRoot;
@@ -401,11 +397,11 @@ public class parser {
                     return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
                 })
                 .collect(Collectors.toList());
-        
-    
+
             System.out.println(records);
+            printSelectedRecords(records, tableSchema, columnsToSelect);
         } else {
-            System.out.println("No WHERE condition present or WHERE condition is null.");
+            System.out.println("Debug: No WHERE condition present or WHERE condition is null.");
             List<Record> records = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                     .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
                     .collect(Collectors.toList());
@@ -416,16 +412,8 @@ public class parser {
 
     private static void printSelectedRecords(List<Record> records, TableSchema tableSchema, List<String> columnsToSelect) {
         // Print header row
-        if (columnsToSelect.contains("*")) {
-            // Print all attribute names as headers if '*' is selected
-            for (AttributeSchema attr : tableSchema.getattributes()) {
-                System.out.print(attr.getname() + "\t");
-            }
-        } else {
-            // Print only the selected attribute names
-            for (String columnName : columnsToSelect) {
-                System.out.print(columnName + "\t");
-            }
+        for (String columnName : columnsToSelect) {
+            System.out.print(tableSchema.getName() + "." + columnName + "\t");
         }
         System.out.println(); 
     
@@ -433,7 +421,7 @@ public class parser {
         for (Record record : records) {
             for (String columnName : columnsToSelect) {
                 if (columnName.equals("*")) {
-                    // Print all column vales
+                    // Print all column values
                     for (AttributeSchema attr : tableSchema.getattributes()) {
                         Object value = record.getAttributeValue(attr.getname(), tableSchema.getattributes());
                         System.out.print(value + "\t");
