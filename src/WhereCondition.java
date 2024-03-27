@@ -108,7 +108,48 @@ class WhereCondition {
                     case LESS_OR_EQUALS:
                         return recordValueDouble <= valueDouble;
                 }
-            break;
+                break;
+            case "char":
+            case "varchar":
+                String recordValueString = (String) recordValue;
+                String valueString = (String) value;
+                switch (operator) {
+                    case EQUALS:
+                        return recordValueString.equals(valueString);
+                    case NOT_EQUALS:
+                        return !recordValueString.equals(valueString);
+                    case GREATER_THAN:
+                        return recordValueString.compareTo(valueString)>0;
+                    case LESS_THAN:
+                        return recordValueString.compareTo(valueString)<0;
+                    case GREATER_OR_EQUALS:
+                        if (recordValueString.equals(valueString)) return true;
+                        else return recordValueString.compareTo(valueString)>0;
+                    case LESS_OR_EQUALS:
+                        if (recordValueString.equals(valueString)) return true;
+                        else return recordValueString.compareTo(valueString)<0;
+                }
+                break;
+            case "boolean":
+                boolean recordValueBool = (Boolean) recordValue;
+                boolean valueBool = Boolean.parseBoolean(value);
+                byte recordValueByte = (byte)(recordValueBool ? 1 : 0);
+                byte valueByte = (byte)(valueBool ? 1 : 0);
+                switch (operator) {
+                    case EQUALS:
+                        return recordValueByte == valueByte;
+                    case NOT_EQUALS:
+                        return recordValueByte != valueByte;
+                    case GREATER_THAN:
+                        return recordValueByte > valueByte;
+                    case LESS_THAN:
+                        return recordValueByte < valueByte;
+                    case GREATER_OR_EQUALS:
+                        return recordValueByte >= valueByte;
+                    case LESS_OR_EQUALS:
+                        return recordValueByte <= valueByte;
+                }
+                break;
             // TODO: Handle other types similarly
         }
         throw new IllegalArgumentException("Unsupported operation for condition.");
