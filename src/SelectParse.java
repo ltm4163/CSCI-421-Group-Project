@@ -43,6 +43,7 @@ public class SelectParse {
                 column = columnName;
                 List<TableSchema> foundInTables = new ArrayList<>();
                 for (TableSchema table : tableSchemas) {
+                    System.out.println(table.getName());
                     List<String> attributeNames = table.getAttributeNames();
                     if (attributeNames.contains(column)) {
                         foundInTables.add(table);

@@ -431,9 +431,13 @@ public class parser {
     }
 
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
+        System.out.println(records);
+        System.out.println(tableSchemas);
+        System.out.println(columnsToSelect);
         Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
+        // Redo this part so it's in the order of tableSchemas
         for (String columnName : columnsToSelect) {
             System.out.print(columnName + " | ");
             tableValues.putIfAbsent(columnName, new ArrayList<>());
