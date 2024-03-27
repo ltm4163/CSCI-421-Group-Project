@@ -582,12 +582,18 @@ public class parser {
             System.out.println("value : " + value);
             System.out.println("condition: " + condition);
         } else {
-            System.out.println("Invalid update statement format");
+            System.out.println("Invalid update statement format\nERROR");
             return;
         }
 
         if(condition != null) {
             condition = condition.trim().replaceAll(";$", "");
+        }
+
+        TableSchema tableSchema = catalog.getTableSchemaByName(tableName);
+        if(!tableSchema) {
+            System.out.println("Table '" + tableName + "' does not exist\nERROR");
+            return;
         }
 
 
