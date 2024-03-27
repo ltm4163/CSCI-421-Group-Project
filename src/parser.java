@@ -430,6 +430,7 @@ public class parser {
         }
     }
 
+    // Take in Map<TableSchema, List<Record>> that has all records already mapped to their specific table schema?
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
         System.out.println(records);
         System.out.println(tableSchemas);
@@ -481,6 +482,12 @@ public class parser {
                             maxSize = recordList.size();
                         }
                         break outerLoop;
+                    }
+                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break;
                     }
                 }
             }
