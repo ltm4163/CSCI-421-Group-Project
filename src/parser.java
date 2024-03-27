@@ -535,7 +535,6 @@ public class parser {
 
         List<TableSchema> tableSchemas;
         List<List<WhereParse.Condition>> whereClauseList;
-
         // Match FROM clause
         Matcher fromMatcher = fromPattern.matcher(inputLine);
         if (fromMatcher.find()) {
@@ -557,8 +556,28 @@ public class parser {
             System.out.println("No WHERE conditions specified");
         }
     }
-    
-    
+
+    public static void handleUpdateCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
+        String[] parts = inputLine.split("\\bwhere\\b");
+
+        String[] updateInfo = parts[0].split("\\s+");
+        String tableName = updateInfo[1];
+        String columnName = updateInfo[3];
+        double updateVal = Double.parseDouble(updateInfo[5]);
+
+        String[] conditions = parts[1].split("\\band\\b");
+
+        System.out.println("Tablename: " + tableName);
+        System.out.println("columnName: " + columnName);
+        System.out.println("updateVal: " + updateVal);
+
+        System.out.println("conditions:");
+        for (String condition : conditions)
+            System.out.println(condition);
+
+
+    }
+
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
         if (tokens.length == 0) {
@@ -605,6 +624,10 @@ public class parser {
             case "delete":
                 handleDeleteCommand(inputLine, catalog, storageManager);
                 break;
+
+            case "update":
+                 handleUpdateCommand(inputLine, catalog, storageManager);
+                 break;
 
             case "display":
             if (tokens.length > 2 && tokens[1].equalsIgnoreCase("info")) {
