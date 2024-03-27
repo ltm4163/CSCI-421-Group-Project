@@ -442,6 +442,7 @@ public class parser {
 
         // Record rows
         int columnIndex = 0;
+        outerLoop:
         for (List<Record> recordList : records) {
             if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
                 List<Object> values = new ArrayList<>();
@@ -449,6 +450,12 @@ public class parser {
                     values.add(record.getData().get(0));
                 }
                 tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                if (columnsToSelect.size() == columnIndex) {
+                    if (recordList.size() > maxSize) {
+                        maxSize = recordList.size();
+                    }
+                    break;
+                }
             }
             else {  // select case with multiple attributes
                 for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
@@ -466,7 +473,10 @@ public class parser {
                     }
                     tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
                     if (columnsToSelect.size() == columnIndex) {
-                        break;
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break outerLoop;
                     }
                 }
             }
