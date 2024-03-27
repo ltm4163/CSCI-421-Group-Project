@@ -431,28 +431,47 @@ public class parser {
     }
 
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
-        Map<String, List<Record>> tableValues = new HashMap<>();
+        Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
         for (String columnName : columnsToSelect) {
             System.out.print(columnName + " | ");
             tableValues.putIfAbsent(columnName, new ArrayList<>());
         }
-        System.out.println();
+        System.out.println(tableValues);
 
         // Record rows
-        for (int i = 0; i < records.size(); i++) {
-            tableValues.get(columnsToSelect.get(i)).addAll(records.get(i));
-            if (records.get(i).size() > maxSize) {
-                maxSize = records.get(i).size();
+        for (List<Record> recordList : records) {
+            System.out.println(records);
+            for (String column : columnsToSelect) {
+                List<Object> values = new ArrayList<>();
+                for (Record record : recordList) {
+                    TableSchema tableToUse = null;
+                    for (TableSchema tableSchema : tableSchemas) {
+                        if (tableSchema.getName().equals(column.substring(0, column.indexOf('.')))) {
+                            tableToUse = tableSchema;
+                            break;
+                        }
+                    }
+                    assert tableToUse != null;
+                    values.add(record.getAttributeValue(column.substring(column.indexOf('.') + 1), tableToUse.getattributes()));
+                    //System.out.println(values);
+                }
+                tableValues.get(column).addAll(values);
             }
+
+            //tableValues.get(columnsToSelect.get(i)).addAll(values);
+            if (recordList.size() > maxSize) {
+                maxSize = recordList.size();
+            }
+            System.out.println(tableValues);
         }
 
         for (int i = 0; i < maxSize; i++) {
             StringBuilder row = new StringBuilder();
             for (String column : columnsToSelect) {
                 try {
-                    row.append(tableValues.get(column).get(i).getData().get(0)).append("\t\t");
+                    row.append(tableValues.get(column).get(i)).append("\t\t");
                 }
                 catch (Exception e) {
                     row.append("null\t\t");  // Using null as a placeholder for this since there is no value
