@@ -406,10 +406,7 @@ public class parser {
                 System.out.println("Debug: Where condition parse tree - " + whereRoot.toString());
 
                 List<List<Record>> records = new ArrayList<>();
-
-                Map<TableSchema, List<Record>> values = new HashMap<>();
                 for (TableSchema tableSchema : tableSchemas) {
-                    values.putIfAbsent(tableSchema, new ArrayList<>());
                     List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                             .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
                             .filter(record -> {
@@ -417,24 +414,17 @@ public class parser {
                                 return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
                             }).toList();
                     records.add(tableRecords);
-                    values.get(tableSchema).addAll(tableRecords);
-                    System.out.println(values);
                 }
                 printSelectedRecords(records, tableSchemas, columnList);
             }
         } else {
             System.out.println("No WHERE conditions specified");
             List<List<Record>> records = new ArrayList<>();
-
-            Map<TableSchema, List<Record>> values = new HashMap<>();
             for (TableSchema tableSchema : tableSchemas) {
-                values.putIfAbsent(tableSchema, new ArrayList<>());
                 List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                         .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
                         .toList();
                 records.add(tableRecords);
-                values.get(tableSchema).addAll(tableRecords);
-                System.out.println(values);
             }
             printSelectedRecords(records, tableSchemas, columnList);
         }
@@ -453,17 +443,14 @@ public class parser {
         // Record rows
         int columnIndex = 0;
         for (List<Record> recordList : records) {
-            if (recordList.get(0).getNumElements() == 1) {  // select * case with one attribute
+            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
                 List<Object> values = new ArrayList<>();
                 for (Record record : recordList) {
                     values.add(record.getData().get(0));
                 }
                 tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
             }
-//            else if () {  // select attributeName1, attributeName2,... case
-//
-//            }
-            else {  // select * case with multiple attributes
+            else {  // select case with multiple attributes
                 for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
                     List<Object> values = new ArrayList<>();
                     String currentColumn = columnsToSelect.get(columnIndex);
@@ -478,6 +465,9 @@ public class parser {
                         values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
                     }
                     tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                    if (columnsToSelect.size() == columnIndex) {
+                        break;
+                    }
                 }
             }
 
