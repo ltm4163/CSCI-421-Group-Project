@@ -8,13 +8,17 @@ public class SelectParse {
 
         for (String column : columns) {
             column = column.trim();  // Removes all whitespace
+//            if (column.contains(".")) {
+//                column = column.substring(column.indexOf('.') + 1);
+//            }
             columnList.add(column);
         }
 
         return columnList;
     }
 
-    public static boolean parseSelectClause2(List<String> columnList, List<TableSchema> tableSchemas, Catalog c) {
+    public static List<String> parseSelectClause2(List<String> columnList, List<TableSchema> tableSchemas, Catalog c) {
+        List<String> columnsListWithTables = new ArrayList<>();
         for (String columnName : columnList) {
             String[] parts = columnName.split("\\.");
 
@@ -29,6 +33,7 @@ public class SelectParse {
                         List<String> attributeNames = table.getAttributeNames();
                         if(attributeNames.contains(column)) {
                             found = true;
+                            columnsListWithTables.add(table.getName() + "." + column);
                             break;
                         }
                     }
@@ -42,19 +47,20 @@ public class SelectParse {
                     if (attributeNames.contains(column)) {
                         foundInTables.add(table);
                         found = true;
+                        columnsListWithTables.add(table.getName() + "." + column);
                     }
                 }
                 if (foundInTables.size() > 1) {
                     System.out.println("Column '" + column + "' is present in multiple tables: " + foundInTables);
-                    return false;
+                    return null;
                 }
             }
 
             if (!found) {
                 System.out.println("Column '" + column + "' does not exist in any of the provided tables.");
-                return false;
+                return null;
             }
         }
-        return true;
+        return columnsListWithTables;
     }
 }

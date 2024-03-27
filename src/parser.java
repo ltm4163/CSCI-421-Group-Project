@@ -352,7 +352,7 @@ public class parser {
 
         List<String> columnList;
         List<TableSchema> tableSchemas;
-        List<List<WhereParse.Condition>> whereClauseList;
+        WhereCondition whereRoot = null;
 
         // Match SELECT clause
         Matcher selectMatcher = selectPattern.matcher(inputLine);
@@ -371,6 +371,9 @@ public class parser {
             String tableNames = fromMatcher.group(1);
             System.out.println("Table names: " + tableNames);
             tableSchemas = FromParse.parseFromClause(tableNames, c);
+            if (tableSchemas == null) {
+                return;
+            }
         } else {
             System.out.println("Error: No FROM clause found");
             return;
@@ -378,8 +381,15 @@ public class parser {
 
         if (!(columnList.size() == 1 && columnList.get(0).equals("*"))) {
             // Ensures column names exist in tables
-            if (!SelectParse.parseSelectClause2(columnList, tableSchemas, c)) {
+            columnList = SelectParse.parseSelectClause2(columnList, tableSchemas, c);
+            if (columnList == null) {
                 return;
+            }
+        }
+        else {  // If the select parameter is '*'
+            columnList.clear();
+            for (TableSchema tableSchema : tableSchemas) {
+                columnList.addAll(tableSchema.getAttributeNamesWithTable());
             }
         }
 
@@ -387,14 +397,63 @@ public class parser {
         Matcher whereMatcher = wherePattern.matcher(inputLine);
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
+            System.out.println(whereClause);
             System.out.println("Where conditions: " + whereClause);
-            whereClauseList = WhereParse.parseWhereClause(whereClause);
-            System.out.println(whereClauseList);
+            whereRoot = WhereParse.parseWhereClause(whereClause);
+            System.out.println("Debug: Parsed WHERE clause: " + whereRoot);
+
+            final WhereCondition finalWhereRoot = whereRoot;
+
+            if (whereRoot != null) {
+                System.out.println("Debug: Where condition parse tree - " + whereRoot.toString());
+
+                for (TableSchema tableSchema : tableSchemas) {
+                    List<Record> records = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                            .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+                            .filter(record -> {
+                                System.out.println("Debug: Evaluating record: " + record);
+                                return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
+                            }).toList();
+                }
+            }
         } else {
             System.out.println("No WHERE conditions specified");
+            List<Record> records = new ArrayList<>();
+            for (TableSchema tableSchema : tableSchemas) {
+                records.addAll(storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                        .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>())).toList());
+            }
+            printSelectedRecords(records, tableSchemas, columnList);
         }
     }
-    
+
+    private static void printSelectedRecords(List<Record> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
+            for (String columnName : columnsToSelect) {
+                System.out.print(columnName + "\t");
+//                columnName = columnName.substring(columnName.indexOf('.') + 1);
+            }
+            System.out.println();
+
+//        // Record rows
+//        for (Record record : records) {
+//            for (String columnName : columnsToSelect) {
+//                if (columnName.equals("*")) {
+//                    // Print all column values
+//                    for (AttributeSchema attr : tableSchema.getattributes()) {
+//                        Object value = record.getAttributeValue(attr.getname(), tableSchema.getattributes());
+//                        System.out.print(value + "\t");
+//                    }
+//                } else {
+//                    // Print specified columns
+//                    Object value = record.getAttributeValue(columnName, tableSchema.getattributes());
+//                    System.out.print(value + "\t");
+//                }
+//            }
+//            System.out.println();
+//        }
+    }
+
+    // Unnecessary method
     private static void printRecords(ArrayList<ArrayList<Object>> records, TableSchema table) {
         // Print header with attribute names
         System.out.print("|");
