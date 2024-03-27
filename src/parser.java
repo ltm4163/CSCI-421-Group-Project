@@ -577,10 +577,10 @@ public class parser {
             value = Double.parseDouble(matcher.group(3));
             condition = matcher.group(4);
 
-            System.out.println("tableName: " + tableName);
-            System.out.println("columnName: " + columnName);
-            System.out.println("value : " + value);
-            System.out.println("condition: " + condition);
+            System.out.println("DEBUG | tableName: " + tableName);
+            System.out.println("DEBUG | columnName: " + columnName);
+            System.out.println("DEBUG | value : " + value);
+            System.out.println("DEBUG | condition " + condition);
         } else {
             System.out.println("Invalid update statement format\nERROR");
             return;
@@ -591,10 +591,22 @@ public class parser {
         }
 
         TableSchema tableSchema = catalog.getTableSchemaByName(tableName);
-        if(!tableSchema) {
+        if(tableSchema == null) {
             System.out.println("Table '" + tableName + "' does not exist\nERROR");
             return;
         }
+
+        if(!tableSchema.hasAttribute(columnName)) {
+            System.out.println("Column '" + columnName + "' does not exist in table '" + tableName + "'\nERROR");
+        }
+
+        WhereCondition whereRoot = null;
+        if(condition != null && !condition.isBlank()) {
+            whereRoot = parseWhereClause(condition);
+            System.out.println("DEBUG | parse WHERE clause: " + whereRoot);
+        }
+
+        final WhereCondition finalWhereRoot = whereRoot;
 
 
     }
