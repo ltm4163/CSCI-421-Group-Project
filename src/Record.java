@@ -89,6 +89,10 @@ public class Record {
         }
         throw new IllegalArgumentException("Attribute " + attributeName + " not found in record.");
     }
+
+    public int getNumElements() {
+        return this.data.size();
+    }
     
 
     public byte[] toBinary(AttributeSchema[] attributeSchemas) {

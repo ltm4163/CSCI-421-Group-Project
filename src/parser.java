@@ -431,7 +431,7 @@ public class parser {
     }
 
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
-        Map<String, List<Record>> tableValues = new HashMap<>();
+        Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
         for (String columnName : columnsToSelect) {
@@ -441,10 +441,34 @@ public class parser {
         System.out.println();
 
         // Record rows
-        for (int i = 0; i < records.size(); i++) {
-            tableValues.get(columnsToSelect.get(i)).addAll(records.get(i));
-            if (records.get(i).size() > maxSize) {
-                maxSize = records.get(i).size();
+        int columnIndex = 0;
+        for (List<Record> recordList : records) {
+            if (recordList.get(0).getNumElements() == 1) {
+                List<Object> values = new ArrayList<>();
+                for (Record record : recordList) {
+                    values.add(record.getData().get(0));
+                }
+                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+            } else {
+                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
+                    List<Object> values = new ArrayList<>();
+                    String currentColumn = columnsToSelect.get(columnIndex);
+                    TableSchema currentTable = null;
+                    for (TableSchema tableSchema : tableSchemas) {
+                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
+                            currentTable = tableSchema;
+                        }
+                    }
+                    for (Record record : recordList) {
+                        assert currentTable != null;
+                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
+                    }
+                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                }
+            }
+
+            if (recordList.size() > maxSize) {
+                maxSize = recordList.size();
             }
         }
 
@@ -452,7 +476,7 @@ public class parser {
             StringBuilder row = new StringBuilder();
             for (String column : columnsToSelect) {
                 try {
-                    row.append(tableValues.get(column).get(i).getData().get(0)).append("\t\t");
+                    row.append(tableValues.get(column).get(i)).append("\t\t");
                 }
                 catch (Exception e) {
                     row.append("null\t\t");  // Using null as a placeholder for this since there is no value
