@@ -588,6 +588,8 @@ public class parser {
 
         if(condition != null) {
             condition = condition.trim().replaceAll(";$", "");
+        } else { // can the update work with no condition?
+            System.out.println("No condition specified\nERROR");
         }
 
         TableSchema tableSchema = catalog.getTableSchemaByName(tableName);
@@ -607,6 +609,16 @@ public class parser {
         }
 
         final WhereCondition finalWhereRoot = whereRoot;
+
+        if(whereRoot != null) {
+            System.out.println("DEBUG | where condition");
+            System.out.println("DEBUG | where root: " + whereRoot.toString());
+            // TODO storage manager here w/ where condition
+
+        } else {
+            System.out.println("DEBUG | no where condition");
+            // does update work without a condition?
+        }
 
 
     }
