@@ -105,23 +105,21 @@ public class Record {
     }
 
     public Object getAttributeValue(String attributeName, AttributeSchema[] attributeSchemas) {
-        for (int i = 0; i < attributeSchemas.length; i++) {
-            if (attributeSchemas[i].getname().equals(attributeName)) {
-                // Check if nullBitMap is initialized and has enough entries
-                if (nullBitMap != null && i < nullBitMap.size() && getBitMapValue(i) == (byte)1) {
-                    return "null"; // Return a string "null" or actual null, based on your handling preference
-                } else {
-                    // Ensure the data list is also properly initialized and has the entry
-                    if (data != null && i < data.size()) {
-                        return data.get(i);
-                    } else {
-                        // Data list not properly initialized or does not have the entry
-                        return "ERROR: Data unavailable"; // Handle as appropriate for your application
-                    }
+        String[] parts = attributeName.split("\\.");
+        String actualAttributeName = parts.length > 1 ? parts[1] : parts[0];
+    
+        for (AttributeSchema attr : attributeSchemas) {
+            if (attr.getname().equals(actualAttributeName)) {
+                int index = Arrays.asList(attributeSchemas).indexOf(attr);
+                if (index < 0 || index >= data.size()) {
+                    System.err.println("Error: Attribute index out of bounds. Attribute: " + actualAttributeName);
+                    return null; 
                 }
+                return data.get(index);
             }
         }
-        throw new IllegalArgumentException("Attribute " + attributeName + " not found in record.");
+        System.err.println("Error: Attribute " + actualAttributeName + " not found in record.");
+        return null; 
     }
     
 

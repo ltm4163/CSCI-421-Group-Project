@@ -1,6 +1,7 @@
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -350,17 +351,22 @@ public class parser {
     
 
     private static void handleSelectCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
-        Pattern selectPattern = Pattern.compile("SELECT\\s(.+?)\\s+FROM\\s+(\\w+)(\\s+WHERE\\s+(.*))?", Pattern.CASE_INSENSITIVE);
+        Pattern selectPattern = Pattern.compile(
+            "SELECT\\s+((\\*|\\w+(\\.\\w+)?)(\\s*,\\s*\\w+(\\.\\w+)?)*)(\\s+FROM\\s+(\\w+))(\\s+WHERE\\s+(.*?))?(\\s+ORDERBY\\s+([\\w.]+))?",
+            Pattern.CASE_INSENSITIVE
+        );
+
         Matcher matcher = selectPattern.matcher(inputLine);
         if (!matcher.find()) {
             System.out.println("Syntax error in SELECT command.");
             return;
         }
-    
+
         String columnNames = matcher.group(1).trim();
-        String tableName = matcher.group(2);
-        String whereClause = matcher.group(4);
-        
+        String tableName = matcher.group(7);
+        String whereClause = matcher.group(9);
+        String orderByColumn = matcher.group(11);
+            
         if(whereClause != null) {
             whereClause = whereClause.trim().replaceAll(";$", "");
         }
@@ -370,12 +376,15 @@ public class parser {
             System.out.println("Table '" + tableName + "' does not exist.");
             return;
         }
+
+        String normalizedOrderByColumn = orderByColumn != null ? normalizeColumnName(orderByColumn) : null;
     
         List<String> columnsToSelect = Arrays.asList(columnNames.split("\\s*,\\s*"));
         if (!columnsToSelect.contains("*")) {
             for (String columnName : columnsToSelect) {
-                if (!tableSchema.hasAttribute(columnName)) {
-                    System.out.println("Error: Column '" + columnName + "' does not exist in table '" + tableName + "'.");
+                String actualColumnName = normalizeColumnName(columnName);
+                if (!tableSchema.hasAttribute(actualColumnName)) {
+                    System.err.println("Error: Column '" + columnName + "' does not exist in table '" + tableName + "'.");
                     return;
                 }
             }
@@ -384,62 +393,109 @@ public class parser {
         }
     
         WhereCondition whereRoot = null;
-
         if (whereClause != null && !whereClause.isBlank()) {
             whereRoot = parseWhereClause(whereClause);
-            System.out.println("Debug: Parsed WHERE clause: " + whereRoot); // Add this line
+        }
+    
+        List<Record> records = fetchAndFilterRecords(whereRoot, tableSchema, storageManager);
+
+        if (normalizedOrderByColumn != null && !normalizedOrderByColumn.isEmpty()) {
+            AttributeSchema orderByAttribute = tableSchema.getAttributeByName(normalizedOrderByColumn);
+            if (orderByAttribute == null) {
+                System.err.println("Error: Column '" + normalizedOrderByColumn + "' does not exist in table schema.");
+                return; 
+            }
+
+            records.sort((record1, record2) -> {
+                Object value1 = record1.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
+                Object value2 = record2.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
+                return compareValues(value1, value2); 
+            });
         }
 
-        final WhereCondition finalWhereRoot = whereRoot;
-
-        if (whereRoot != null) {
-            System.out.println("Debug: Where condition parse tree - " + whereRoot.toString());
+        printSelectedRecords(records, tableSchema, columnsToSelect);
+    }
     
-            List<Record> records = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+    private static String normalizeColumnName(String columnName) {
+        System.out.println("Normalizing columnName: " + columnName);
+        if (columnName == null) {
+            return null;
+        }
+        int dotIndex = columnName.indexOf(".");
+        String normalized = dotIndex != -1 ? columnName.substring(dotIndex + 1) : columnName;
+        System.out.println("Normalized columnName: " + normalized);
+        return normalized;
+    }
+    
+    
+    private static List<Record> fetchAndFilterRecords(WhereCondition whereRoot, TableSchema tableSchema, StorageManager storageManager) {
+        return storageManager.getRecords(tableSchema.gettableNumber()).stream()
                 .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
-                .filter(record -> {
-                    System.out.println("Debug: Evaluating record: " + record);
-                    return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
-                })
+                .filter(record -> whereRoot == null || whereRoot.evaluate(record, tableSchema))
                 .collect(Collectors.toList());
-
-            System.out.println(records);
-            printSelectedRecords(records, tableSchema, columnsToSelect);
-        } else {
-            System.out.println("Debug: No WHERE condition present or WHERE condition is null.");
-            List<Record> records = storageManager.getRecords(tableSchema.gettableNumber()).stream()
-                    .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
-                    .collect(Collectors.toList());
+    }
     
-            printSelectedRecords(records, tableSchema, columnsToSelect);
+    private static void sortRecordsByColumn(List<Record> records, String orderByColumn, TableSchema tableSchema) {
+        if (orderByColumn != null && !orderByColumn.isEmpty()) {
+            records.sort((record1, record2) -> {
+                Object value1 = record1.getAttributeValue(orderByColumn, tableSchema.getattributes());
+                Object value2 = record2.getAttributeValue(orderByColumn, tableSchema.getattributes());
+                return compareValues(value1, value2);
+            });
         }
     }
-
-    private static void printSelectedRecords(List<Record> records, TableSchema tableSchema, List<String> columnsToSelect) {
-        // Print header row
-        for (String columnName : columnsToSelect) {
-            System.out.print(tableSchema.getName() + "." + columnName + "\t");
-        }
-        System.out.println(); 
     
-        // Record rows
+
+    private static int compareValues(Object value1, Object value2) {
+        // nulls 
+        if (value1 == null && value2 == null) return 0;
+        if (value1 == null) return -1; 
+        if (value2 == null) return 1;
+    
+        // integers
+        if (value1 instanceof Integer && value2 instanceof Integer) {
+            return Integer.compare((Integer) value1, (Integer) value2);
+        }
+    
+        // doubles
+        if (value1 instanceof Double && value2 instanceof Double) {
+            return Double.compare((Double) value1, (Double) value2);
+        }
+    
+        // strings
+        if (value1 instanceof String && value2 instanceof String) {
+            return ((String) value1).compareTo((String) value2);
+        }
+    
+        // booleans
+        if (value1 instanceof Boolean && value2 instanceof Boolean) {
+            return Boolean.compare((Boolean) value1, (Boolean) value2);
+        }
+    
+        return -1;
+    }
+    
+    
+    private static void printSelectedRecords(List<Record> records, TableSchema tableSchema, List<String> columnsToSelect) {
+        for (String columnName : columnsToSelect) {
+            if (columnName.contains(".")) {
+                String[] parts = columnName.split("\\.");
+                System.out.print(parts[0] + "." + parts[1] + "\t"); 
+            } else {
+                System.out.print(tableSchema.getName() + "." + columnName + "\t");
+            }
+        }
+        System.out.println();
+    
         for (Record record : records) {
             for (String columnName : columnsToSelect) {
-                if (columnName.equals("*")) {
-                    // Print all column values
-                    for (AttributeSchema attr : tableSchema.getattributes()) {
-                        Object value = record.getAttributeValue(attr.getname(), tableSchema.getattributes());
-                        System.out.print(value + "\t");
-                    }
-                } else {
-                    // Print specified columns
-                    Object value = record.getAttributeValue(columnName, tableSchema.getattributes());
-                    System.out.print(value + "\t");
-                }
+                Object value = record.getAttributeValue(columnName, tableSchema.getattributes());
+                System.out.print(value + "\t");
             }
-            System.out.println();  
+            System.out.println();
         }
     }
+    
     
     static WhereCondition parseWhereClause(String whereClause) {
         if (whereClause == null || whereClause.trim().isEmpty()) {
