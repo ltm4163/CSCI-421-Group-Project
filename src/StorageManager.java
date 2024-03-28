@@ -64,6 +64,26 @@ public class StorageManager {
         }
         return page;
     }
+
+    public boolean deleteRecord(TableSchema tableSchema, WhereCondition whereRoot) {
+        List<Page> pages = getPages(tableSchema.gettableNumber());
+        for (Page page : pages) {
+            List<Record> records = page.getRecords();
+            for (int i = 0; i < page.getNumRecords(); i++) {
+                Record record = records.get(i);
+                if (whereRoot == null) {
+                    page.deleteRecord(record);
+                    tableSchema.dropPage(page.getPageNumber());
+                    i--;
+                }
+                else if (whereRoot.evaluate(record, tableSchema)) {
+                    page.deleteRecord(record);
+                    i--;
+                }
+            }
+        }
+        return false; //compilation placeholder
+    }
     
     public boolean addRecord(Catalog catalog, Record record, int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
@@ -320,6 +340,7 @@ public class StorageManager {
         } catch(IOException e) {
             e.printStackTrace();
         }
+        page.setUpdated(false);
         return page;
     }
 }

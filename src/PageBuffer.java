@@ -39,29 +39,31 @@ public class PageBuffer {
     }
 
     public void writePageToHardware(Page page) {
-        try {
-            String fileName = Main.getDbDirectory() + "/tables/" + page.getTableNumber() + ".bin";
-            TableSchema tableSchema = Main.getCatalog().getTableSchema(page.getTableNumber());
-            byte[] data = page.toBinary(tableSchema); 
-            RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
-            int index = -1; // placeholder value for compiling
-            int[] pageLocations = tableSchema.getPageLocations();
-            for (int i = 0; i < tableSchema.getNumPages(); i++) { // find location of page in file
-                if (pageLocations[i] == page.getPageNumber()) {
-                    index = i;
-                    break;
+        if (page.isUpdated()) {
+            try {
+                String fileName = Main.getDbDirectory() + "/tables/" + page.getTableNumber() + ".bin";
+                TableSchema tableSchema = Main.getCatalog().getTableSchema(page.getTableNumber());
+                byte[] data = page.toBinary(tableSchema); 
+                RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
+                int index = -1;
+                int[] pageLocations = tableSchema.getPageLocations();
+                for (int i = 0; i < tableSchema.getNumPages(); i++) { // find location of page in file
+                    if (pageLocations[i] == page.getPageNumber()) {
+                        index = i;
+                        break;
+                    }
                 }
+                if (index<0) {
+                    System.err.println("Can't write page: No pages in table");
+                    return;
+                }
+                int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages, seek to page location in file
+                fileOut.seek(address);
+                fileOut.write(data);
+                System.out.println("Page data is saved in binary format at " + fileName);
+            } catch(IOException e) {
+                e.printStackTrace();
             }
-            if (index<0) {
-                System.out.println("Can't write page: No pages in table");
-                return;
-            }
-            int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages, seek to page location in file
-            fileOut.seek(address);
-            fileOut.write(data);
-            System.out.println("Page data is saved in binary format at " + fileName);
-        } catch(IOException e) {
-            e.printStackTrace();
         }
     }
 
