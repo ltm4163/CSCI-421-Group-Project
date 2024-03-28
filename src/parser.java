@@ -352,7 +352,7 @@ public class parser {
 
     private static void handleSelectCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
         Pattern selectPattern = Pattern.compile(
-            "SELECT\\s+((\\*|\\w+(\\.\\w+)?)(\\s*,\\s*\\w+(\\.\\w+)?)*)(\\s+FROM\\s+(\\w+))(\\s+WHERE\\s+(.*?))?(\\s+ORDERBY\\s+([\\w.]+))?",
+            "SELECT\\s+((\\*|\\w+(\\.\\w+)?)(\\s*,\\s*\\w+(\\.\\w+)?)*)(\\s+FROM\\s+(\\w+))(\\s+WHERE\\s+(.*))?(\\s+ORDERBY\\s+([\\w.]+))?",
             Pattern.CASE_INSENSITIVE
         );
 
@@ -363,9 +363,17 @@ public class parser {
         }
 
         String columnNames = matcher.group(1).trim();
+        System.out.println("Column names: " + columnNames);
         String tableName = matcher.group(7);
+        System.out.println("Table name: " + tableName);
         String whereClause = matcher.group(9);
+        System.out.println("Where clause: " + whereClause);
         String orderByColumn = matcher.group(11);
+        System.out.println("Order by column: " + orderByColumn);
+
+        System.out.println("8: " + matcher.group(8));
+        System.out.println("9: " + matcher.group(9));
+        System.out.println("10: " + matcher.group(10));
             
         if(whereClause != null) {
             whereClause = whereClause.trim().replaceAll(";$", "");
@@ -446,6 +454,7 @@ public class parser {
     }
     
 
+    // I'm sure there's a more concise way to do this. womp womp
     private static int compareValues(Object value1, Object value2) {
         // nulls 
         if (value1 == null && value2 == null) return 0;
