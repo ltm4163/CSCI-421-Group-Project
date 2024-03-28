@@ -432,9 +432,10 @@ public class parser {
     
     private static List<Record> fetchAndFilterRecords(WhereCondition whereRoot, TableSchema tableSchema, StorageManager storageManager) {
         return storageManager.getRecords(tableSchema.gettableNumber()).stream()
-                .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
-                .filter(record -> whereRoot == null || whereRoot.evaluate(record, tableSchema))
-                .collect(Collectors.toList());
+        .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+        .filter(record -> whereRoot == null || whereRoot.evaluate(record, tableSchema))
+        .collect(Collectors.toList());
+
     }
     
     private static void sortRecordsByColumn(List<Record> records, String orderByColumn, TableSchema tableSchema) {
@@ -507,7 +508,7 @@ public class parser {
         }
     
         // Adjusted pattern to ensure correct capturing of operators including '<=' and '>='
-        final Pattern conditionPattern = Pattern.compile("(\\w+)\\s*(=|!=|<=?|>=?)\\s*('?\\w+'?|\\d+(\\.\\d+)?)");
+        final Pattern conditionPattern = Pattern.compile("(\\w+)\\s*(=|!=|<=|>=|<|>)\\s*('[^']*'|\\d+(\\.\\d+)?)");
         final Pattern logicalPattern = Pattern.compile("\\s+(AND|OR)\\s+", Pattern.CASE_INSENSITIVE);
     
         List<String> logicalOperators = new ArrayList<>();
