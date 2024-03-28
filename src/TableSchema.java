@@ -12,7 +12,7 @@ public class TableSchema {
     private int tableNumber;
     private int numPages;
     private int numAttributes;
-    private int[] pageLocations;
+    private int[] pageLocations; //index: location; value: pageNum
     
     public TableSchema(int numAttributes, String name, int tableNumber, AttributeSchema[] attributes) {
         this.numAttributes = numAttributes;
@@ -111,9 +111,43 @@ public class TableSchema {
         if (this.pageLocations == null) {
             this.pageLocations = new int[1];
         } else {
-            this.pageLocations = Arrays.copyOf(this.pageLocations, this.numPages);
+            int[] newPageLocations = new int[this.numPages];
+            for (int i = 0; i < this.numPages-1; i++) {
+                newPageLocations[i] = this.pageLocations[i];
+                if (newPageLocations[i] >= newPageNumber) newPageLocations[i]++;
+            }
+            this.pageLocations = newPageLocations;
         }
         this.pageLocations[this.numPages - 1] = newPageNumber;
+    }
+
+    public void dropPage(int pageNum) {
+        this.numPages--;
+        
+        // Find the index of the element to remove
+        int indexToRemove = -1;
+        for (int i = 0; i < this.numPages+1; i++) {
+            if (this.pageLocations[i] == pageNum) {
+                indexToRemove = i;
+                break;
+            }
+        }
+
+        // If the element is found, create a new array without it
+        if (indexToRemove != -1) {
+            int[] newArray = new int[this.numPages];
+            int newIndex = 0;
+            for (int i = 0; i < this.numPages+1; i++) {
+                if (i != indexToRemove) {
+                    newArray[newIndex] = this.pageLocations[i];
+                    if (newArray[newIndex] > pageNum) newArray[newIndex]--; //decrease pageNum of pages after deleted page
+                    newIndex++;
+                }
+            }
+            this.pageLocations = newArray;
+        } else {
+            System.out.println("Element not found in the array.");
+        }
     }
 
     public int getMaxPageNumber() {

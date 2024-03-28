@@ -84,7 +84,7 @@ class WhereCondition {
             case "char":
             case "varchar":
                 String recordValueString = (String) recordValue;
-                return compareStrings(recordValueString, value.replace("'", ""), operator);
+                return compareStrings(recordValueString, value, operator);
             case "boolean":
                 boolean recordValueBool = (Boolean) recordValue;
                 boolean valueBool = Boolean.parseBoolean(value);

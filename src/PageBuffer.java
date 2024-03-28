@@ -45,7 +45,7 @@ public class PageBuffer {
                 TableSchema tableSchema = Main.getCatalog().getTableSchema(page.getTableNumber());
                 byte[] data = page.toBinary(tableSchema); 
                 RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
-                int index = -1; // placeholder value for compiling
+                int index = -1;
                 int[] pageLocations = tableSchema.getPageLocations();
                 for (int i = 0; i < tableSchema.getNumPages(); i++) { // find location of page in file
                     if (pageLocations[i] == page.getPageNumber()) {
@@ -54,7 +54,7 @@ public class PageBuffer {
                     }
                 }
                 if (index<0) {
-                    System.out.println("Can't write page: No pages in table");
+                    System.err.println("Can't write page: No pages in table");
                     return;
                 }
                 int address = Integer.BYTES + (index*Main.getPageSize()); // skip numPages, seek to page location in file

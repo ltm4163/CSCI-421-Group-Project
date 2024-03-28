@@ -73,6 +73,7 @@ public class StorageManager {
                 Record record = records.get(i);
                 if (whereRoot == null) {
                     page.deleteRecord(record);
+                    tableSchema.dropPage(page.getPageNumber());
                     i--;
                 }
                 else if (whereRoot.evaluate(record, tableSchema)) {
@@ -308,6 +309,7 @@ public class StorageManager {
         } catch(IOException e) {
             e.printStackTrace();
         }
+        page.setUpdated(false);
         return page;
     }
 }
