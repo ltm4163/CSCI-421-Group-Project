@@ -678,29 +678,58 @@ public class parser {
     
         String[] individualValueSets = valuesPart.split("\\),\\s*\\(");
         for (String valueSet : individualValueSets) {
-            valueSet = valueSet.trim().replaceAll("^\\(|\\)$", ""); 
-            String[] values = valueSet.split(",\\s*(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
+            valueSet = valueSet.trim().replaceAll("^\\(|\\)$", "");
+            String[] values = valueSet.split("\\s+(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
     
             if (values.length != table.getnumAttributes()) {
                 System.out.println("Mismatch between number of columns and values provided.");
                 return;
             }
     
+            ArrayList<Byte> nullBitMap = new ArrayList<>(table.getnumAttributes());
             ArrayList<Object> recordValues = new ArrayList<>();
             for (int i = 0; i < values.length; i++) {
                 String value = values[i].trim();
                 AttributeSchema attribute = table.getattributes()[i];
+
+                // if null value
+                if (value instanceof String && ((String) value).equalsIgnoreCase("null")) {
+                    recordValues.add(null);
+                    nullBitMap.add((byte)1);
+                    continue;
+                }
+
                 Object parsedValue = parseValueBasedOnType(value, attribute);
                 if (parsedValue == null) {
-                    System.out.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
+                    System.err.println("Error parsing value: " + value + " for attribute: " + attribute.getname());
                     return;
                 }
+                else if (parsedValue instanceof String) {  // If the parsed value is a char or varchar
+                    // char
+                    if (attribute.gettype().equals("char") &&
+                            ((String) parsedValue).length() > attribute.getsize()) {
+                        System.err.println("Expected char length of: " + attribute.getsize() +
+                                " for attribute: " + attribute.getname());
+                        return;
+                    }
+                    // varchar
+                    else if (attribute.gettype().equals("varchar") &&
+                            ((String) parsedValue).length() > attribute.getsize()){
+                        System.err.println("Expected varchar length of less than or equal to: " + attribute.getsize() +
+                                " for attribute: " + attribute.getname());
+                        return;
+                    }
+                }
                 recordValues.add(parsedValue);
+                nullBitMap.add((byte)0);
             }
     
-            int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size 
-            Record newRecord = new Record(recordValues, recordSize);
-            storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+            int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size
+            Record newRecord = new Record(recordValues, recordSize, nullBitMap);
+            boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+            if (!worked) {
+                return;
+            }
         }
     
         System.out.println("Record(s) inserted successfully into table: " + tableName);

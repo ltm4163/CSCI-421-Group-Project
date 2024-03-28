@@ -1,14 +1,19 @@
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.BitSet;
+import java.util.Collections;
+import java.util.List;
 
 public class Record {
-    private ArrayList<Object> data; // Tuple of data
+    private ArrayList<Object> data;
     private int size;
+    private ArrayList<Byte> nullBitMap;
 
-    // Constructor
-    public Record(ArrayList<Object> data, int size) {
+    public Record(ArrayList<Object> data, int size, ArrayList<Byte> nullBitMap) {
         this.data = data;
-        this.size = size;
+        this.nullBitMap = nullBitMap;
+        this.size = size + nullBitMap.size();
     }
 
     public void setData(ArrayList<Object> data) {
@@ -19,6 +24,41 @@ public class Record {
         return this.data;
     }
 
+    public int addValue(Object value, int indexInRecord, AttributeSchema attr) {
+        int sizeAdded = 1;
+        if (value == null) this.setBitMapValue(indexInRecord, 1);
+        else {
+            this.setBitMapValue(indexInRecord, 0);
+            switch (attr.gettype()) {
+                case "varchar":
+                    sizeAdded += ((String)value).length() + Integer.BYTES;
+                    break;
+                default:
+                    sizeAdded += attr.getsize();
+                    break;
+            }
+        }
+        this.data.add(value);
+        this.size += sizeAdded;
+        return sizeAdded;
+    }
+
+    public int removeValue(int indexInRecord, AttributeSchema attr) {
+        Object value = this.data.remove(indexInRecord);
+        this.nullBitMap.remove(indexInRecord);
+        int sizeLost = 1;
+        switch (attr.gettype()) {
+            case "varchar":
+                sizeLost += (((String)value).length() + Integer.BYTES);
+                break;
+            default:
+                sizeLost += attr.getsize();
+                break;
+        }
+        this.size -= sizeLost;
+        return sizeLost;
+    }
+
     public void setSize(int size) {
         this.size = size;
     }
@@ -26,37 +66,104 @@ public class Record {
     public int getSize() {
         return this.size;
     }
+   
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("Record{");
+        if (data != null && !data.isEmpty()) {
+            for (int i = 0; i < data.size(); i++) {
+                if (i > 0) sb.append(", ");
+                sb.append(data.get(i));
+            }
+        } else {
+            sb.append("No Data");
+        }
+        sb.append('}');
+        return sb.toString();
+    }
+
+
+    public void setBitMapValue(int index, int isNull) {
+        if (index >= this.nullBitMap.size()) {
+            this.nullBitMap.add((byte)isNull);
+            this.size++;
+        }
+        else this.nullBitMap.set(index, (byte)isNull);
+    }
+
+    public byte getBitMapValue(int index) {
+        if (nullBitMap.isEmpty() || index < 0 || index >= nullBitMap.size()) {
+            throw new IllegalArgumentException("Index " + index + " is out of bounds for nullBitMap with size " + nullBitMap.size());
+        }
+        return nullBitMap.get(index);
+    }
+    
+
+    public void setNullBitMap(ArrayList<Byte> nullBitMap) {
+        this.nullBitMap = nullBitMap;
+    }
+
+    public Object getAttributeValue(String attributeName, AttributeSchema[] attributeSchemas) {
+        for (int i = 0; i < attributeSchemas.length; i++) {
+            if (attributeSchemas[i].getname().equals(attributeName)) {
+                // Check if nullBitMap is initialized and has enough entries
+                if (nullBitMap != null && i < nullBitMap.size() && getBitMapValue(i) == (byte)1) {
+                    return "null"; // Return a string "null" or actual null, based on your handling preference
+                } else {
+                    // Ensure the data list is also properly initialized and has the entry
+                    if (data != null && i < data.size()) {
+                        return data.get(i);
+                    } else {
+                        // Data list not properly initialized or does not have the entry
+                        return "ERROR: Data unavailable"; // Handle as appropriate for your application
+                    }
+                }
+            }
+        }
+        throw new IllegalArgumentException("Attribute " + attributeName + " not found in record.");
+    }
+    
 
     public byte[] toBinary(AttributeSchema[] attributeSchemas) {
         ByteBuffer recData = ByteBuffer.allocate(this.size);
-        int tupleIndex = 0; // Index of the current attribute in the tuple
-    
+        int tupleIndex = 0; 
+
+        byte[] bitMap = new byte[nullBitMap.size()];
+        for (int i = 0; i < nullBitMap.size(); i++) {
+            bitMap[i] = nullBitMap.get(i);
+        }
+        recData.put(bitMap);
+
         for (AttributeSchema attr : attributeSchemas) {
+            if (this.getBitMapValue(tupleIndex) == (byte)1) {
+                tupleIndex++;
+                continue;
+            }
+            Object value = this.getData().get(tupleIndex);
             switch (attr.gettype().toLowerCase()) {
                 case "varchar":
-                    // Handle varchar similar to the original code
-                    String varcharValue = (String) this.data.get(tupleIndex);
+                    String varcharValue = (String) value;
                     byte[] varcharBytes = varcharValue.getBytes();
+                    recData.putInt(varcharValue.length());
                     recData.put(varcharBytes);
                     break;
                 case "char":
-                    // Ensure that char attributes are handled according to their fixed length
-                    String charValue = (String) this.data.get(tupleIndex);
-                    // Pad the string with spaces to match the expected size or truncate if necessary
-                    String paddedCharValue = String.format("%-" + attr.getsize() + "." + attr.getsize() + "s", charValue);
+                    String charValue =  (String) value;
+                    String paddedCharValue = String.format("%-" + attr.getsize() + "s", charValue);
                     byte[] charBytes = paddedCharValue.getBytes();
                     recData.put(charBytes);
                     break;
                 case "integer":
-                    int intValue = (int) this.data.get(tupleIndex);
+                    int intValue = (int) value;
                     recData.putInt(intValue);
                     break;
                 case "double":
-                    double doubleValue = (double) this.data.get(tupleIndex);
+                    double doubleValue = (double) value;
                     recData.putDouble(doubleValue);
                     break;
                 case "boolean":
-                    boolean booleanValue = (boolean) this.data.get(tupleIndex);
+                    boolean booleanValue = (boolean) value;
                     byte booleanByte = (byte) (booleanValue ? 1 : 0);
                     recData.put(booleanByte);
                     break;
@@ -67,9 +174,8 @@ public class Record {
     }
     
 
-    // Simplified getByteArray that directly calls toBinary assuming a schema is available
     public byte[] getByteArray(AttributeSchema[] attributeSchemas) {
-        return toBinary(attributeSchemas); // Use the provided attribute schemas for serialization
+        return toBinary(attributeSchemas); 
     }
 
     public boolean matchesPrimaryKey(Object primaryKey, TableSchema tableSchema) {
