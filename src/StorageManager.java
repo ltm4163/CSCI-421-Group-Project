@@ -199,12 +199,32 @@ public class StorageManager {
         for (Record record : records) {
             Object oldValue = record.getAttributeValue(columnName, attributes);
             if (whereRoot.evaluate(record, table)) {
-                //TODO: delete record from table, insert record with changed value
-                // Update the value of the specified column
-                record.getData().set(columnIndex, value);
+                ArrayList<Object> recData = record.getData();
+                recData.set(columnIndex, value); // Update the value of the specified column
+                
+                // calculate size change in record
+                int sizeRemoved = 0;
+                int sizeAdded = 0;
+                ArrayList<Byte> nullBitMap = record.getNullBitMap();
+                AttributeSchema attr = table.getAttributeByName(columnName);
+                switch (attr.gettype()) {
+                    case "varchar":
+                        sizeAdded = (value == null) ? 0 : ((String)value).length() + Integer.BYTES;
+                        sizeRemoved = (oldValue == null) ? 0 : ((String)oldValue).length() + Integer.BYTES;
+                        break;
+                    default:
+                        sizeAdded = (value == null) ? 0 : attr.getsize();
+                        sizeRemoved = (oldValue == null) ? 0 : attr.getsize();
+                        break;
+                }
 
-                // Check if primary key has changed, if so, move record to appropriate page
-                // This logic assumes the primary key is the first attribute in the table
+                // update record's nullBitMap
+                if (value == null) nullBitMap.set(columnIndex, (byte)0);
+                else nullBitMap.set(columnIndex, (byte)1);
+                
+                Record updatedRecord = new Record(recData, record.getSize()+sizeAdded-sizeRemoved, nullBitMap);
+                deleteRecord(table, whereRoot);
+                addRecord(catalog, updatedRecord, table.gettableNumber());
             }
         }
         return true;
@@ -215,6 +235,7 @@ public class StorageManager {
     // Split page into two
     public void splitPage(Page page) {
         List<Record> records = page.getRecords();
+        System.out.println("splitting page");
 
         // TODO: Change this implementation from list to arraylist (dont think this is necessary)
         int midIndex = page.getNumRecords() / 2;
@@ -224,15 +245,19 @@ public class StorageManager {
         List<Record> secondHalf = new ArrayList<>(page.getNumRecords() - midIndex);
     
         // Copy records to the first half and second half lists
-        int firstPageSize = 0;
-        int secondPageSize = 0;
+        int firstPageSize = 4; //Account for numRecords integer
+        int secondPageSize = 4;
         for (int i = 0; i < midIndex; i++) {
             Record record = records.get(i);
+            System.out.println("recSize1: " + record.getSize());
+            System.out.println("int: " + (int)record.getData().get(0));
             firstHalf.add(record);
             firstPageSize += record.getSize();
         }
         for (int i = midIndex; i < page.getNumRecords(); i++) {
             Record record = records.get(i);
+            System.out.println("recSize2: " + record.getSize());
+            System.out.println("int: " + (int)record.getData().get(0));
             secondHalf.add(record);
             secondPageSize += record.getSize();
         }
@@ -259,8 +284,12 @@ public class StorageManager {
         }
         catalog.getTableSchema(page.getTableNumber()).addPage(newPage);
     
-        buffer.updatePage(page);
-        buffer.addPage(newPage.getPageNumber(), newPage);
+        System.out.println("pageSize: " + page.getSize());
+        System.out.println("newPageSize: " + newPage.getSize());
+        if (page.isOverfull()) splitPage(page);
+        else buffer.updatePage(page);
+        if (newPage.isOverfull()) splitPage(newPage);
+        else buffer.addPage(newPage.getPageNumber(), newPage);
     }
     
     // Tells findInsertionPage if current location is where to insert record
