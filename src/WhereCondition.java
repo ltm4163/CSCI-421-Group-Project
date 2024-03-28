@@ -76,86 +76,70 @@ class WhereCondition {
             case "integer":
                 int recordValueInt = (Integer) recordValue;
                 int valueInt = Integer.parseInt(value);
-                switch (operator) {
-                    case EQUALS:
-                        return recordValueInt == valueInt;
-                    case NOT_EQUALS:
-                        return recordValueInt != valueInt;
-                    case GREATER_THAN:
-                        return recordValueInt > valueInt;
-                    case LESS_THAN:
-                        return recordValueInt < valueInt;
-                    case GREATER_OR_EQUALS:
-                        return recordValueInt >= valueInt;
-                    case LESS_OR_EQUALS:
-                        return recordValueInt <= valueInt;
-                }
-                break;
+                return compareIntegers(recordValueInt, valueInt, operator);
             case "double":
                 double recordValueDouble = (Double) recordValue;
                 double valueDouble = Double.parseDouble(value);
-                switch (operator) {
-                    case EQUALS:
-                        return recordValueDouble == valueDouble;
-                    case NOT_EQUALS:
-                        return recordValueDouble != valueDouble;
-                    case GREATER_THAN:
-                        return recordValueDouble > valueDouble;
-                    case LESS_THAN:
-                        return recordValueDouble < valueDouble;
-                    case GREATER_OR_EQUALS:
-                        return recordValueDouble >= valueDouble;
-                    case LESS_OR_EQUALS:
-                        return recordValueDouble <= valueDouble;
-                }
-                break;
+                return compareDoubles(recordValueDouble, valueDouble, operator);
             case "char":
             case "varchar":
                 String recordValueString = (String) recordValue;
-                String valueString = (String) value;
-                switch (operator) {
-                    case EQUALS:
-                        return recordValueString.equals(valueString);
-                    case NOT_EQUALS:
-                        return !recordValueString.equals(valueString);
-                    case GREATER_THAN:
-                        return recordValueString.compareTo(valueString)>0;
-                    case LESS_THAN:
-                        return recordValueString.compareTo(valueString)<0;
-                    case GREATER_OR_EQUALS:
-                        if (recordValueString.equals(valueString)) return true;
-                        else return recordValueString.compareTo(valueString)>0;
-                    case LESS_OR_EQUALS:
-                        if (recordValueString.equals(valueString)) return true;
-                        else return recordValueString.compareTo(valueString)<0;
-                }
-                break;
+                return compareStrings(recordValueString, value.replace("'", ""), operator);
             case "boolean":
                 boolean recordValueBool = (Boolean) recordValue;
                 boolean valueBool = Boolean.parseBoolean(value);
-                byte recordValueByte = (byte)(recordValueBool ? 1 : 0);
-                byte valueByte = (byte)(valueBool ? 1 : 0);
-                switch (operator) {
-                    case EQUALS:
-                        return recordValueByte == valueByte;
-                    case NOT_EQUALS:
-                        return recordValueByte != valueByte;
-                    case GREATER_THAN:
-                        return recordValueByte > valueByte;
-                    case LESS_THAN:
-                        return recordValueByte < valueByte;
-                    case GREATER_OR_EQUALS:
-                        return recordValueByte >= valueByte;
-                    case LESS_OR_EQUALS:
-                        return recordValueByte <= valueByte;
-                }
-                break;
-            // TODO: Handle other types similarly
+                return compareBooleans(recordValueBool, valueBool, operator);
+            default:
+                throw new IllegalArgumentException("Unsupported data type for comparison: " + attributeSchema.gettype());
         }
-        throw new IllegalArgumentException("Unsupported operation for condition.");
     }
     
-
+    private boolean compareIntegers(int a, int b, Operator op) {
+        switch (op) {
+            case EQUALS: return a == b;
+            case NOT_EQUALS: return a != b;
+            case GREATER_THAN: return a > b;
+            case LESS_THAN: return a < b;
+            case GREATER_OR_EQUALS: return a >= b;
+            case LESS_OR_EQUALS: return a <= b;
+            default: throw new IllegalArgumentException("Unknown comparison operator: " + op);
+        }
+    }
+    
+    private boolean compareDoubles(double a, double b, Operator op) {
+        final double EPSILON = 1E-6; // Define a small tolerance to account for floating-point arithmetic errors
+        switch (op) {
+            case EQUALS: return Math.abs(a - b) < EPSILON;
+            case NOT_EQUALS: return Math.abs(a - b) >= EPSILON;
+            case GREATER_THAN: return a > b + EPSILON;
+            case LESS_THAN: return a + EPSILON < b;
+            case GREATER_OR_EQUALS: return a > b - EPSILON;
+            case LESS_OR_EQUALS: return a < b + EPSILON;
+            default: throw new IllegalArgumentException("Unknown comparison operator: " + op);
+        }
+    }
+    
+    private boolean compareStrings(String a, String b, Operator op) {
+        int comparison = a.compareTo(b);
+        switch (op) {
+            case EQUALS: return comparison == 0;
+            case NOT_EQUALS: return comparison != 0;
+            case GREATER_THAN: return comparison > 0;
+            case LESS_THAN: return comparison < 0;
+            case GREATER_OR_EQUALS: return comparison >= 0;
+            case LESS_OR_EQUALS: return comparison <= 0;
+            default: throw new IllegalArgumentException("Unknown comparison operator: " + op);
+        }
+    }
+    
+    private boolean compareBooleans(boolean a, boolean b, Operator op) {
+        switch (op) {
+            case EQUALS: return a == b;
+            case NOT_EQUALS: return a != b;
+            default: throw new IllegalArgumentException("Unsupported operation for boolean comparison: " + op);
+        }
+    }
+    
     public boolean validate(TableSchema tableSchema) {
         // For binary logical operators, recursively validate left and right conditions
         if (operator == Operator.AND || operator == Operator.OR) {

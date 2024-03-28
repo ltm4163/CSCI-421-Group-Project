@@ -351,6 +351,8 @@ public class parser {
     
 
     private static void handleSelectCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
+
+        // DO NOT TOUCH THIS REGEX IT WILL MESS STUFF UP!!!
         Pattern selectPattern = Pattern.compile(
             "SELECT\\s+((\\*|\\w+(\\.\\w+)?)(\\s*,\\s*\\w+(\\.\\w+)?)*)(\\s+FROM\\s+(\\w+))(\\s+WHERE\\s+(.*))?(\\s+ORDERBY\\s+([\\w.]+))?",
             Pattern.CASE_INSENSITIVE
@@ -363,17 +365,9 @@ public class parser {
         }
 
         String columnNames = matcher.group(1).trim();
-        System.out.println("Column names: " + columnNames);
         String tableName = matcher.group(7);
-        System.out.println("Table name: " + tableName);
         String whereClause = matcher.group(9);
-        System.out.println("Where clause: " + whereClause);
         String orderByColumn = matcher.group(11);
-        System.out.println("Order by column: " + orderByColumn);
-
-        System.out.println("8: " + matcher.group(8));
-        System.out.println("9: " + matcher.group(9));
-        System.out.println("10: " + matcher.group(10));
             
         if(whereClause != null) {
             whereClause = whereClause.trim().replaceAll(";$", "");
@@ -512,7 +506,8 @@ public class parser {
             return null;
         }
     
-        final Pattern conditionPattern = Pattern.compile("(\\w+)\\s*(=|!=|<|>|<=|>=)\\s*('?\\w+'?|\\d+(\\.\\d+)?)");
+        // Adjusted pattern to ensure correct capturing of operators including '<=' and '>='
+        final Pattern conditionPattern = Pattern.compile("(\\w+)\\s*(=|!=|<=?|>=?)\\s*('?\\w+'?|\\d+(\\.\\d+)?)");
         final Pattern logicalPattern = Pattern.compile("\\s+(AND|OR)\\s+", Pattern.CASE_INSENSITIVE);
     
         List<String> logicalOperators = new ArrayList<>();
@@ -526,14 +521,8 @@ public class parser {
     
         for (int i = 0; i < conditions.length; i++) {
             Matcher conditionMatcher = conditionPattern.matcher(conditions[i].trim());
-            if (!conditionMatcher.matches()) {
+            if (!conditionMatcher.find()) {
                 System.err.println("parseWhereClause: Failed to match condition pattern in part: " + conditions[i]);
-                continue;
-            }
-
-            System.out.println("Attempting to match condition: " + conditions[i].trim());
-            if (!conditionMatcher.matches()) {
-                System.err.println("Failed to match condition pattern in part: " + conditions[i]);
                 continue;
             }
     
@@ -568,6 +557,7 @@ public class parser {
     
         return rootCondition;
     }
+    
       
     // This should not be needed anymore
     private static void printRecords(ArrayList<ArrayList<Object>> records, TableSchema table) {
