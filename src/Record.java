@@ -111,11 +111,11 @@ public class Record {
         for (AttributeSchema attr : attributeSchemas) {
             if (attr.getname().equals(actualAttributeName)) {
                 int index = Arrays.asList(attributeSchemas).indexOf(attr);
-                if (index < 0 || index >= data.size()) {
+                if (index < 0 || index >= this.data.size()) {
                     System.err.println("Error: Attribute index out of bounds. Attribute: " + actualAttributeName);
                     return null; 
                 }
-                return data.get(index);
+                return this.data.get(index);
             }
         }
         System.err.println("Error: Attribute " + actualAttributeName + " not found in record.");
