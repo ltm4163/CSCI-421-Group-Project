@@ -156,6 +156,41 @@ public class StorageManager {
         //updateCatalogAndBufferAfterInsertion(catalog, table, targetPage);
     }
 
+    public boolean updateRecord(String tableName, String columnName, Object value, WhereCondition whereRoot) {
+        TableSchema table = catalog.getTableSchemaByName(tableName);
+        AttributeSchema[] attributes = table.getattributes();
+
+        int columnIndex = -1;
+        for(int i = 0; i < attributes.length; i++) {
+            if(attributes[i].getname().equals(columnName)) {
+                columnIndex = i;
+                break;
+            }
+        }
+        // don't need to check if column doesn't exist bc this is alr handled?
+
+        List<Record> records = new ArrayList<>();
+        for (int i = 0; i < table.getNumPages(); i++) {
+            Page page = getPage(table.gettableNumber(), i);
+            records.addAll(page.getRecords());
+        }
+
+        // Update records based on the condition
+        for (Record record : records) {
+            Object oldValue = record.
+            if (whereRoot.evaluate(record, table)) {
+                // Update the value of the specified column
+                record.getData().set(columnIndex, value);
+
+                // Check if primary key has changed, if so, move record to appropriate page
+                // This logic assumes the primary key is the first attribute in the table
+            }
+        }
+        return true;
+
+    }
+
+
     // Split page into two
     public void splitPage(Page page) {
         List<Record> records = page.getRecords();
@@ -256,13 +291,6 @@ public class StorageManager {
         return null;
     }
 
-
-
-    //I don't think we need this
-    public void initialize() {
-        // TODO: Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'initialize'");
-    }
 
     // Retrieve page from file
     private Page loadPageFromDisk(int tableNumber, int pageNumber) {

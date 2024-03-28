@@ -610,14 +610,22 @@ public class parser {
 
         final WhereCondition finalWhereRoot = whereRoot;
 
-        if(whereRoot != null) {
-            System.out.println("DEBUG | where condition");
-            System.out.println("DEBUG | where root: " + whereRoot.toString());
-            // TODO storage manager here w/ where condition
-
+        if (whereRoot != null) {
+            // Update records based on the condition
+            boolean success = storageManager.updateRecord(tableName, columnName, value, whereRoot);
+            if (success) {
+                System.out.println("Update successful");
+            } else {
+                System.out.println("Update failed");
+            }
         } else {
-            System.out.println("DEBUG | no where condition");
-            // does update work without a condition?
+            // Update all records (no condition specified)
+            boolean success = storageManager.updateRecord(tableName, columnName, value, whereRoot);
+            if (success) {
+                System.out.println("Update successful");
+            } else {
+                System.out.println("Update failed");
+            }
         }
 
 
