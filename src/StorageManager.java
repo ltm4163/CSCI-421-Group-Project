@@ -157,7 +157,7 @@ public class StorageManager {
     }
 
     public boolean updateRecord(String tableName, String columnName, Object value, WhereCondition whereRoot) {
-        TableSchema table = catalog.getTableSchemaByName(tableName);
+        TableSchema table = catalog.getTableSchemaByName(tableName); //TODO: change this to table created by from clause
         AttributeSchema[] attributes = table.getattributes();
 
         int columnIndex = -1;
@@ -177,8 +177,9 @@ public class StorageManager {
 
         // Update records based on the condition
         for (Record record : records) {
-            Object oldValue = record.
+            Object oldValue = record.getAttributeValue(columnName, attributes);
             if (whereRoot.evaluate(record, table)) {
+                //TODO: delete record from table, insert record with changed value
                 // Update the value of the specified column
                 record.getData().set(columnIndex, value);
 
