@@ -26,6 +26,13 @@ public class Page {
         this.updated = true;
     }
 
+    public void deleteRecord(Record record) {
+        this.records.remove(record);
+        this.numRecords--;
+        this.size -= record.getSize();
+        this.updated = true;
+    }
+
     public void shiftRecordsAndAdd(Record rec, int startingIndex) {
         this.records.add(rec);
         for (int i = this.getNumRecords(); i > startingIndex; i--) {
