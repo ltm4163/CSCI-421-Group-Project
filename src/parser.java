@@ -1,8 +1,9 @@
+import javafx.scene.control.Tab;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -345,8 +346,9 @@ public class parser {
     private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
         // Regular expressions to match SELECT, FROM, and WHERE clauses
         Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
-        Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE|$)", Pattern.CASE_INSENSITIVE);
-        Pattern wherePattern = Pattern.compile("WHERE (.+)$", Pattern.CASE_INSENSITIVE);
+        Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE| ORDERBY|$)", Pattern.CASE_INSENSITIVE);
+        Pattern wherePattern = Pattern.compile("WHERE (.+)$(?: ORDERBY|$)", Pattern.CASE_INSENSITIVE);
+        Pattern orderByPattern = Pattern.compile("ORDERBY (.+)$", Pattern.CASE_INSENSITIVE);
 
         List<String> columnList;
         List<TableSchema> tableSchemas;
@@ -390,6 +392,7 @@ public class parser {
         }
 
         // Match WHERE clause if present
+        List<List<Record>> records = new ArrayList<>();
         Matcher whereMatcher = wherePattern.matcher(inputLine);
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
@@ -400,9 +403,7 @@ public class parser {
             final WhereCondition finalWhereRoot = whereRoot;
 
             if (whereRoot != null) {
-                System.out.println("Debug: Where condition parse tree - " + whereRoot.toString());
-
-                List<List<Record>> records = new ArrayList<>();
+                System.out.println("Debug: Where condition parse tree - " + whereRoot);
                 for (TableSchema tableSchema : tableSchemas) {
                     List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                             .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
@@ -412,27 +413,63 @@ public class parser {
                             }).toList();
                     records.add(tableRecords);
                 }
-                printSelectedRecords(records, tableSchemas, columnList);
             }
         } else {
             System.out.println("No WHERE conditions specified");
-            List<List<Record>> records = new ArrayList<>();
             for (TableSchema tableSchema : tableSchemas) {
                 List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                         .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
                         .toList();
                 records.add(tableRecords);
             }
-            printSelectedRecords(records, tableSchemas, columnList);
         }
+
+        // Match ORDERBY clause if present
+        Matcher orderByMatcher = orderByPattern.matcher(inputLine);
+        if (orderByMatcher.find()) {
+            String normalizedOrderByColumn = normalizeColumnName(orderByMatcher.group(1));
+            if (normalizedOrderByColumn != null && !normalizedOrderByColumn.isEmpty()) {
+                AttributeSchema orderByAttribute = null;
+                for (TableSchema tableSchema : tableSchemas) {
+                    orderByAttribute = tableSchema.getAttributeByName(normalizedOrderByColumn);
+                    if (orderByAttribute != null) {
+                        break;
+                    }
+                }
+                if (orderByAttribute == null) {  // Ensure the attribute exists within one of the tables
+                    System.err.println("Error: Column '" + normalizedOrderByColumn + "' does not exist in table schema.");
+                    return;
+                }
+
+//                records.sort((record1, record2) -> {
+//                    Object value1 = record1.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
+//                    Object value2 = record2.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
+//                    return compareValues(value1, value2);
+//                });
+            }
+        }
+
+        printSelectedRecords(records, tableSchemas, columnList);
     }
 
-    // Take in Map<TableSchema, List<Record>> that has all records already mapped to their specific table schema?
+    private static String normalizeColumnName(String columnName) {
+        System.out.println("Normalizing columnName: " + columnName);
+        if (columnName == null) {
+            return null;
+        }
+        int dotIndex = columnName.indexOf(".");
+        String normalized = dotIndex != -1 ? columnName.substring(dotIndex + 1) : columnName;
+        int semiColonIndex = columnName.indexOf(";");
+        normalized = semiColonIndex != -1 ? normalized.substring(0, semiColonIndex) : normalized;
+        System.out.println("Normalized columnName: " + normalized);
+        return normalized;
+    }
+
+    // TODO: Need to ensure attributes are displayed in the order they're input in the select clause (right now they're in the order of the tableSchemas in the from clause)
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
         Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
-        // Redo this part so it's in the order of tableSchemas
         for (String columnName : columnsToSelect) {
             System.out.print(columnName + " | ");
             tableValues.putIfAbsent(columnName, new ArrayList<>());
@@ -504,32 +541,6 @@ public class parser {
             System.out.println(row.toString().trim());
         }
     }
-
-    // Unnecessary method
-    private static void printRecords(ArrayList<ArrayList<Object>> records, TableSchema table) {
-        // Print header with attribute names
-        System.out.print("|");
-        for (AttributeSchema attr : table.getattributes()) {
-            System.out.print(String.format(" %s |", attr.getname()));
-        }
-        System.out.println();
-    
-        // Print each record
-        for (ArrayList<Object> record : records) {
-            System.out.print("|");
-            for (Object field : record) {
-                if (field != null) {
-                    System.out.print(String.format(" %s |", field.toString()));
-                }
-                else {
-                    System.out.print(" null |");
-                }
-            }
-            System.out.println();
-        }
-    }
-    
-    
 
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
