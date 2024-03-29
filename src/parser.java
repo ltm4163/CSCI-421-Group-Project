@@ -1,5 +1,3 @@
-import javafx.scene.control.Tab;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -470,14 +468,10 @@ public class parser {
     }
 
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect, List<String> cartesianColumns) {
-        System.out.println(records);
-        System.out.println(tableSchemas);
-        System.out.println(columnsToSelect);
-
         Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
-        for (String columnName : columnsToSelect) {
+        for (String columnName : cartesianColumns) {
             System.out.print(columnName + " | ");
             tableValues.putIfAbsent(columnName, new ArrayList<>());
         }
@@ -534,45 +528,29 @@ public class parser {
                 maxSize = recordList.size();
             }
         }
-        System.out.println(tableValues);
 
-        if (tableSchemas.size() == 1) {
-            for (int i = 0; i < maxSize; i++) {
-                StringBuilder row = new StringBuilder();
-                for (String column : columnsToSelect) {
-                    try {
-                        row.append(tableValues.get(column).get(i)).append("\t\t");
-                    } catch (Exception e) {
-                        row.append("null\t\t");  // Using null as a placeholder for this since there is no value
-                    }
-                }
-                System.out.println(row.toString().trim());
-            }
+        if (tableSchemas.size() == 1) {  // If it's a single table
+            printRows(columnsToSelect, maxSize, tableValues);
         }
+
         else {  // If we need to do a Cartesian product...
-            List<Object> values = new ArrayList<>();
+            Map<String, List<Object>> cartesianMap = CartesianProduct.cartesianProduct(records, columnsToSelect, tableSchemas);
+            maxSize = cartesianMap.get(cartesianColumns.get(0)).size();
+            printRows(cartesianColumns, maxSize, cartesianMap);
+        }
+    }
 
-            List<List<Record>> cartesianRecords = CartesianProduct.cartesianProduct(records);
-
-            for (String column : cartesianColumns) {
-                for (List<Record> recordList : cartesianRecords) {
-                    for (Record record : recordList) {
-                        System.out.print(record.getData() + ", ");
-                        TableSchema currentTable = null;
-                        for (TableSchema tableSchema : tableSchemas) {
-                            if (tableSchema.getname().equals(column.substring(0, column.indexOf('.')))) {
-                                currentTable = tableSchema;
-                                break;
-                            }
-                        }
-                        assert currentTable != null;
-                        values.add(record.getAttributeValue(column.substring(column.indexOf('.') + 1), currentTable.getattributes()));
-                    }
-                    System.out.println(cartesianColumns);
-                    //values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
+    private static void printRows(List<String> columnsList, int maxSize, Map<String, List<Object>> map) {
+        for (int i = 0; i < maxSize; i++) {
+            StringBuilder row = new StringBuilder();
+            for (String column : columnsList) {
+                try {
+                    row.append(map.get(column).get(i)).append("\t\t");
+                } catch (Exception e) {
+                    row.append("null\t\t");  // Using null as a placeholder for this since there is no value
                 }
             }
-            System.out.println(values);
+            System.out.println(row.toString().trim());
         }
     }
 

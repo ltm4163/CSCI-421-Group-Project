@@ -1,11 +1,43 @@
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class CartesianProduct {
-    public static List<List<Record>> cartesianProduct(List<List<Record>> lists) {
+    public static Map<String, List<Object>> cartesianProduct(List<List<Record>> lists, List<String> columnsToSelect, List<TableSchema> tableSchemas) {
         List<List<Record>> result = new ArrayList<>();
         cartesianProductHelper(lists, result, new ArrayList<>(), 0);
-        return result;
+
+        Map<String, List<Object>> tableValues = new HashMap<>();
+
+        for (String column : columnsToSelect) {
+            String tableName = column.substring(0, column.indexOf('.'));
+            TableSchema currentTable = null;
+            for (TableSchema tableSchema : tableSchemas) {
+                if (tableSchema.getname().equals(tableName)) {
+                    currentTable = tableSchema;
+                    break;
+                }
+            }
+            assert currentTable != null;
+            tableValues.putIfAbsent(column, new ArrayList<>());
+        }
+
+        for (List<Record> recordList : result) {
+            int currentIndex = 0;
+            for (Record record : recordList) {
+                Object value;
+                if (record.getNumElements() == 1) {
+                    value = record.getData().get(0);
+                    tableValues.get(columnsToSelect.get(currentIndex++)).add(value);
+                }
+                else {
+                    for (int j = 0; j < record.getNumElements(); j++) {
+                        value = record.getData().get(j);
+                        tableValues.get(columnsToSelect.get(currentIndex++)).add(value);
+                    }
+                }
+            }
+        }
+
+        return tableValues;
     }
 
     private static void cartesianProductHelper(List<List<Record>> lists, List<List<Record>> result, List<Record> current, int index) {
