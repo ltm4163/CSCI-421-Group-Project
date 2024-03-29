@@ -348,7 +348,7 @@ public class parser {
         }
         System.out.println("SUCCESS");
     }
-    
+
     private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
         // Regular expressions to match SELECT, FROM, and WHERE clauses
         Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
@@ -389,15 +389,7 @@ public class parser {
             if (columnList == null) {
                 return;
             }
-        } else {
-            columnsToSelect = tableSchema.getAttributeNames();
         }
-    
-        WhereCondition whereRoot = null;
-        if (whereClause != null && !whereClause.isBlank()) {
-            whereRoot = parseWhereClause(whereClause);
-        }
-
         else {  // If the select parameter is '*'
             columnList.clear();
             for (TableSchema tableSchema : tableSchemas) {
@@ -489,6 +481,8 @@ public class parser {
 
         if (!orderByCheck) {
             printSelectedRecords(records, tableSchemas, columnList2, columnList);
+        }
+    }
     
     private static List<Record> fetchAndFilterRecords(WhereCondition whereRoot, TableSchema tableSchema, StorageManager storageManager) {
         return storageManager.getRecords(tableSchema.gettableNumber()).stream()
@@ -722,7 +716,7 @@ public class parser {
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
             System.out.println("Where conditions: " + whereClause);
-            whereRoot = parseWhereClause(whereClause); //TODO: change this to WhereParse version after merge
+            whereRoot = WhereParse.parseWhereClause(whereClause); //TODO: change this to WhereParse version after merge
             // whereClauseList = WhereParse.parseWhereClause(whereClause);
         } else {
             System.out.println("No WHERE conditions specified");

@@ -104,7 +104,8 @@ public class Record {
     }
   
   public int getNumElements() {
-        return this.data.size();
+      return this.data.size();
+  }
 
     public Object getAttributeValue(String attributeName, AttributeSchema[] attributeSchemas) {
         String[] parts = attributeName.split("\\.");
