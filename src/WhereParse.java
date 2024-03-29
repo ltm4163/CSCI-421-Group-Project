@@ -29,7 +29,7 @@ public class WhereParse {
             // regex patterns for column, operator, and value
             String columnPattern = "[a-zA-Z_][a-zA-Z0-9_]*";
             String operatorPattern = "=|<|>|<=|>=|!=";
-            String valuePattern = "'.*?'|\".*?\"|\\d+";
+            String valuePattern = "'.*?'|\".*?\"|.+?";
 
             // complete regex pattern for a condition
             String conditionPattern = "\\s*(" + columnPattern + ")\\s*(" + operatorPattern + ")\\s*((" + columnPattern + ")|(" + valuePattern + "))\\s*";

@@ -125,6 +125,7 @@ public class StorageManager {
                         }
                     }
                     else {
+                        System.out.println("existingOtherValues: " + existingRecord.getData().get(tupleIndex));
                         if (attr.getunique()) {
                             int comparisonResult = compare(attr, record, existingRecord, tupleIndex);
                             if (comparisonResult == 0) {
@@ -205,38 +206,60 @@ public class StorageManager {
                 records.add(new Record(rec.getData(), rec.getSize(), rec.getNullBitMap()));
             }
             // Update records based on the condition
+            int amountMoved = 0;
             for (int k = 0; k < records.size(); k++) {
+                System.out.println("amountMoved: " + amountMoved);
                 Record record = records.get(k);
                 Object oldValue = record.getAttributeValue(columnName, attributes);
                 if (whereRoot.evaluate(record, table)) {
                     ArrayList<Object> recData = record.getData();
-                    recData.set(columnIndex, value); // Update the value of the specified column
                     
                     // calculate size change in record
-                    int sizeRemoved = 0;
-                    int sizeAdded = 0;
                     ArrayList<Byte> nullBitMap = record.getNullBitMap();
                     AttributeSchema attr = table.getAttributeByName(columnName);
+                    int sizeRemoved = (oldValue == null) ? 0 : attr.getsize();
+                    int sizeAdded = (value == null) ? 0 : attr.getsize();
+                    if (attr.gettype().equals("varchar")) {
+                        sizeAdded = (value == null) ? 0 : ((String)value).length() + Integer.BYTES;
+                        sizeRemoved = (oldValue == null) ? 0 : ((String)oldValue).length() + Integer.BYTES;
+                    }
+                    
+                    // Convert to appropriate data type (to avoid casting errors)
+                    boolean moved = false;
+                    Object updatedValue = value;
                     switch (attr.gettype()) {
-                        case "varchar":
-                            sizeAdded = (value == null) ? 0 : ((String)value).length() + Integer.BYTES;
-                            sizeRemoved = (oldValue == null) ? 0 : ((String)oldValue).length() + Integer.BYTES;
+                        case "double":
+                            updatedValue = Double.parseDouble((String) value);
+                            if (attr.isPrimaryKey()) moved = (double)updatedValue > (double)oldValue;
                             break;
-                        default:
-                            sizeAdded = (value == null) ? 0 : attr.getsize();
-                            sizeRemoved = (oldValue == null) ? 0 : attr.getsize();
+                        case "integer":
+                            updatedValue = Integer.parseInt((String)value);
+                            if (attr.isPrimaryKey()) moved = (int)updatedValue > (int)oldValue;
+                            break;
+                        case "boolean":
+                            updatedValue = Boolean.parseBoolean((String)value);
+                            if (attr.isPrimaryKey()) {
+                                //TODO: revisit this after checking if above works
+                                moved = (double)updatedValue > (double)oldValue;
+                            }
                             break;
                     }
+                    recData.set(columnIndex, updatedValue); // Update the value of the specified column
 
                     // update record's nullBitMap
                     if (value == null) nullBitMap.set(columnIndex, (byte)0);
                     else nullBitMap.set(columnIndex, (byte)1);
                     
                     Record updatedRecord = new Record(recData, record.getSize()+sizeAdded-sizeRemoved, nullBitMap);
-                    page.deleteRecord(record, k);
+                    page.deleteRecord(record, k-amountMoved);
                     if (page.getNumRecords() == 0) table.dropPage(page.getPageNumber());
                     else buffer.updatePage(page);
-                    addRecord(catalog, updatedRecord, table.gettableNumber());
+                    if (!addRecord(catalog, updatedRecord, table.gettableNumber())) {
+                        record.getData().set(columnIndex, oldValue);
+                        addRecord(catalog, record, table.gettableNumber());
+                        return false;
+                    }
+                    if (moved) amountMoved++;
                 }
             }
         }
@@ -310,6 +333,8 @@ public class StorageManager {
         else if (attr.gettype().equalsIgnoreCase("char")) {
             String attrValueInsert = (String)record.getData().get(tupleIndex);
             String attrValueExisting = (String)existingRecord.getData().get(tupleIndex);
+            System.out.println("insertChar: " + attrValueInsert);
+            System.out.println("existingChar: " + attrValueExisting);
             return attrValueInsert.compareTo(attrValueExisting);
         }
         else if (attr.gettype().equalsIgnoreCase("integer")) {
@@ -322,7 +347,9 @@ public class StorageManager {
             double attrValueExisting = (double)existingRecord.getData().get(tupleIndex);
             System.out.println("insert: " + attrValueInsert);
             System.out.println("existing: " + attrValueExisting);
-            return (int)(attrValueInsert-attrValueExisting);
+            if (Math.abs(attrValueInsert-attrValueExisting) < 0.0001) return 0;
+            else if (attrValueInsert<attrValueExisting) return -1;
+            return 1;
         }
         else if (attr.gettype().equalsIgnoreCase("boolean")) {
             boolean attrValueInsert = (boolean)record.getData().get(tupleIndex);

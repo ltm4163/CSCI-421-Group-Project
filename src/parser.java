@@ -670,9 +670,10 @@ public class parser {
 
         final WhereCondition finalWhereRoot = whereRoot;
 
+        Object objectValue = value;
         if (whereRoot != null) {
             // Update records based on the condition
-            boolean success = storageManager.updateRecord(tableName, columnName, value, whereRoot);
+            boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
             if (success) {
                 System.out.println("Update successful");
             } else {
@@ -680,7 +681,7 @@ public class parser {
             }
         } else {
             // Update all records (no condition specified)
-            boolean success = storageManager.updateRecord(tableName, columnName, value, whereRoot);
+            boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
             if (success) {
                 System.out.println("Update successful");
             } else {
