@@ -63,4 +63,18 @@ public class SelectParse {
 
         return columnsListWithTables;
     }
+
+    public static List<String> parseSelectClause3 (List<String> columnsListWithTables, List<TableSchema> tableSchemas) {
+        // Reorders attributes in the order that the tableSchemas were input in the from clause
+        List<String> returnList = new ArrayList<>();
+        for (TableSchema tableSchema : tableSchemas) {
+            for (String column : columnsListWithTables) {
+                if (column.substring(0, column.indexOf('.')).equals(tableSchema.getName())) {
+                    returnList.add(column);
+                }
+            }
+        }
+
+        return returnList;
+    }
 }

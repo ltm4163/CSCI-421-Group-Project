@@ -393,6 +393,7 @@ public class parser {
 
         // Orders the attributes in the order they were mentioned in the select clause
         tableSchemas = FromParse.parseFromClause2(tableSchemas, columnList);
+        List<String> columnList2 = SelectParse.parseSelectClause3(columnList, tableSchemas);
 
         // Match WHERE clause if present
         List<List<Record>> records = new ArrayList<>();
@@ -452,7 +453,7 @@ public class parser {
             }
         }
 
-        printSelectedRecords(records, tableSchemas, columnList);
+        printSelectedRecords(records, tableSchemas, columnList2, columnList);
     }
 
     private static String normalizeColumnName(String columnName) {
@@ -468,7 +469,7 @@ public class parser {
         return normalized;
     }
 
-    private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
+    private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect, List<String> cartesianColumns) {
         System.out.println(records);
         System.out.println(tableSchemas);
         System.out.println(columnsToSelect);
@@ -483,64 +484,56 @@ public class parser {
         System.out.println();
 
         // Record rows
-        for (String column : columnsToSelect) {
-            List<Object> values = new ArrayList<>();
-            for (List<Record> recordList : records) {
-                Record record = recordList.get(0);
+        int columnIndex = 0;
+        outerLoop:
+        for (List<Record> recordList : records) {
+            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
+                List<Object> values = new ArrayList<>();
+                for (Record record : recordList) {
+                    values.add(record.getData().get(0));
+                }
+                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                if (columnsToSelect.size() == columnIndex) {
+                    if (recordList.size() > maxSize) {
+                        maxSize = recordList.size();
+                    }
+                    break;
+                }
+            }
+            else {  // select case with multiple attributes
+                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
+                    List<Object> values = new ArrayList<>();
+                    String currentColumn = columnsToSelect.get(columnIndex);
+                    TableSchema currentTable = null;
+                    for (TableSchema tableSchema : tableSchemas) {
+                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
+                            currentTable = tableSchema;
+                        }
+                    }
+                    for (Record record : recordList) {
+                        assert currentTable != null;
+                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
+                    }
+                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                    if (columnsToSelect.size() == columnIndex) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break outerLoop;
+                    }
+                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break;
+                    }
+                }
+            }
 
+            if (recordList.size() > maxSize) {
+                maxSize = recordList.size();
             }
         }
-
-//        int columnIndex = 0;
-//        outerLoop:
-//        for (List<Record> recordList : records) {
-//            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
-//                List<Object> values = new ArrayList<>();
-//                for (Record record : recordList) {
-//                    values.add(record.getData().get(0));
-//                }
-//                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
-//                if (columnsToSelect.size() == columnIndex) {
-//                    if (recordList.size() > maxSize) {
-//                        maxSize = recordList.size();
-//                    }
-//                    break;
-//                }
-//            }
-//            else {  // select case with multiple attributes
-//                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
-//                    List<Object> values = new ArrayList<>();
-//                    String currentColumn = columnsToSelect.get(columnIndex);
-//                    TableSchema currentTable = null;
-//                    for (TableSchema tableSchema : tableSchemas) {
-//                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
-//                            currentTable = tableSchema;
-//                        }
-//                    }
-//                    for (Record record : recordList) {
-//                        assert currentTable != null;
-//                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
-//                    }
-//                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
-//                    if (columnsToSelect.size() == columnIndex) {
-//                        if (recordList.size() > maxSize) {
-//                            maxSize = recordList.size();
-//                        }
-//                        break outerLoop;
-//                    }
-//                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
-//                        if (recordList.size() > maxSize) {
-//                            maxSize = recordList.size();
-//                        }
-//                        break;
-//                    }
-//                }
-//            }
-//
-//            if (recordList.size() > maxSize) {
-//                maxSize = recordList.size();
-//            }
-//        }
         System.out.println(tableValues);
 
         if (tableSchemas.size() == 1) {
@@ -557,16 +550,29 @@ public class parser {
             }
         }
         else {  // If we need to do a Cartesian product...
-            List<Object> objectList = new ArrayList<>();
+            List<Object> values = new ArrayList<>();
 
             List<List<Record>> cartesianRecords = CartesianProduct.cartesianProduct(records);
 
-            for (List<Record> recordList : cartesianRecords) {
-                for (Record record : recordList) {
-                    System.out.print(record.getData() + ", ");
+            for (String column : cartesianColumns) {
+                for (List<Record> recordList : cartesianRecords) {
+                    for (Record record : recordList) {
+                        System.out.print(record.getData() + ", ");
+                        TableSchema currentTable = null;
+                        for (TableSchema tableSchema : tableSchemas) {
+                            if (tableSchema.getname().equals(column.substring(0, column.indexOf('.')))) {
+                                currentTable = tableSchema;
+                                break;
+                            }
+                        }
+                        assert currentTable != null;
+                        values.add(record.getAttributeValue(column.substring(column.indexOf('.') + 1), currentTable.getattributes()));
+                    }
+                    System.out.println(cartesianColumns);
+                    //values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
                 }
-                System.out.println();
             }
+            System.out.println(values);
         }
     }
 
