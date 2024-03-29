@@ -100,6 +100,14 @@ public class PageBuffer {
         }
     }
 
+    public void updateAndMovePage(Page targetPage, int oldPageNumber) {
+        addPage(targetPage.getPageNumber(), targetPage);
+
+        // remove entry where page used to be
+        Pair<Integer, Integer> key = new Pair<>(targetPage.getTableNumber(), oldPageNumber);
+        pages.remove(key);
+    }
+
     // The key is a pair of tableNumber and pageNumber
     static class Pair<K, V> {
         private final K tableNumber;

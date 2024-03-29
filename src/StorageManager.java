@@ -4,6 +4,7 @@ import java.io.ObjectInputStream;
 import java.io.RandomAccessFile;
 import java.nio.Buffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 public class StorageManager {
@@ -72,12 +73,12 @@ public class StorageManager {
             for (int i = 0; i < page.getNumRecords(); i++) {
                 Record record = records.get(i);
                 if (whereRoot == null) {
-                    page.deleteRecord(record);
+                    page.deleteRecord(record, i);
                     if (page.getNumRecords() == 0) tableSchema.dropPage(page.getPageNumber());
                     i--;
                 }
                 else if (whereRoot.evaluate(record, tableSchema)) {
-                    page.deleteRecord(record);
+                    page.deleteRecord(record, i);
                     if (page.getNumRecords() == 0) tableSchema.dropPage(page.getPageNumber());
                     i--;
                 }
@@ -197,9 +198,15 @@ public class StorageManager {
             System.out.println("pageNum: " + page.getPageNumber());
             //records.addAll(page.getRecords());
 
-            List<Record> records = new ArrayList<>(page.getRecords());
+            List<Record> oldRecords = page.getRecords();
+            List<Record> records = new ArrayList<>(page.getNumRecords());
+            for (int j = 0; j < page.getNumRecords(); j++) {
+                Record rec = oldRecords.get(j);
+                records.add(new Record(rec.getData(), rec.getSize(), rec.getNullBitMap()));
+            }
             // Update records based on the condition
-            for (Record record : records) {
+            for (int k = 0; k < records.size(); k++) {
+                Record record = records.get(k);
                 Object oldValue = record.getAttributeValue(columnName, attributes);
                 if (whereRoot.evaluate(record, table)) {
                     ArrayList<Object> recData = record.getData();
@@ -226,8 +233,9 @@ public class StorageManager {
                     else nullBitMap.set(columnIndex, (byte)1);
                     
                     Record updatedRecord = new Record(recData, record.getSize()+sizeAdded-sizeRemoved, nullBitMap);
-                    page.deleteRecord(record);
+                    page.deleteRecord(record, k);
                     if (page.getNumRecords() == 0) table.dropPage(page.getPageNumber());
+                    else buffer.updatePage(page);
                     addRecord(catalog, updatedRecord, table.gettableNumber());
                 }
             }

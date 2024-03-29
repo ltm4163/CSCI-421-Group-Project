@@ -620,7 +620,7 @@ public class parser {
     }
 
     public static void handleUpdateCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
-        Pattern pattern = Pattern.compile("^update\\s+(\\w+)\\s+set\\s+(\\w+)\\s*=\\s*(\\w+)\\s+where\\s+(.+);$");
+        Pattern pattern = Pattern.compile("^update\\s+(\\w+)\\s+set\\s+(\\w+)\\s*=\\s*(.+?)\\s+where\\s+(.+);$");
 
         // Create a Matcher object to apply the pattern to the input update statement
         Matcher matcher = pattern.matcher(inputLine);
