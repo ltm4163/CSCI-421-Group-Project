@@ -1,11 +1,11 @@
 import java.io.IOException;
+import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -349,46 +349,45 @@ public class parser {
         System.out.println("SUCCESS");
     }
     
+    private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
+        // Regular expressions to match SELECT, FROM, and WHERE clauses
+        Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
+        Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE| ORDERBY|$)", Pattern.CASE_INSENSITIVE);
+        Pattern wherePattern = Pattern.compile("WHERE (.+?)(?= ORDERBY|$)", Pattern.CASE_INSENSITIVE);
+        Pattern orderByPattern = Pattern.compile("ORDERBY (.+)$", Pattern.CASE_INSENSITIVE);
 
-    private static void handleSelectCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
+        List<String> columnList;
+        List<TableSchema> tableSchemas;
+        WhereCondition whereRoot = null;
 
-        // DO NOT TOUCH THIS REGEX IT WILL MESS STUFF UP!!!
-        Pattern selectPattern = Pattern.compile(
-            "SELECT\\s+((\\*|\\w+(\\.\\w+)?)(\\s*,\\s*\\w+(\\.\\w+)?)*)(\\s+FROM\\s+(\\w+))(\\s+WHERE\\s+(.*))?(\\s+ORDERBY\\s+([\\w.]+))?",
-            Pattern.CASE_INSENSITIVE
-        );
-
-        Matcher matcher = selectPattern.matcher(inputLine);
-        if (!matcher.find()) {
-            System.out.println("Syntax error in SELECT command.");
+        // Match SELECT clause
+        Matcher selectMatcher = selectPattern.matcher(inputLine);
+        if (selectMatcher.find()) {
+            String columnNames = selectMatcher.group(1);
+            columnList = SelectParse.parseSelectClause(columnNames);
+        } else {
+            System.out.println("Error: No SELECT clause found");
             return;
         }
 
-        String columnNames = matcher.group(1).trim();
-        String tableName = matcher.group(7);
-        String whereClause = matcher.group(9);
-        String orderByColumn = matcher.group(11);
-            
-        if(whereClause != null) {
-            whereClause = whereClause.trim().replaceAll(";$", "");
-        }
-    
-        TableSchema tableSchema = catalog.getTableSchemaByName(tableName);
-        if (tableSchema == null) {
-            System.out.println("Table '" + tableName + "' does not exist.");
+        // Match FROM clause
+        Matcher fromMatcher = fromPattern.matcher(inputLine);
+        if (fromMatcher.find()) {
+            String tableNames = fromMatcher.group(1);
+            tableSchemas = FromParse.parseFromClause(tableNames, c);
+            if (tableSchemas == null) {
+                return;
+            }
+        } else {
+            System.out.println("Error: No FROM clause found");
             return;
         }
 
-        String normalizedOrderByColumn = orderByColumn != null ? normalizeColumnName(orderByColumn) : null;
-    
-        List<String> columnsToSelect = Arrays.asList(columnNames.split("\\s*,\\s*"));
-        if (!columnsToSelect.contains("*")) {
-            for (String columnName : columnsToSelect) {
-                String actualColumnName = normalizeColumnName(columnName);
-                if (!tableSchema.hasAttribute(actualColumnName)) {
-                    System.err.println("Error: Column '" + columnName + "' does not exist in table '" + tableName + "'.");
-                    return;
-                }
+        if (!(columnList.size() == 1 && columnList.get(0).equals("*"))) {
+            // Ensures column names exist in tables
+            columnList = SelectParse.parseSelectClause2(columnList, tableSchemas);
+            if (columnList == null) {
+                return;
             }
         } else {
             columnsToSelect = tableSchema.getAttributeNames();
@@ -398,189 +397,304 @@ public class parser {
         if (whereClause != null && !whereClause.isBlank()) {
             whereRoot = parseWhereClause(whereClause);
         }
-    
-        List<Record> records = fetchAndFilterRecords(whereRoot, tableSchema, storageManager);
 
-        if (normalizedOrderByColumn != null && !normalizedOrderByColumn.isEmpty()) {
-            AttributeSchema orderByAttribute = tableSchema.getAttributeByName(normalizedOrderByColumn);
-            if (orderByAttribute == null) {
-                System.err.println("Error: Column '" + normalizedOrderByColumn + "' does not exist in table schema.");
-                return; 
+        else {  // If the select parameter is '*'
+            columnList.clear();
+            for (TableSchema tableSchema : tableSchemas) {
+                columnList.addAll(tableSchema.getAttributeNamesWithTable());
+            }
+        }
+
+        // Orders the attributes in the order they were mentioned in the select clause
+        tableSchemas = FromParse.parseFromClause2(tableSchemas, columnList);
+        List<String> columnList2 = SelectParse.parseSelectClause3(columnList, tableSchemas);
+
+        // Match WHERE clause if present
+        List<List<Record>> records = new ArrayList<>();
+        Matcher whereMatcher = wherePattern.matcher(inputLine);
+        if (whereMatcher.find()) {
+            String whereClause = whereMatcher.group(1);
+            whereClause = whereClause.trim().replaceAll(";$", "");
+            whereRoot = WhereParse.parseWhereClause(whereClause);
+            System.out.println("Debug: Parsed WHERE clause: " + whereRoot);
+
+            final WhereCondition finalWhereRoot = whereRoot;
+
+            if (whereRoot != null) {
+                System.out.println("Debug: Where condition parse tree - " + whereRoot);
+                for (TableSchema tableSchema : tableSchemas) {
+                    List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                            .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+                            .filter(record -> {
+                                System.out.println("Debug: Evaluating record: " + record);
+                                return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
+                            }).toList();
+                    records.add(tableRecords);
+                }
+            }
+        } else {
+            //System.out.println("No WHERE conditions specified");
+            for (TableSchema tableSchema : tableSchemas) {
+                List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                        .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+                        .toList();
+                records.add(tableRecords);
+            }
+        }
+
+        // Match ORDERBY clause if present
+        boolean orderByCheck = false;
+        Matcher orderByMatcher = orderByPattern.matcher(inputLine);
+        if (orderByMatcher.find()) {
+            orderByCheck = true;
+            String normalizedOrderByColumn = normalizeColumnName(orderByMatcher.group(1));
+            if (normalizedOrderByColumn.indexOf('.') == -1) {
+                boolean found = false;
+                for (String column : columnList) {
+                    if (column.substring(column.indexOf('.') + 1).equals(normalizedOrderByColumn)) {
+                        normalizedOrderByColumn = column;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    System.err.println("Error: Column '" + normalizedOrderByColumn + "' does not exist in table schema.");
+                    return;
+                }
             }
 
-            records.sort((record1, record2) -> {
-                Object value1 = record1.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
-                Object value2 = record2.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
-                return compareValues(value1, value2); 
-            });
+            if (!normalizedOrderByColumn.isEmpty()) {
+                List<List<Object>> rows = getValueMap(records, tableSchemas, columnList2, columnList);
+
+                Collections.sort(rows, new Comparator<List<Object>>() {
+                    @Override
+                    public int compare(List<Object> o1, List<Object> o2) {
+                        Object secondValue1 = o1.get(1);
+                        Object secondValue2 = o2.get(1);
+                        if (secondValue1 instanceof Integer) {
+                            return ((Integer) secondValue1).compareTo((Integer) secondValue2);
+                        } else if (secondValue1 instanceof Double) {
+                            return ((Double) secondValue1).compareTo((Double) secondValue2);
+                        } else if (secondValue1 instanceof String) {
+                            return ((String) secondValue1).compareTo((String) secondValue2);
+                        } else {
+                            // Handle other types if needed
+                            throw new IllegalArgumentException("Unsupported type");
+                        }
+                    }
+                });
+                printRowsByRow(rows, columnList);
+            }
         }
 
-        printSelectedRecords(records, tableSchema, columnsToSelect);
-    }
-    
-    private static String normalizeColumnName(String columnName) {
-        System.out.println("Normalizing columnName: " + columnName);
-        if (columnName == null) {
-            return null;
-        }
-        int dotIndex = columnName.indexOf(".");
-        String normalized = dotIndex != -1 ? columnName.substring(dotIndex + 1) : columnName;
-        System.out.println("Normalized columnName: " + normalized);
-        return normalized;
-    }
-    
+        if (!orderByCheck) {
+            printSelectedRecords(records, tableSchemas, columnList2, columnList);
     
     private static List<Record> fetchAndFilterRecords(WhereCondition whereRoot, TableSchema tableSchema, StorageManager storageManager) {
         return storageManager.getRecords(tableSchema.gettableNumber()).stream()
                 .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
                 .filter(record -> whereRoot == null || whereRoot.evaluate(record, tableSchema))
                 .collect(Collectors.toList());
-    }
-    
-    private static void sortRecordsByColumn(List<Record> records, String orderByColumn, TableSchema tableSchema) {
-        if (orderByColumn != null && !orderByColumn.isEmpty()) {
-            records.sort((record1, record2) -> {
-                Object value1 = record1.getAttributeValue(orderByColumn, tableSchema.getattributes());
-                Object value2 = record2.getAttributeValue(orderByColumn, tableSchema.getattributes());
-                return compareValues(value1, value2);
-            });
-        }
-    }
-    
+    }   
 
-    // I'm sure there's a more concise way to do this. womp womp
-    private static int compareValues(Object value1, Object value2) {
-        // nulls 
-        if (value1 == null && value2 == null) return 0;
-        if (value1 == null) return -1; 
-        if (value2 == null) return 1;
-    
-        // integers
-        if (value1 instanceof Integer && value2 instanceof Integer) {
-            return Integer.compare((Integer) value1, (Integer) value2);
-        }
-    
-        // doubles
-        if (value1 instanceof Double && value2 instanceof Double) {
-            return Double.compare((Double) value1, (Double) value2);
-        }
-    
-        // strings
-        if (value1 instanceof String && value2 instanceof String) {
-            return ((String) value1).compareTo((String) value2);
-        }
-    
-        // booleans
-        if (value1 instanceof Boolean && value2 instanceof Boolean) {
-            return Boolean.compare((Boolean) value1, (Boolean) value2);
-        }
-    
-        return -1;
-    }
-    
-    
-    private static void printSelectedRecords(List<Record> records, TableSchema tableSchema, List<String> columnsToSelect) {
-        for (String columnName : columnsToSelect) {
-            if (columnName.contains(".")) {
-                String[] parts = columnName.split("\\.");
-                System.out.print(parts[0] + "." + parts[1] + "\t"); 
-            } else {
-                System.out.print(tableSchema.getName() + "." + columnName + "\t");
-            }
-        }
-        System.out.println();
-    
-        for (Record record : records) {
-            for (String columnName : columnsToSelect) {
-                Object value = record.getAttributeValue(columnName, tableSchema.getattributes());
-                System.out.print(value + "\t");
-            }
-            System.out.println();
-        }
-    }
-    
-    
-    static WhereCondition parseWhereClause(String whereClause) {
-        if (whereClause == null || whereClause.trim().isEmpty()) {
-            System.err.println("parseWhereClause: WHERE clause is null or empty.");
+    private static String normalizeColumnName(String columnName) {
+        if (columnName == null) {
             return null;
         }
-    
-        // Adjusted pattern to ensure correct capturing of operators including '<=' and '>='
-        final Pattern conditionPattern = Pattern.compile("(\\w+)\\s*(=|!=|<=?|>=?)\\s*('?\\w+'?|\\d+(\\.\\d+)?)");
-        final Pattern logicalPattern = Pattern.compile("\\s+(AND|OR)\\s+", Pattern.CASE_INSENSITIVE);
-    
-        List<String> logicalOperators = new ArrayList<>();
-        Matcher logicalMatcher = logicalPattern.matcher(whereClause);
-        while (logicalMatcher.find()) {
-            logicalOperators.add(logicalMatcher.group(1).toUpperCase());
-        }
-    
-        String[] conditions = logicalPattern.split(whereClause);
-        WhereCondition rootCondition = null;
-    
-        for (int i = 0; i < conditions.length; i++) {
-            Matcher conditionMatcher = conditionPattern.matcher(conditions[i].trim());
-            if (!conditionMatcher.find()) {
-                System.err.println("parseWhereClause: Failed to match condition pattern in part: " + conditions[i]);
-                continue;
-            }
-    
-            String attribute = conditionMatcher.group(1);
-            String operator = conditionMatcher.group(2);
-            String value = conditionMatcher.group(3).replace("'", ""); // Removing single quotes
-            WhereCondition.Operator parsedOperator = WhereCondition.Operator.fromSymbol(operator);
-            if (parsedOperator == null) {
-                System.err.println("parseWhereClause: Unknown operator: " + operator);
-                continue;
-            }
-    
-            WhereCondition currentCondition = new WhereCondition(attribute, parsedOperator, value);
-            if (rootCondition == null) {
-                rootCondition = currentCondition;
-            } else if (i - 1 < logicalOperators.size()) {
-                String logicalOp = logicalOperators.get(i - 1);
-                WhereCondition.Operator logicalOperator = WhereCondition.Operator.fromSymbol(logicalOp);
-                if (logicalOperator == null) {
-                    System.err.println("parseWhereClause: Unknown logical operator: " + logicalOp);
-                    continue;
-                }
-                rootCondition = new WhereCondition(rootCondition, logicalOperator, currentCondition);
-            }
-        }
-    
-        if (rootCondition == null) {
-            System.err.println("parseWhereClause: Root condition is null after parsing, indicating an error in the WHERE clause.");
-        } else {
-            System.out.println("parseWhereClause: Successfully parsed WHERE condition.");
-        }
-    
-        return rootCondition;
+        int semiColonIndex = columnName.indexOf(";");
+        String normalized = semiColonIndex != -1 ? columnName.substring(0, semiColonIndex) : columnName;
+        return normalized;
     }
-    
-      
-    // This should not be needed anymore
-    private static void printRecords(ArrayList<ArrayList<Object>> records, TableSchema table) {
-        // Print header with attribute names
-        System.out.print("|");
-        for (AttributeSchema attr : table.getattributes()) {
-            System.out.print(String.format(" %s |", attr.getname()));
+
+    private static void printRowsByRow(List<List<Object>> rows, List<String> cartesianColumns) {
+        for (String columnName : cartesianColumns) {
+            System.out.print(columnName + " | ");
         }
         System.out.println();
-    
-        // Print each record
-        for (ArrayList<Object> record : records) {
-            System.out.print("|");
-            for (Object field : record) {
-                if (field != null) {
-                    System.out.print(String.format(" %s |", field.toString()));
-                }
-                else {
-                    System.out.print(" null |");
+
+        for (List<Object> objectList : rows) {
+            StringBuilder row = new StringBuilder();
+            for (Object object : objectList) {
+                try {
+                    row.append(object).append("\t\t");
+                } catch (Exception e) {
+                    row.append("null\t\t");  // Using null as a placeholder for this since there is no value
                 }
             }
-            System.out.println();
+            System.out.println(row.toString().trim());
         }
+    }
+
+    private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect, List<String> cartesianColumns) {
+        Map<String, List<Object>> tableValues = new HashMap<>();
+        int maxSize = 0;
+
+        for (String columnName : cartesianColumns) {
+            System.out.print(columnName + " | ");
+            tableValues.putIfAbsent(columnName, new ArrayList<>());
+        }
+        System.out.println();
+
+        // Record rows; TODO: need to make this it's own method to clean this up
+        int columnIndex = 0;
+        outerLoop:
+        for (List<Record> recordList : records) {
+            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
+                List<Object> values = new ArrayList<>();
+                for (Record record : recordList) {
+                    values.add(record.getData().get(0));
+                }
+                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                if (columnsToSelect.size() == columnIndex) {
+                    if (recordList.size() > maxSize) {
+                        maxSize = recordList.size();
+                    }
+                    break;
+                }
+            }
+            else {  // select case with multiple attributes
+                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
+                    List<Object> values = new ArrayList<>();
+                    String currentColumn = columnsToSelect.get(columnIndex);
+                    TableSchema currentTable = null;
+                    for (TableSchema tableSchema : tableSchemas) {
+                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
+                            currentTable = tableSchema;
+                        }
+                    }
+                    for (Record record : recordList) {
+                        assert currentTable != null;
+                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
+                    }
+                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                    if (columnsToSelect.size() == columnIndex) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break outerLoop;
+                    }
+                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (recordList.size() > maxSize) {
+                maxSize = recordList.size();
+            }
+        }
+
+        if (tableSchemas.size() == 1) {  // If it's a single table
+            printRows(columnsToSelect, maxSize, tableValues);
+        }
+
+        else {  // If we need to do a Cartesian product...
+            Map<String, List<Object>> cartesianMap = CartesianProduct.cartesianProduct(records, columnsToSelect, tableSchemas);
+            maxSize = cartesianMap.get(cartesianColumns.get(0)).size();
+            printRows(cartesianColumns, maxSize, cartesianMap);
+        }
+    }
+
+    // TODO: Need to rename this method
+    private static List<List<Object>> getValueMap(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect, List<String> cartesianColumns) {
+        Map<String, List<Object>> tableValues = new HashMap<>();
+        for (String columnName : cartesianColumns) {
+            tableValues.putIfAbsent(columnName, new ArrayList<>());
+        }
+
+        int maxSize = 0;
+        int columnIndex = 0;
+        outerLoop:
+        for (List<Record> recordList : records) {
+            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
+                List<Object> values = new ArrayList<>();
+                for (Record record : recordList) {
+                    values.add(record.getData().get(0));
+                }
+                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                if (columnsToSelect.size() == columnIndex) {
+                    if (recordList.size() > maxSize) {
+                        maxSize = recordList.size();
+                    }
+                    break;
+                }
+            }
+            else {  // select case with multiple attributes
+                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
+                    List<Object> values = new ArrayList<>();
+                    String currentColumn = columnsToSelect.get(columnIndex);
+                    TableSchema currentTable = null;
+                    for (TableSchema tableSchema : tableSchemas) {
+                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
+                            currentTable = tableSchema;
+                        }
+                    }
+                    for (Record record : recordList) {
+                        assert currentTable != null;
+                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
+                    }
+                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                    if (columnsToSelect.size() == columnIndex) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break outerLoop;
+                    }
+                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (recordList.size() > maxSize) {
+                maxSize = recordList.size();
+            }
+        }
+
+        if (tableSchemas.size() == 1) {  // If it's a single table
+            return getRows(columnsToSelect, maxSize, tableValues);
+        }
+
+        else {  // If we need to do a Cartesian product...
+            Map<String, List<Object>> cartesianMap = CartesianProduct.cartesianProduct(records, columnsToSelect, tableSchemas);
+            maxSize = cartesianMap.get(cartesianColumns.get(0)).size();
+            return getRows(cartesianColumns, maxSize, cartesianMap);
+        }
+    }
+
+    private static void printRows(List<String> columnsList, int maxSize, Map<String, List<Object>> map) {
+        for (int i = 0; i < maxSize; i++) {
+            StringBuilder row = new StringBuilder();
+            for (String column : columnsList) {
+                try {
+                    row.append(map.get(column).get(i)).append("\t\t");
+                } catch (Exception e) {
+                    row.append("null\t\t");  // Using null as a placeholder for this since there is no value
+                }
+            }
+            System.out.println(row.toString().trim());
+        }
+    }
+
+    private static List<List<Object>> getRows(List<String> columnsList, int maxSize, Map<String, List<Object>> map) {
+        List<List<Object>> returnValue = new ArrayList<>();
+        for (int i = 0; i < maxSize; i++) {
+            List<Object> values = new ArrayList<>();
+            for (String column : columnsList) {
+                try {
+                    values.add(map.get(column).get(i));
+                } catch (Exception ignored) {
+                }
+            }
+            returnValue.add(values);
+        }
+        return returnValue;
     }
 
     private static void handleDeleteCommand(String inputLine, Catalog c, StorageManager storageManager) {
@@ -616,8 +730,7 @@ public class parser {
 
         storageManager.deleteRecord(tableSchema, whereRoot);
     }
-    
-    
+          
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
         if (tokens.length == 0) {

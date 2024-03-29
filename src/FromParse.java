@@ -1,4 +1,3 @@
-//import javafx.scene.control.Tab;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -24,5 +23,20 @@ public class FromParse {
         }
 
         return tableSchemas;
+    }
+
+    public static List<TableSchema> parseFromClause2(List<TableSchema> tableSchemas, List<String> columnsListWithTables) {
+        // Reorders attributes in the order that the attributes were input in the select clause
+        List<TableSchema> returnList = new ArrayList<>();
+        for (String column : columnsListWithTables) {
+            for (TableSchema tableSchema : tableSchemas) {
+                if (column.substring(0, column.indexOf('.')).equals(tableSchema.getName())) {
+                    if (!returnList.contains(tableSchema)) {
+                        returnList.add(tableSchema);
+                    }
+                }
+            }
+        }
+        return returnList;
     }
 }

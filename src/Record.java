@@ -82,8 +82,7 @@ public class Record {
         sb.append('}');
         return sb.toString();
     }
-
-
+  
     public void setBitMapValue(int index, int isNull) {
         if (index >= this.nullBitMap.size()) {
             this.nullBitMap.add((byte)isNull);
@@ -103,6 +102,9 @@ public class Record {
     public void setNullBitMap(ArrayList<Byte> nullBitMap) {
         this.nullBitMap = nullBitMap;
     }
+  
+  public int getNumElements() {
+        return this.data.size();
 
     public Object getAttributeValue(String attributeName, AttributeSchema[] attributeSchemas) {
         String[] parts = attributeName.split("\\.");
