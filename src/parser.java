@@ -2,6 +2,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -366,8 +367,13 @@ public class parser {
 
         String columnNames = matcher.group(1).trim();
         String tableName = matcher.group(7);
-        String whereClause = matcher.group(9);
-        String orderByColumn = matcher.group(11);
+        String whereClause = matcher.group(8);
+        String orderByColumn = matcher.group(10);
+
+        System.out.println(columnNames);
+        System.out.println(tableName);
+        System.out.println(whereClause);
+        System.out.println(orderByColumn);
             
         if(whereClause != null) {
             whereClause = whereClause.trim().replaceAll(";$", "");
@@ -408,11 +414,7 @@ public class parser {
                 return; 
             }
 
-            records.sort((record1, record2) -> {
-                Object value1 = record1.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
-                Object value2 = record2.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
-                return compareValues(value1, value2); 
-            });
+           sortRecordsByColumn(records, normalizedOrderByColumn, tableSchema);
         }
 
         printSelectedRecords(records, tableSchema, columnsToSelect);
@@ -439,12 +441,21 @@ public class parser {
     }
     
     private static void sortRecordsByColumn(List<Record> records, String orderByColumn, TableSchema tableSchema) {
+
+        // if (orderByColumn != null && !orderByColumn.isEmpty()) {
+        //     records.sort((record1, record2) -> {
+        //         Object value1 = record1.getAttributeValue(orderByColumn, tableSchema.getattributes());
+        //         Object value2 = record2.getAttributeValue(orderByColumn, tableSchema.getattributes());
+        //         return compareValues(value1, value2);
+        //     });
+        // }
         if (orderByColumn != null && !orderByColumn.isEmpty()) {
-            records.sort((record1, record2) -> {
+            Comparator<Record> comparator = (record1, record2) -> {
                 Object value1 = record1.getAttributeValue(orderByColumn, tableSchema.getattributes());
                 Object value2 = record2.getAttributeValue(orderByColumn, tableSchema.getattributes());
                 return compareValues(value1, value2);
-            });
+            };
+            records.sort(comparator);
         }
     }
     
