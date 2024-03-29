@@ -24,6 +24,41 @@ public class Record {
         return this.data;
     }
 
+    public int addValue(Object value, int indexInRecord, AttributeSchema attr) {
+        int sizeAdded = 1;
+        if (value == null) this.setBitMapValue(indexInRecord, 1);
+        else {
+            this.setBitMapValue(indexInRecord, 0);
+            switch (attr.gettype()) {
+                case "varchar":
+                    sizeAdded += ((String)value).length() + Integer.BYTES;
+                    break;
+                default:
+                    sizeAdded += attr.getsize();
+                    break;
+            }
+        }
+        this.data.add(value);
+        this.size += sizeAdded;
+        return sizeAdded;
+    }
+
+    public int removeValue(int indexInRecord, AttributeSchema attr) {
+        Object value = this.data.remove(indexInRecord);
+        this.nullBitMap.remove(indexInRecord);
+        int sizeLost = 1;
+        switch (attr.gettype()) {
+            case "varchar":
+                sizeLost += (((String)value).length() + Integer.BYTES);
+                break;
+            default:
+                sizeLost += attr.getsize();
+                break;
+        }
+        this.size -= sizeLost;
+        return sizeLost;
+    }
+
     public void setSize(int size) {
         this.size = size;
     }
@@ -31,7 +66,6 @@ public class Record {
     public int getSize() {
         return this.size;
     }
-
    
     @Override
     public String toString() {
@@ -48,14 +82,13 @@ public class Record {
         sb.append('}');
         return sb.toString();
     }
-
-
-    public void setBitMapValue(int index) {
+  
+    public void setBitMapValue(int index, int isNull) {
         if (index >= this.nullBitMap.size()) {
-            this.nullBitMap.add((byte)1);
+            this.nullBitMap.add((byte)isNull);
             this.size++;
         }
-        this.nullBitMap.set(index, (byte)1);
+        else this.nullBitMap.set(index, (byte)isNull);
     }
 
     public byte getBitMapValue(int index) {
@@ -69,29 +102,26 @@ public class Record {
     public void setNullBitMap(ArrayList<Byte> nullBitMap) {
         this.nullBitMap = nullBitMap;
     }
+  
+  public int getNumElements() {
+        return this.data.size();
 
     public Object getAttributeValue(String attributeName, AttributeSchema[] attributeSchemas) {
-        for (int i = 0; i < attributeSchemas.length; i++) {
-            if (attributeSchemas[i].getname().equals(attributeName)) {
-                // Check if nullBitMap is initialized and has enough entries
-                if (nullBitMap != null && i < nullBitMap.size() && getBitMapValue(i) == (byte)1) {
-                    return "null"; // Return a string "null" or actual null, based on your handling preference
-                } else {
-                    // Ensure the data list is also properly initialized and has the entry
-                    if (data != null && i < data.size()) {
-                        return data.get(i);
-                    } else {
-                        // Data list not properly initialized or does not have the entry
-                        return "ERROR: Data unavailable"; // Handle as appropriate for your application
-                    }
+        String[] parts = attributeName.split("\\.");
+        String actualAttributeName = parts.length > 1 ? parts[1] : parts[0];
+    
+        for (AttributeSchema attr : attributeSchemas) {
+            if (attr.getname().equals(actualAttributeName)) {
+                int index = Arrays.asList(attributeSchemas).indexOf(attr);
+                if (index < 0 || index >= data.size()) {
+                    System.err.println("Error: Attribute index out of bounds. Attribute: " + actualAttributeName);
+                    return null; 
                 }
+                return data.get(index);
             }
         }
-        throw new IllegalArgumentException("Attribute " + attributeName + " not found in record.");
-    }
-
-    public int getNumElements() {
-        return this.data.size();
+        System.err.println("Error: Attribute " + actualAttributeName + " not found in record.");
+        return null; 
     }
     
 

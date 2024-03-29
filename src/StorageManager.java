@@ -39,10 +39,9 @@ public class StorageManager {
         return tuples;
     }
 
-    public ArrayList<Record> getPhysicalRecords(int tableNumber) {
+    public List<Page> getPages(int tableNumber) {
         TableSchema table = catalog.getTableSchema(tableNumber);
         List<Page> pages = new ArrayList<>();
-        ArrayList<Record> tuples = new ArrayList<>();
 
         for (int i = 0; i < table.getNumPages(); i++) { // get all pages for table from buffer and file
             Page page;
@@ -54,10 +53,7 @@ public class StorageManager {
             pages.add(page);
         }
 
-        for (Page page : pages) {
-            tuples.addAll(page.getRecords());
-        }
-        return tuples;
+        return pages;
     }
     
     // Looks for page in buffer, retrieves from file if not in buffer
@@ -67,6 +63,26 @@ public class StorageManager {
             page = loadPageFromDisk(tableNumber, pageNumber);
         }
         return page;
+    }
+
+    public boolean deleteRecord(TableSchema tableSchema, WhereCondition whereRoot) {
+        List<Page> pages = getPages(tableSchema.gettableNumber());
+        for (Page page : pages) {
+            List<Record> records = page.getRecords();
+            for (int i = 0; i < page.getNumRecords(); i++) {
+                Record record = records.get(i);
+                if (whereRoot == null) {
+                    page.deleteRecord(record);
+                    tableSchema.dropPage(page.getPageNumber());
+                    i--;
+                }
+                else if (whereRoot.evaluate(record, tableSchema)) {
+                    page.deleteRecord(record);
+                    i--;
+                }
+            }
+        }
+        return false; //compilation placeholder
     }
     
     public boolean addRecord(Catalog catalog, Record record, int tableNumber) {
@@ -161,7 +177,7 @@ public class StorageManager {
     }
 
     // Split page into two
-    private void splitPage(Page page) {
+    public void splitPage(Page page) {
         List<Record> records = page.getRecords();
 
         // TODO: Change this implementation from list to arraylist (dont think this is necessary)
@@ -293,6 +309,7 @@ public class StorageManager {
         } catch(IOException e) {
             e.printStackTrace();
         }
+        page.setUpdated(false);
         return page;
     }
 }

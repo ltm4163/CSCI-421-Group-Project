@@ -1,5 +1,9 @@
 import java.io.IOException;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -128,38 +132,43 @@ public class parser {
             case "add":
                 AttributeSchema newAttr = AttributeSchema.parse(definition);
                 table.addAttribute(newAttr);
+                AttributeSchema[] attributes = table.getattributes();
+                int newAttributeIndex = attributes.length - 1;
                 // Adds new attribute's default value to each existing record
-                for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
-                    ArrayList<Object> data = record.getData();
-                    AttributeSchema[] attributes = table.getattributes();
-                    int newAttributeIndex = attributes.length - 1;
-                    if (definition.contains("default")) {
-                        String[] definitionParts = definition.split("\\s+");
-                        String defaultValue = definitionParts[definitionParts.length - 1];
-                        attributes[newAttributeIndex].setDefaultValue(defaultValue);
+                List<Page> pages = storageManager.getPages(table.gettableNumber());
+                for (Page page : pages) {
+                    for (Record record : page.getRecords()) {
+                        if (definition.contains("default")) {
+                            String[] definitionParts = definition.split("\\s+");
+                            String defaultValue = definitionParts[definitionParts.length - 1];
+                            attributes[newAttributeIndex].setDefaultValue(defaultValue);
+                        }
+                        int sizeAdded = record.addValue(attributes[newAttributeIndex].getDefaultValue(), newAttributeIndex, attributes[newAttributeIndex]);
+                        page.setSize(page.getSize() + sizeAdded);
                     }
-                    data.add(attributes[newAttributeIndex].getDefaultValue());
-                    record.setData(data);
-                    record.setBitMapValue(table.getnumAttributes()-1);
+                    if (page.getSize() > Main.getPageSize()) storageManager.splitPage(page);
                 }
                 System.out.println("Attribute " + newAttr.getname() + " added to table " + tableName + ".");
                 break;
             case "drop":
-                AttributeSchema[] attributes = table.getattributes();
-                IntStream.range(0, attributes.length).forEach(i -> {
-                    AttributeSchema attribute = attributes[i];
+                AttributeSchema[] attributes2 = table.getattributes();
+                int newAttributeIndex2 = attributes2.length - 1;
+                List<Page> pages2 = storageManager.getPages(table.gettableNumber());
+                IntStream.range(0, attributes2.length).forEach(i -> {
+                    AttributeSchema attribute = attributes2[i];
                     System.out.println(attribute.getname());
                     System.out.println(definition);
                     System.out.println(i);
                     if (attribute.getname().equals(definition)) {
-                        for (Record record : storageManager.getPhysicalRecords(table.gettableNumber())) {
-                            ArrayList<Object> data = record.getData();
-                            data.remove(i);
-                            System.out.println(data);
-                            record.setData(data);
+                        for (Page page : pages2) {
+                            for (Record record : page.getRecords()) {
+                                int sizeLost = record.removeValue(newAttributeIndex2, attributes2[newAttributeIndex2]);
+                                page.setSize(page.getSize() - sizeLost);
+                            }
                         }
                     }
                 });
+
                 // Assuming table has a method to drop an attribute
                 table.dropAttribute(definition);
                 System.out.println("Attribute " + definition + " dropped from table " + tableName + ".");
@@ -340,7 +349,6 @@ public class parser {
         System.out.println("SUCCESS");
     }
     
-
     private static void handleSelectCommand(String inputLine, Catalog c, StorageManager storageManager) {
         // Regular expressions to match SELECT, FROM, and WHERE clauses
         Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
@@ -381,7 +389,15 @@ public class parser {
             if (columnList == null) {
                 return;
             }
+        } else {
+            columnsToSelect = tableSchema.getAttributeNames();
         }
+    
+        WhereCondition whereRoot = null;
+        if (whereClause != null && !whereClause.isBlank()) {
+            whereRoot = parseWhereClause(whereClause);
+        }
+
         else {  // If the select parameter is '*'
             columnList.clear();
             for (TableSchema tableSchema : tableSchemas) {
@@ -473,8 +489,13 @@ public class parser {
 
         if (!orderByCheck) {
             printSelectedRecords(records, tableSchemas, columnList2, columnList);
-        }
-    }
+    
+    private static List<Record> fetchAndFilterRecords(WhereCondition whereRoot, TableSchema tableSchema, StorageManager storageManager) {
+        return storageManager.getRecords(tableSchema.gettableNumber()).stream()
+                .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
+                .filter(record -> whereRoot == null || whereRoot.evaluate(record, tableSchema))
+                .collect(Collectors.toList());
+    }   
 
     private static String normalizeColumnName(String columnName) {
         if (columnName == null) {
@@ -676,6 +697,40 @@ public class parser {
         return returnValue;
     }
 
+    private static void handleDeleteCommand(String inputLine, Catalog c, StorageManager storageManager) {
+        // Regular expressions to match SELECT, FROM, and WHERE clauses
+        Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE|$)", Pattern.CASE_INSENSITIVE);
+        Pattern wherePattern = Pattern.compile("WHERE (.+)$", Pattern.CASE_INSENSITIVE);
+
+        TableSchema tableSchema = null;
+        List<List<WhereParse.Condition>> whereClauseList;
+        WhereCondition whereRoot = null;
+
+        // Match FROM clause
+        Matcher fromMatcher = fromPattern.matcher(inputLine);
+        if (fromMatcher.find()) {
+            String tableNames = fromMatcher.group(1);
+            System.out.println("Table names: " + tableNames);
+            tableSchema = FromParse.parseFromClause(tableNames, c).get(0);
+        } else {
+            System.out.println("Error: No FROM clause found");
+            return;
+        }
+
+        // Match WHERE clause if present
+        Matcher whereMatcher = wherePattern.matcher(inputLine);
+        if (whereMatcher.find()) {
+            String whereClause = whereMatcher.group(1);
+            System.out.println("Where conditions: " + whereClause);
+            whereRoot = parseWhereClause(whereClause); //TODO: change this to WhereParse version after merge
+            // whereClauseList = WhereParse.parseWhereClause(whereClause);
+        } else {
+            System.out.println("No WHERE conditions specified");
+        }
+
+        storageManager.deleteRecord(tableSchema, whereRoot);
+    }
+          
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
         if (tokens.length == 0) {
@@ -717,6 +772,10 @@ public class parser {
 
             case "select":
                 handleSelectCommand(inputLine, catalog, storageManager);
+                break;
+
+            case "delete":
+                handleDeleteCommand(inputLine, catalog, storageManager);
                 break;
 
             case "display":
