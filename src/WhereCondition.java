@@ -61,6 +61,9 @@ class WhereCondition {
                 System.out.println("Debug: OR Evaluation - " + orResult);
                 return orResult;
             default:
+                if (!tableSchema.contains(attribute)) {
+                    return true;
+                }
                 Object recordValue = record.getAttributeValue(attribute, tableSchema.getattributes());
                 boolean comparisonResult = compare(record, tableSchema, attribute, this.value, operator);
                 System.out.println("Debug: Comparing - Attribute: " + attribute + ", Record Value: " + recordValue + ", Condition Value: " + this.value + ", Result: " + comparisonResult);

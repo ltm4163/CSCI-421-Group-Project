@@ -345,7 +345,7 @@ public class parser {
         // Regular expressions to match SELECT, FROM, and WHERE clauses
         Pattern selectPattern = Pattern.compile("SELECT (.+?) FROM", Pattern.CASE_INSENSITIVE);
         Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE| ORDERBY|$)", Pattern.CASE_INSENSITIVE);
-        Pattern wherePattern = Pattern.compile("WHERE (.+)$(?: ORDERBY|$)", Pattern.CASE_INSENSITIVE);
+        Pattern wherePattern = Pattern.compile("WHERE (.+?)(?= ORDERBY|$)", Pattern.CASE_INSENSITIVE);
         Pattern orderByPattern = Pattern.compile("ORDERBY (.+)$", Pattern.CASE_INSENSITIVE);
 
         List<String> columnList;
@@ -417,7 +417,7 @@ public class parser {
                 }
             }
         } else {
-            System.out.println("No WHERE conditions specified");
+            //System.out.println("No WHERE conditions specified");
             for (TableSchema tableSchema : tableSchemas) {
                 List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                         .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
@@ -427,44 +427,81 @@ public class parser {
         }
 
         // Match ORDERBY clause if present
+        boolean orderByCheck = false;
         Matcher orderByMatcher = orderByPattern.matcher(inputLine);
         if (orderByMatcher.find()) {
+            orderByCheck = true;
             String normalizedOrderByColumn = normalizeColumnName(orderByMatcher.group(1));
-            if (normalizedOrderByColumn != null && !normalizedOrderByColumn.isEmpty()) {
-                AttributeSchema orderByAttribute = null;
-                for (TableSchema tableSchema : tableSchemas) {
-                    orderByAttribute = tableSchema.getAttributeByName(normalizedOrderByColumn);
-                    if (orderByAttribute != null) {
+            if (normalizedOrderByColumn.indexOf('.') == -1) {
+                boolean found = false;
+                for (String column : columnList) {
+                    if (column.substring(column.indexOf('.') + 1).equals(normalizedOrderByColumn)) {
+                        normalizedOrderByColumn = column;
+                        found = true;
                         break;
                     }
                 }
-                if (orderByAttribute == null) {  // Ensure the attribute exists within one of the tables
+                if (!found) {
                     System.err.println("Error: Column '" + normalizedOrderByColumn + "' does not exist in table schema.");
                     return;
                 }
+            }
 
-//                records.sort((record1, record2) -> {
-//                    Object value1 = record1.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
-//                    Object value2 = record2.getAttributeValue(normalizedOrderByColumn, tableSchema.getattributes());
-//                    return compareValues(value1, value2);
-//                });
+            if (!normalizedOrderByColumn.isEmpty()) {
+                List<List<Object>> rows = getValueMap(records, tableSchemas, columnList2, columnList);
+
+                Collections.sort(rows, new Comparator<List<Object>>() {
+                    @Override
+                    public int compare(List<Object> o1, List<Object> o2) {
+                        Object secondValue1 = o1.get(1);
+                        Object secondValue2 = o2.get(1);
+                        if (secondValue1 instanceof Integer) {
+                            return ((Integer) secondValue1).compareTo((Integer) secondValue2);
+                        } else if (secondValue1 instanceof Double) {
+                            return ((Double) secondValue1).compareTo((Double) secondValue2);
+                        } else if (secondValue1 instanceof String) {
+                            return ((String) secondValue1).compareTo((String) secondValue2);
+                        } else {
+                            // Handle other types if needed
+                            throw new IllegalArgumentException("Unsupported type");
+                        }
+                    }
+                });
+                printRowsByRow(rows, columnList);
             }
         }
 
-        printSelectedRecords(records, tableSchemas, columnList2, columnList);
+        if (!orderByCheck) {
+            printSelectedRecords(records, tableSchemas, columnList2, columnList);
+        }
     }
 
     private static String normalizeColumnName(String columnName) {
-        System.out.println("Normalizing columnName: " + columnName);
         if (columnName == null) {
             return null;
         }
-        int dotIndex = columnName.indexOf(".");
-        String normalized = dotIndex != -1 ? columnName.substring(dotIndex + 1) : columnName;
         int semiColonIndex = columnName.indexOf(";");
-        normalized = semiColonIndex != -1 ? normalized.substring(0, semiColonIndex) : normalized;
-        System.out.println("Normalized columnName: " + normalized);
+        String normalized = semiColonIndex != -1 ? columnName.substring(0, semiColonIndex) : columnName;
         return normalized;
+    }
+
+    private static void printRowsByRow(List<List<Object>> rows, List<String> cartesianColumns) {
+        for (String columnName : cartesianColumns) {
+            System.out.print(columnName + " | ");
+        }
+        System.out.println();
+
+        for (List<Object> objectList : rows) {
+            StringBuilder row = new StringBuilder();
+            for (Object object : objectList) {
+                try {
+                    row.append(object).append("\t\t");
+                } catch (Exception e) {
+                    row.append("null\t\t");  // Using null as a placeholder for this since there is no value
+                }
+            }
+            System.out.println(row.toString().trim());
+        }
     }
 
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect, List<String> cartesianColumns) {
@@ -477,7 +514,7 @@ public class parser {
         }
         System.out.println();
 
-        // Record rows
+        // Record rows; TODO: need to make this it's own method to clean this up
         int columnIndex = 0;
         outerLoop:
         for (List<Record> recordList : records) {
@@ -540,6 +577,76 @@ public class parser {
         }
     }
 
+    // TODO: Need to rename this method
+    private static List<List<Object>> getValueMap(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect, List<String> cartesianColumns) {
+        Map<String, List<Object>> tableValues = new HashMap<>();
+        for (String columnName : cartesianColumns) {
+            tableValues.putIfAbsent(columnName, new ArrayList<>());
+        }
+
+        int maxSize = 0;
+        int columnIndex = 0;
+        outerLoop:
+        for (List<Record> recordList : records) {
+            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
+                List<Object> values = new ArrayList<>();
+                for (Record record : recordList) {
+                    values.add(record.getData().get(0));
+                }
+                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                if (columnsToSelect.size() == columnIndex) {
+                    if (recordList.size() > maxSize) {
+                        maxSize = recordList.size();
+                    }
+                    break;
+                }
+            }
+            else {  // select case with multiple attributes
+                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
+                    List<Object> values = new ArrayList<>();
+                    String currentColumn = columnsToSelect.get(columnIndex);
+                    TableSchema currentTable = null;
+                    for (TableSchema tableSchema : tableSchemas) {
+                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
+                            currentTable = tableSchema;
+                        }
+                    }
+                    for (Record record : recordList) {
+                        assert currentTable != null;
+                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
+                    }
+                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+                    if (columnsToSelect.size() == columnIndex) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break outerLoop;
+                    }
+                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
+                        if (recordList.size() > maxSize) {
+                            maxSize = recordList.size();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            if (recordList.size() > maxSize) {
+                maxSize = recordList.size();
+            }
+        }
+
+        if (tableSchemas.size() == 1) {  // If it's a single table
+            return getRows(columnsToSelect, maxSize, tableValues);
+        }
+
+        else {  // If we need to do a Cartesian product...
+            Map<String, List<Object>> cartesianMap = CartesianProduct.cartesianProduct(records, columnsToSelect, tableSchemas);
+            maxSize = cartesianMap.get(cartesianColumns.get(0)).size();
+            return getRows(cartesianColumns, maxSize, cartesianMap);
+        }
+    }
+
     private static void printRows(List<String> columnsList, int maxSize, Map<String, List<Object>> map) {
         for (int i = 0; i < maxSize; i++) {
             StringBuilder row = new StringBuilder();
@@ -552,6 +659,21 @@ public class parser {
             }
             System.out.println(row.toString().trim());
         }
+    }
+
+    private static List<List<Object>> getRows(List<String> columnsList, int maxSize, Map<String, List<Object>> map) {
+        List<List<Object>> returnValue = new ArrayList<>();
+        for (int i = 0; i < maxSize; i++) {
+            List<Object> values = new ArrayList<>();
+            for (String column : columnsList) {
+                try {
+                    values.add(map.get(column).get(i));
+                } catch (Exception ignored) {
+                }
+            }
+            returnValue.add(values);
+        }
+        return returnValue;
     }
 
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {

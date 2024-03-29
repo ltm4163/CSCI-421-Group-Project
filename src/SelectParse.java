@@ -7,9 +7,6 @@ public class SelectParse {
 
         for (String column : columns) {
             column = column.trim();  // Removes all whitespace
-//            if (column.contains(".")) {
-//                column = column.substring(column.indexOf('.') + 1);
-//            }
             columnList.add(column);
         }
 

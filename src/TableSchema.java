@@ -69,6 +69,11 @@ public class TableSchema {
         return attributeNames;
     }
 
+    public boolean contains(String attributeName) {
+        List<String> attributeNames = getAttributeNames();
+        return attributeNames.contains(attributeName);
+    }
+
     // Gets the attribute names in the format "tableName.attributeName"; i.e. baz.id
     public List<String> getAttributeNamesWithTable() {
         List<String> attributeNames = new ArrayList<>();
