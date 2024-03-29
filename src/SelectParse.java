@@ -16,7 +16,7 @@ public class SelectParse {
         return columnList;
     }
 
-    public static List<String> parseSelectClause2(List<String> columnList, List<TableSchema> tableSchemas, Catalog c) {
+    public static List<String> parseSelectClause2(List<String> columnList, List<TableSchema> tableSchemas) {
         List<String> columnsListWithTables = new ArrayList<>();
         for (String columnName : columnList) {
             String[] parts = columnName.split("\\.");
@@ -61,6 +61,10 @@ public class SelectParse {
             }
         }
 
+        return columnsListWithTables;
+    }
+
+    public static List<String> parseSelectClause3 (List<String> columnsListWithTables, List<TableSchema> tableSchemas) {
         // Reorders attributes in the order that the tableSchemas were input in the from clause
         List<String> returnList = new ArrayList<>();
         for (TableSchema tableSchema : tableSchemas) {

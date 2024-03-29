@@ -1,5 +1,3 @@
-import javafx.scene.control.Tab;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
@@ -379,7 +377,7 @@ public class parser {
 
         if (!(columnList.size() == 1 && columnList.get(0).equals("*"))) {
             // Ensures column names exist in tables
-            columnList = SelectParse.parseSelectClause2(columnList, tableSchemas, c);
+            columnList = SelectParse.parseSelectClause2(columnList, tableSchemas);
             if (columnList == null) {
                 return;
             }
@@ -390,6 +388,10 @@ public class parser {
                 columnList.addAll(tableSchema.getAttributeNamesWithTable());
             }
         }
+
+        // Orders the attributes in the order they were mentioned in the select clause
+        tableSchemas = FromParse.parseFromClause2(tableSchemas, columnList);
+        List<String> columnList2 = SelectParse.parseSelectClause3(columnList, tableSchemas);
 
         // Match WHERE clause if present
         List<List<Record>> records = new ArrayList<>();
@@ -449,7 +451,7 @@ public class parser {
             }
         }
 
-        printSelectedRecords(records, tableSchemas, columnList);
+        printSelectedRecords(records, tableSchemas, columnList2, columnList);
     }
 
     private static String normalizeColumnName(String columnName) {
@@ -465,12 +467,11 @@ public class parser {
         return normalized;
     }
 
-    // TODO: Need to ensure attributes are displayed in the order they're input in the select clause (right now they're in the order of the tableSchemas in the from clause)
-    private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
+    private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect, List<String> cartesianColumns) {
         Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
-        for (String columnName : columnsToSelect) {
+        for (String columnName : cartesianColumns) {
             System.out.print(columnName + " | ");
             tableValues.putIfAbsent(columnName, new ArrayList<>());
         }
@@ -528,13 +529,24 @@ public class parser {
             }
         }
 
+        if (tableSchemas.size() == 1) {  // If it's a single table
+            printRows(columnsToSelect, maxSize, tableValues);
+        }
+
+        else {  // If we need to do a Cartesian product...
+            Map<String, List<Object>> cartesianMap = CartesianProduct.cartesianProduct(records, columnsToSelect, tableSchemas);
+            maxSize = cartesianMap.get(cartesianColumns.get(0)).size();
+            printRows(cartesianColumns, maxSize, cartesianMap);
+        }
+    }
+
+    private static void printRows(List<String> columnsList, int maxSize, Map<String, List<Object>> map) {
         for (int i = 0; i < maxSize; i++) {
             StringBuilder row = new StringBuilder();
-            for (String column : columnsToSelect) {
+            for (String column : columnsList) {
                 try {
-                    row.append(tableValues.get(column).get(i)).append("\t\t");
-                }
-                catch (Exception e) {
+                    row.append(map.get(column).get(i)).append("\t\t");
+                } catch (Exception e) {
                     row.append("null\t\t");  // Using null as a placeholder for this since there is no value
                 }
             }
