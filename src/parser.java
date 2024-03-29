@@ -379,7 +379,7 @@ public class parser {
 
         if (!(columnList.size() == 1 && columnList.get(0).equals("*"))) {
             // Ensures column names exist in tables
-            columnList = SelectParse.parseSelectClause2(columnList, tableSchemas, c);
+            columnList = SelectParse.parseSelectClause2(columnList, tableSchemas);
             if (columnList == null) {
                 return;
             }
@@ -390,6 +390,9 @@ public class parser {
                 columnList.addAll(tableSchema.getAttributeNamesWithTable());
             }
         }
+
+        // Orders the attributes in the order they were mentioned in the select clause
+        tableSchemas = FromParse.parseFromClause2(tableSchemas, columnList);
 
         // Match WHERE clause if present
         List<List<Record>> records = new ArrayList<>();
@@ -465,8 +468,11 @@ public class parser {
         return normalized;
     }
 
-    // TODO: Need to ensure attributes are displayed in the order they're input in the select clause (right now they're in the order of the tableSchemas in the from clause)
     private static void printSelectedRecords(List<List<Record>> records, List<TableSchema> tableSchemas, List<String> columnsToSelect) {
+        System.out.println(records);
+        System.out.println(tableSchemas);
+        System.out.println(columnsToSelect);
+
         Map<String, List<Object>> tableValues = new HashMap<>();
         int maxSize = 0;
 
@@ -477,68 +483,90 @@ public class parser {
         System.out.println();
 
         // Record rows
-        int columnIndex = 0;
-        outerLoop:
-        for (List<Record> recordList : records) {
-            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
-                List<Object> values = new ArrayList<>();
-                for (Record record : recordList) {
-                    values.add(record.getData().get(0));
-                }
-                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
-                if (columnsToSelect.size() == columnIndex) {
-                    if (recordList.size() > maxSize) {
-                        maxSize = recordList.size();
-                    }
-                    break;
-                }
-            }
-            else {  // select case with multiple attributes
-                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
-                    List<Object> values = new ArrayList<>();
-                    String currentColumn = columnsToSelect.get(columnIndex);
-                    TableSchema currentTable = null;
-                    for (TableSchema tableSchema : tableSchemas) {
-                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
-                            currentTable = tableSchema;
-                        }
-                    }
-                    for (Record record : recordList) {
-                        assert currentTable != null;
-                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
-                    }
-                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
-                    if (columnsToSelect.size() == columnIndex) {
-                        if (recordList.size() > maxSize) {
-                            maxSize = recordList.size();
-                        }
-                        break outerLoop;
-                    }
-                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
-                        if (recordList.size() > maxSize) {
-                            maxSize = recordList.size();
-                        }
-                        break;
-                    }
-                }
-            }
+        for (String column : columnsToSelect) {
+            List<Object> values = new ArrayList<>();
+            for (List<Record> recordList : records) {
+                Record record = recordList.get(0);
 
-            if (recordList.size() > maxSize) {
-                maxSize = recordList.size();
             }
         }
 
-        for (int i = 0; i < maxSize; i++) {
-            StringBuilder row = new StringBuilder();
-            for (String column : columnsToSelect) {
-                try {
-                    row.append(tableValues.get(column).get(i)).append("\t\t");
+//        int columnIndex = 0;
+//        outerLoop:
+//        for (List<Record> recordList : records) {
+//            if (recordList.get(0).getNumElements() == 1) {  // select case with one attribute
+//                List<Object> values = new ArrayList<>();
+//                for (Record record : recordList) {
+//                    values.add(record.getData().get(0));
+//                }
+//                tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+//                if (columnsToSelect.size() == columnIndex) {
+//                    if (recordList.size() > maxSize) {
+//                        maxSize = recordList.size();
+//                    }
+//                    break;
+//                }
+//            }
+//            else {  // select case with multiple attributes
+//                for (int j = 0; j < recordList.get(0).getNumElements(); j++) {
+//                    List<Object> values = new ArrayList<>();
+//                    String currentColumn = columnsToSelect.get(columnIndex);
+//                    TableSchema currentTable = null;
+//                    for (TableSchema tableSchema : tableSchemas) {
+//                        if (tableSchema.getName().equals(currentColumn.substring(0, currentColumn.indexOf('.')))) {
+//                            currentTable = tableSchema;
+//                        }
+//                    }
+//                    for (Record record : recordList) {
+//                        assert currentTable != null;
+//                        values.add(record.getAttributeValue(currentColumn.substring(currentColumn.indexOf('.') + 1), currentTable.getattributes()));
+//                    }
+//                    tableValues.get(columnsToSelect.get(columnIndex++)).addAll(values);
+//                    if (columnsToSelect.size() == columnIndex) {
+//                        if (recordList.size() > maxSize) {
+//                            maxSize = recordList.size();
+//                        }
+//                        break outerLoop;
+//                    }
+//                    else if (!columnsToSelect.get(columnIndex).substring(0, currentColumn.indexOf('.')).equals(Objects.requireNonNull(currentTable).getname())) {
+//                        if (recordList.size() > maxSize) {
+//                            maxSize = recordList.size();
+//                        }
+//                        break;
+//                    }
+//                }
+//            }
+//
+//            if (recordList.size() > maxSize) {
+//                maxSize = recordList.size();
+//            }
+//        }
+        System.out.println(tableValues);
+
+        if (tableSchemas.size() == 1) {
+            for (int i = 0; i < maxSize; i++) {
+                StringBuilder row = new StringBuilder();
+                for (String column : columnsToSelect) {
+                    try {
+                        row.append(tableValues.get(column).get(i)).append("\t\t");
+                    } catch (Exception e) {
+                        row.append("null\t\t");  // Using null as a placeholder for this since there is no value
+                    }
                 }
-                catch (Exception e) {
-                    row.append("null\t\t");  // Using null as a placeholder for this since there is no value
-                }
+                System.out.println(row.toString().trim());
             }
-            System.out.println(row.toString().trim());
+        }
+        else {  // If we need to do a Cartesian product...
+            List<Object> objectList = new ArrayList<>();
+
+            List<List<Record>> cartesianRecords = CartesianProduct.cartesianProduct(records);
+
+            for (List<Record> recordList : cartesianRecords) {
+                for (Record record : recordList) {
+                    System.out.print(record.getData() + ", ");
+                }
+                System.out.println();
+            }
         }
     }
 
