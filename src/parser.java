@@ -616,25 +616,25 @@ public class parser {
             System.out.println("No WHERE conditions specified");
         }
 
-        storageManager.deleteRecord(tableSchema, whereRoot);
+        storageManager.deleteRecords(tableSchema, whereRoot);
     }
 
     public static void handleUpdateCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
-        Pattern pattern = Pattern.compile("^update\\s+(\\w+)\\s+set\\s+(\\w+)\\s*=\\s*([\\d.]+)\\s+where\\s+(.+);$");
+        Pattern pattern = Pattern.compile("^update\\s+(\\w+)\\s+set\\s+(\\w+)\\s*=\\s*(\\w+)\\s+where\\s+(.+);$");
 
         // Create a Matcher object to apply the pattern to the input update statement
         Matcher matcher = pattern.matcher(inputLine);
 
         String tableName;
         String columnName;
-        double value;
+        String value;
         String condition;
 
         // Check if the update statement matches the pattern
         if (matcher.matches()) {
             tableName = matcher.group(1);
             columnName = matcher.group(2);
-            value = Double.parseDouble(matcher.group(3));
+            value = matcher.group(3);
             condition = matcher.group(4);
 
             System.out.println("DEBUG | tableName: " + tableName);

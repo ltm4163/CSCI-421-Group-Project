@@ -65,7 +65,7 @@ public class StorageManager {
         return page;
     }
 
-    public boolean deleteRecord(TableSchema tableSchema, WhereCondition whereRoot) {
+    public void deleteRecords(TableSchema tableSchema, WhereCondition whereRoot) {
         List<Page> pages = getPages(tableSchema.gettableNumber());
         for (Page page : pages) {
             List<Record> records = page.getRecords();
@@ -73,16 +73,16 @@ public class StorageManager {
                 Record record = records.get(i);
                 if (whereRoot == null) {
                     page.deleteRecord(record);
-                    tableSchema.dropPage(page.getPageNumber());
+                    if (page.getNumRecords() == 0) tableSchema.dropPage(page.getPageNumber());
                     i--;
                 }
                 else if (whereRoot.evaluate(record, tableSchema)) {
                     page.deleteRecord(record);
+                    if (page.getNumRecords() == 0) tableSchema.dropPage(page.getPageNumber());
                     i--;
                 }
             }
         }
-        return false; //compilation placeholder
     }
     
     public boolean addRecord(Catalog catalog, Record record, int tableNumber) {
@@ -177,7 +177,7 @@ public class StorageManager {
     }
 
     public boolean updateRecord(String tableName, String columnName, Object value, WhereCondition whereRoot) {
-        TableSchema table = catalog.getTableSchemaByName(tableName); //TODO: change this to table created by from clause
+        TableSchema table = catalog.getTableSchemaByName(tableName);
         AttributeSchema[] attributes = table.getattributes();
 
         int columnIndex = -1;
@@ -189,44 +189,50 @@ public class StorageManager {
         }
         // don't need to check if column doesn't exist bc this is alr handled?
 
-        List<Record> records = new ArrayList<>();
-        for (int i = 0; i < table.getNumPages(); i++) {
+        //List<Record> records = new ArrayList<>();
+        int numPages = table.getNumPages();
+        for (int i = 0; i < numPages; i++) {
             Page page = getPage(table.gettableNumber(), i);
-            records.addAll(page.getRecords());
-        }
+            System.out.println("i: " + i);
+            System.out.println("pageNum: " + page.getPageNumber());
+            //records.addAll(page.getRecords());
 
-        // Update records based on the condition
-        for (Record record : records) {
-            Object oldValue = record.getAttributeValue(columnName, attributes);
-            if (whereRoot.evaluate(record, table)) {
-                ArrayList<Object> recData = record.getData();
-                recData.set(columnIndex, value); // Update the value of the specified column
-                
-                // calculate size change in record
-                int sizeRemoved = 0;
-                int sizeAdded = 0;
-                ArrayList<Byte> nullBitMap = record.getNullBitMap();
-                AttributeSchema attr = table.getAttributeByName(columnName);
-                switch (attr.gettype()) {
-                    case "varchar":
-                        sizeAdded = (value == null) ? 0 : ((String)value).length() + Integer.BYTES;
-                        sizeRemoved = (oldValue == null) ? 0 : ((String)oldValue).length() + Integer.BYTES;
-                        break;
-                    default:
-                        sizeAdded = (value == null) ? 0 : attr.getsize();
-                        sizeRemoved = (oldValue == null) ? 0 : attr.getsize();
-                        break;
+            List<Record> records = new ArrayList<>(page.getRecords());
+            // Update records based on the condition
+            for (Record record : records) {
+                Object oldValue = record.getAttributeValue(columnName, attributes);
+                if (whereRoot.evaluate(record, table)) {
+                    ArrayList<Object> recData = record.getData();
+                    recData.set(columnIndex, value); // Update the value of the specified column
+                    
+                    // calculate size change in record
+                    int sizeRemoved = 0;
+                    int sizeAdded = 0;
+                    ArrayList<Byte> nullBitMap = record.getNullBitMap();
+                    AttributeSchema attr = table.getAttributeByName(columnName);
+                    switch (attr.gettype()) {
+                        case "varchar":
+                            sizeAdded = (value == null) ? 0 : ((String)value).length() + Integer.BYTES;
+                            sizeRemoved = (oldValue == null) ? 0 : ((String)oldValue).length() + Integer.BYTES;
+                            break;
+                        default:
+                            sizeAdded = (value == null) ? 0 : attr.getsize();
+                            sizeRemoved = (oldValue == null) ? 0 : attr.getsize();
+                            break;
+                    }
+
+                    // update record's nullBitMap
+                    if (value == null) nullBitMap.set(columnIndex, (byte)0);
+                    else nullBitMap.set(columnIndex, (byte)1);
+                    
+                    Record updatedRecord = new Record(recData, record.getSize()+sizeAdded-sizeRemoved, nullBitMap);
+                    page.deleteRecord(record);
+                    if (page.getNumRecords() == 0) table.dropPage(page.getPageNumber());
+                    addRecord(catalog, updatedRecord, table.gettableNumber());
                 }
-
-                // update record's nullBitMap
-                if (value == null) nullBitMap.set(columnIndex, (byte)0);
-                else nullBitMap.set(columnIndex, (byte)1);
-                
-                Record updatedRecord = new Record(recData, record.getSize()+sizeAdded-sizeRemoved, nullBitMap);
-                deleteRecord(table, whereRoot);
-                addRecord(catalog, updatedRecord, table.gettableNumber());
             }
         }
+
         return true;
 
     }
@@ -234,8 +240,8 @@ public class StorageManager {
 
     // Split page into two
     public void splitPage(Page page) {
+        System.out.println("splitting");
         List<Record> records = page.getRecords();
-        System.out.println("splitting page");
 
         // TODO: Change this implementation from list to arraylist (dont think this is necessary)
         int midIndex = page.getNumRecords() / 2;
@@ -249,15 +255,11 @@ public class StorageManager {
         int secondPageSize = 4;
         for (int i = 0; i < midIndex; i++) {
             Record record = records.get(i);
-            System.out.println("recSize1: " + record.getSize());
-            System.out.println("int: " + (int)record.getData().get(0));
             firstHalf.add(record);
             firstPageSize += record.getSize();
         }
         for (int i = midIndex; i < page.getNumRecords(); i++) {
             Record record = records.get(i);
-            System.out.println("recSize2: " + record.getSize());
-            System.out.println("int: " + (int)record.getData().get(0));
             secondHalf.add(record);
             secondPageSize += record.getSize();
         }
@@ -284,8 +286,6 @@ public class StorageManager {
         }
         catalog.getTableSchema(page.getTableNumber()).addPage(newPage);
     
-        System.out.println("pageSize: " + page.getSize());
-        System.out.println("newPageSize: " + newPage.getSize());
         if (page.isOverfull()) splitPage(page);
         else buffer.updatePage(page);
         if (newPage.isOverfull()) splitPage(newPage);
@@ -312,6 +312,8 @@ public class StorageManager {
         else if (attr.gettype().equalsIgnoreCase("double")) {
             double attrValueInsert = (double)record.getData().get(tupleIndex);
             double attrValueExisting = (double)existingRecord.getData().get(tupleIndex);
+            System.out.println("insert: " + attrValueInsert);
+            System.out.println("existing: " + attrValueExisting);
             return (int)(attrValueInsert-attrValueExisting);
         }
         else if (attr.gettype().equalsIgnoreCase("boolean")) {
