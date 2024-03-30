@@ -1,15 +1,12 @@
 import java.io.IOException;
 import java.util.*;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class parser {
 
@@ -387,7 +384,7 @@ public class parser {
 
         if (!(columnList.size() == 1 && columnList.get(0).equals("*"))) {
             // Ensures column names exist in tables
-            columnList = SelectParse.parseSelectClause2(columnList, tableSchemas);
+            columnList = SelectParse.addTableNameToAttribute(columnList, tableSchemas);
             if (columnList == null) {
                 return;
             }
@@ -401,7 +398,7 @@ public class parser {
 
         // Orders the attributes in the order they were mentioned in the select clause
         tableSchemas = FromParse.parseFromClause2(tableSchemas, columnList);
-        List<String> columnList2 = SelectParse.parseSelectClause3(columnList, tableSchemas);
+        List<String> columnList2 = SelectParse.reorderAttributes(columnList, tableSchemas);
 
         // Match WHERE clause if present
         List<List<Record>> records = new ArrayList<>();
@@ -441,7 +438,7 @@ public class parser {
         Matcher orderByMatcher = orderByPattern.matcher(inputLine);
         if (orderByMatcher.find()) {
             orderByCheck = true;
-            String normalizedOrderByColumn = normalizeColumnName(orderByMatcher.group(1));
+            String normalizedOrderByColumn = normalizeColumnName(orderByMatcher.group(1).trim());
             if (normalizedOrderByColumn.indexOf('.') == -1) {
                 boolean found = false;
                 for (String column : columnList) {
@@ -458,13 +455,25 @@ public class parser {
             }
 
             if (!normalizedOrderByColumn.isEmpty()) {
+                System.out.println(normalizedOrderByColumn);
                 List<List<Object>> rows = getValueMap(records, tableSchemas, columnList2, columnList);
+                // TODO: Get the index of the attribute and sort by that index
+                TableSchema currentTable = null;
+                for (TableSchema tableSchema : tableSchemas) {
+                    if (tableSchema.getname().equals(normalizedOrderByColumn.substring(0, normalizedOrderByColumn.indexOf('.')))) {
+                        currentTable = tableSchema;
+                        break;
+                    }
+                }
+                assert currentTable != null;
+                final int attributeIndex = currentTable.getAttributeIndex(normalizedOrderByColumn.substring(normalizedOrderByColumn.indexOf('.') + 1));
+                System.out.println(attributeIndex);
 
                 Collections.sort(rows, new Comparator<List<Object>>() {
                     @Override
                     public int compare(List<Object> o1, List<Object> o2) {
-                        Object secondValue1 = o1.get(1);
-                        Object secondValue2 = o2.get(1);
+                        Object secondValue1 = o1.get(attributeIndex);
+                        Object secondValue2 = o2.get(attributeIndex);
                         if (secondValue1 instanceof Integer) {
                             return ((Integer) secondValue1).compareTo((Integer) secondValue2);
                         } else if (secondValue1 instanceof Double) {
@@ -499,7 +508,7 @@ public class parser {
         }
         int semiColonIndex = columnName.indexOf(";");
         String normalized = semiColonIndex != -1 ? columnName.substring(0, semiColonIndex) : columnName;
-        return normalized;
+        return normalized.trim();
     }
 
     private static void printRowsByRow(List<List<Object>> rows, List<String> cartesianColumns) {

@@ -92,6 +92,16 @@ public class TableSchema {
         }
         return null;
     }
+
+    public int getAttributeIndex(String attrName) {
+        AttributeSchema[] attributes = getattributes();
+        for (int i = 0; i < attributes.length; i++) {
+            if (attributes[i].getname().equals(attrName)) {
+                return i;
+            }
+        }
+        return 0;
+    }
     
     public boolean hasPrimaryKey(TableSchema table) { 
         for(int i = 0; i < table.getnumAttributes(); i++) {
