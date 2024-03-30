@@ -728,7 +728,7 @@ public class parser {
         Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE|$)", Pattern.CASE_INSENSITIVE);
         Pattern wherePattern = Pattern.compile("WHERE (.+)$", Pattern.CASE_INSENSITIVE);
 
-        TableSchema tableSchema = null;
+        List<TableSchema> tableSchemas = null;
         List<List<WhereParse.Condition>> whereClauseList;
         WhereCondition whereRoot = null;
 
@@ -737,7 +737,7 @@ public class parser {
         if (fromMatcher.find()) {
             String tableNames = fromMatcher.group(1);
             System.out.println("Table names: " + tableNames);
-            tableSchema = FromParse.parseFromClause(tableNames, c).get(0);
+            tableSchemas = FromParse.parseFromClause(tableNames, c);
         } else {
             System.out.println("Error: No FROM clause found");
             return;
@@ -748,12 +748,15 @@ public class parser {
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
             System.out.println("Where conditions: " + whereClause);
-            whereRoot = WhereParse.parseWhereClause(whereClause); //TODO: change this to WhereParse version after merge
+            whereClause = whereClause.trim().replaceAll(";$", "");
+            whereRoot = WhereParse.parseWhereClause(whereClause, tableSchemas); //TODO: change this to WhereParse version after merge
             // whereClauseList = WhereParse.parseWhereClause(whereClause);
         } else {
             System.out.println("No WHERE conditions specified");
         }
 
+        assert tableSchemas != null;
+        TableSchema tableSchema = tableSchemas.get(0);
         storageManager.deleteRecords(tableSchema, whereRoot);
     }
 

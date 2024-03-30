@@ -53,6 +53,11 @@ public class WhereParse {
 
         for (int i = 0; i < conditions.length; i++) {
             int indexOfConditional = findOperatorIndex(conditions[i]);
+            System.out.println(i);
+            System.out.println(conditions[i]);
+            System.out.println(conditions[i].indexOf('.'));
+            System.out.println(conditions[i].substring(conditions[i].indexOf('.') + 1));
+            System.out.println(indexOfConditional);
             String column = conditions[i].substring(conditions[i].indexOf('.') + 1, indexOfConditional).trim();
             if (conditions[i].indexOf('.') == -1) {
                 List<TableSchema> foundInTables = new ArrayList<>();
@@ -68,6 +73,7 @@ public class WhereParse {
                 }
             }
 
+            System.out.println(conditions[i].substring(conditions[i].indexOf('.') + 1).trim());
             Matcher conditionMatcher = conditionPattern.matcher(conditions[i].substring(conditions[i].indexOf('.') + 1).trim());
             if (!conditionMatcher.matches()) {
                 System.err.println("parseWhereClause: Failed to match condition pattern in part: " + conditions[i]);
@@ -131,6 +137,7 @@ public class WhereParse {
         WhereCondition rootCondition = null;
 
         for (int i = 0; i < conditions.length; i++) {
+            System.out.println(conditions[i]);
             Matcher conditionMatcher = conditionPattern.matcher(conditions[i].substring(conditions[i].indexOf('.') + 1).trim());
             if (!conditionMatcher.matches()) {
                 System.err.println("parseWhereClause: Failed to match condition pattern in part: " + conditions[i]);
