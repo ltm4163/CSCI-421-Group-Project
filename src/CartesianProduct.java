@@ -31,6 +31,25 @@ public class CartesianProduct {
                 else {
                     for (int j = 0; j < record.getNumElements(); j++) {
                         value = record.getData().get(j);
+                        TableSchema currentTable = null;
+                        for (TableSchema tableSchema : tableSchemas) {
+                            if (tableSchema.getname().equals(columnsToSelect.get(currentIndex).substring(0, columnsToSelect.get(currentIndex).indexOf('.')))) {
+                                currentTable = tableSchema;
+                                break;
+                            }
+                        }
+                        assert currentTable != null;
+                        List<String> attributeNames = currentTable.getAttributeNames();
+                        int index = 0;
+                        for (int i = 0; i < attributeNames.size(); i++) {
+                            if (attributeNames.get(i).equals(columnsToSelect.get(currentIndex).substring(columnsToSelect.get(currentIndex).indexOf('.') + 1))) {
+                                index = i;
+                                break;
+                            }
+                        }
+                        if (index != j) {
+                            continue;
+                        }
                         tableValues.get(columnsToSelect.get(currentIndex++)).add(value);
                     }
                 }
