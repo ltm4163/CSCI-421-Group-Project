@@ -8,6 +8,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class parser {
 
@@ -722,9 +724,82 @@ public class parser {
             System.out.println("No WHERE conditions specified");
         }
 
-        storageManager.deleteRecord(tableSchema, whereRoot);
+        storageManager.deleteRecords(tableSchema, whereRoot);
     }
-          
+
+    public static void handleUpdateCommand(String inputLine, Catalog catalog, StorageManager storageManager) {
+        Pattern pattern = Pattern.compile("^update\\s+(\\w+)\\s+set\\s+(\\w+)\\s*=\\s*(.+?)\\s+where\\s+(.+);$");
+
+        // Create a Matcher object to apply the pattern to the input update statement
+        Matcher matcher = pattern.matcher(inputLine);
+
+        String tableName;
+        String columnName;
+        String value;
+        String condition;
+
+        // Check if the update statement matches the pattern
+        if (matcher.matches()) {
+            tableName = matcher.group(1);
+            columnName = matcher.group(2);
+            value = matcher.group(3);
+            condition = matcher.group(4);
+
+            System.out.println("DEBUG | tableName: " + tableName);
+            System.out.println("DEBUG | columnName: " + columnName);
+            System.out.println("DEBUG | value : " + value);
+            System.out.println("DEBUG | condition " + condition);
+        } else {
+            System.out.println("Invalid update statement format\nERROR");
+            return;
+        }
+
+        if(condition != null) {
+            condition = condition.trim().replaceAll(";$", "");
+        } else { // can the update work with no condition?
+            System.out.println("No condition specified\nERROR");
+        }
+
+        TableSchema tableSchema = catalog.getTableSchemaByName(tableName);
+        if(tableSchema == null) {
+            System.out.println("Table '" + tableName + "' does not exist\nERROR");
+            return;
+        }
+
+        if(!tableSchema.hasAttribute(columnName)) {
+            System.out.println("Column '" + columnName + "' does not exist in table '" + tableName + "'\nERROR");
+        }
+
+        WhereCondition whereRoot = null;
+        if(condition != null && !condition.isBlank()) {
+            whereRoot = parseWhereClause(condition);
+            System.out.println("DEBUG | parse WHERE clause: " + whereRoot);
+        }
+
+        final WhereCondition finalWhereRoot = whereRoot;
+
+        Object objectValue = value;
+        if (whereRoot != null) {
+            // Update records based on the condition
+            boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
+            if (success) {
+                System.out.println("Update successful");
+            } else {
+                System.out.println("Update failed");
+            }
+        } else {
+            // Update all records (no condition specified)
+            boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
+            if (success) {
+                System.out.println("Update successful");
+            } else {
+                System.out.println("Update failed");
+            }
+        }
+
+
+    }
+
     public static void parse(String inputLine, Catalog catalog, PageBuffer buffer, String dbDirectory, int pageSize, StorageManager storageManager) {
         String[] tokens = inputLine.trim().split("\\s+");
         if (tokens.length == 0) {
@@ -771,6 +846,10 @@ public class parser {
             case "delete":
                 handleDeleteCommand(inputLine, catalog, storageManager);
                 break;
+
+            case "update":
+                 handleUpdateCommand(inputLine, catalog, storageManager);
+                 break;
 
             case "display":
             if (tokens.length > 2 && tokens[1].equalsIgnoreCase("info")) {

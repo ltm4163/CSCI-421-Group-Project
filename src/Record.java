@@ -107,6 +107,10 @@ public class Record {
       return this.data.size();
   }
 
+    public ArrayList<Byte> getNullBitMap() {
+        return this.nullBitMap;
+    }
+
     public Object getAttributeValue(String attributeName, AttributeSchema[] attributeSchemas) {
         String[] parts = attributeName.split("\\.");
         String actualAttributeName = parts.length > 1 ? parts[1] : parts[0];

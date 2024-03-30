@@ -26,8 +26,8 @@ public class Page {
         this.updated = true;
     }
 
-    public void deleteRecord(Record record) {
-        this.records.remove(record);
+    public void deleteRecord(Record record, int index) {
+        this.records.remove(index);
         this.numRecords--;
         this.size -= record.getSize();
         this.updated = true;

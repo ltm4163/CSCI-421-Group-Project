@@ -155,7 +155,12 @@ public class TableSchema {
             for (int i = 0; i < this.numPages+1; i++) {
                 if (i != indexToRemove) {
                     newArray[newIndex] = this.pageLocations[i];
-                    if (newArray[newIndex] > pageNum) newArray[newIndex]--; //decrease pageNum of pages after deleted page
+                    if (newArray[newIndex] > pageNum) {
+                        newArray[newIndex]--; //decrease pageNum of pages after deleted page
+                        Page page = Main.getStorageManager().getPage(tableNumber, pageNum);
+                        page.setPageNumber(page.getPageNumber()-1);
+                        Main.getBuffer().updatePage(page);
+                    }
                     newIndex++;
                 }
             }
