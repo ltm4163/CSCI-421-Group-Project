@@ -125,7 +125,6 @@ public class StorageManager {
                         }
                     }
                     else {
-                        System.out.println("existingOtherValues: " + existingRecord.getData().get(tupleIndex));
                         if (attr.getunique()) {
                             int comparisonResult = compare(attr, record, existingRecord, tupleIndex);
                             if (comparisonResult == 0) {
@@ -169,10 +168,11 @@ public class StorageManager {
         }
         
         // Check if the page is overfull and handle splitting if necessary
-        if (targetPage.isOverfull()) {
-            splitPage(targetPage);
-        }
-        else buffer.updatePage(targetPage);
+        // if (targetPage.isOverfull()) {
+        //     splitPage(targetPage);
+        // }
+        //else
+        buffer.updatePage(targetPage);
         
         // Update the catalog and buffer as necessary
         //updateCatalogAndBufferAfterInsertion(catalog, table, targetPage);
@@ -195,8 +195,6 @@ public class StorageManager {
         int numPages = table.getNumPages();
         for (int i = 0; i < numPages; i++) {
             Page page = getPage(table.gettableNumber(), i);
-            System.out.println("i: " + i);
-            System.out.println("pageNum: " + page.getPageNumber());
             //records.addAll(page.getRecords());
 
             List<Record> oldRecords = page.getRecords();
@@ -208,7 +206,6 @@ public class StorageManager {
             // Update records based on the condition
             int amountMoved = 0;
             for (int k = 0; k < records.size(); k++) {
-                System.out.println("amountMoved: " + amountMoved);
                 Record record = records.get(k);
                 Object oldValue = record.getAttributeValue(columnName, attributes);
                 if (whereRoot.evaluate(record, table)) {
@@ -271,7 +268,6 @@ public class StorageManager {
 
     // Split page into two
     public void splitPage(Page page) {
-        System.out.println("splitting");
         List<Record> records = page.getRecords();
 
         // TODO: Change this implementation from list to arraylist (dont think this is necessary)
@@ -333,8 +329,6 @@ public class StorageManager {
         else if (attr.gettype().equalsIgnoreCase("char")) {
             String attrValueInsert = (String)record.getData().get(tupleIndex);
             String attrValueExisting = (String)existingRecord.getData().get(tupleIndex);
-            System.out.println("insertChar: " + attrValueInsert);
-            System.out.println("existingChar: " + attrValueExisting);
             return attrValueInsert.compareTo(attrValueExisting);
         }
         else if (attr.gettype().equalsIgnoreCase("integer")) {
@@ -345,8 +339,6 @@ public class StorageManager {
         else if (attr.gettype().equalsIgnoreCase("double")) {
             double attrValueInsert = (double)record.getData().get(tupleIndex);
             double attrValueExisting = (double)existingRecord.getData().get(tupleIndex);
-            System.out.println("insert: " + attrValueInsert);
-            System.out.println("existing: " + attrValueExisting);
             if (Math.abs(attrValueInsert-attrValueExisting) < 0.0001) return 0;
             else if (attrValueInsert<attrValueExisting) return -1;
             return 1;

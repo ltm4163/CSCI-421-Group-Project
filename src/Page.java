@@ -27,7 +27,6 @@ public class Page {
     }
 
     public void deleteRecord(Record record, int index) {
-        System.out.println("deleting: " + this.records.get(index).getData().get(0));
         this.records.remove(index);
         this.numRecords--;
         this.size -= record.getSize();
