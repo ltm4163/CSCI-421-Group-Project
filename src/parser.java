@@ -772,7 +772,7 @@ public class parser {
 
         WhereCondition whereRoot = null;
         if(condition != null && !condition.isBlank()) {
-            whereRoot = parseWhereClause(condition);
+            whereRoot = WhereParse.parseWhereClause(condition);
             System.out.println("DEBUG | parse WHERE clause: " + whereRoot);
         }
 
