@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -53,17 +54,18 @@ public class WhereParse {
         for (int i = 0; i < conditions.length; i++) {
             int indexOfConditional = findOperatorIndex(conditions[i]);
             String column = conditions[i].substring(conditions[i].indexOf('.') + 1, indexOfConditional).trim();
-            System.out.println(column);
-            List<TableSchema> foundInTables = new ArrayList<>();
-            for (TableSchema table : tableSchemas) {
-                List<String> attributeNames = table.getAttributeNames();
-                if (attributeNames.contains(column)) {
-                    foundInTables.add(table);
+            if (conditions[i].indexOf('.') == -1) {
+                List<TableSchema> foundInTables = new ArrayList<>();
+                for (TableSchema table : tableSchemas) {
+                    List<String> attributeNames = table.getAttributeNames();
+                    if (attributeNames.contains(column)) {
+                        foundInTables.add(table);
+                    }
                 }
-            }
-            if (foundInTables.size() > 1) {
-                System.out.println("Column '" + column + "' is present in multiple tables: " + foundInTables);
-                return null;
+                if (foundInTables.size() > 1) {
+                    System.out.println("Column '" + column + "' is present in multiple tables: " + foundInTables);
+                    return null;
+                }
             }
 
             Matcher conditionMatcher = conditionPattern.matcher(conditions[i].substring(conditions[i].indexOf('.') + 1).trim());

@@ -20,13 +20,16 @@ public class CartesianProduct {
             tableValues.putIfAbsent(column, new ArrayList<>());
         }
 
+        outerLoop:
         for (List<Record> recordList : result) {
+            int recordsAdded = 0;
             int currentIndex = 0;
             for (Record record : recordList) {
                 Object value;
                 if (record.getNumElements() == 1) {
                     value = record.getData().get(0);
                     tableValues.get(columnsToSelect.get(currentIndex++)).add(value);
+                    recordsAdded++;
                 }
                 else {
                     for (int j = 0; j < record.getNumElements(); j++) {
@@ -51,7 +54,14 @@ public class CartesianProduct {
                             continue;
                         }
                         tableValues.get(columnsToSelect.get(currentIndex++)).add(value);
+                        recordsAdded++;
+                        if (recordsAdded == columnsToSelect.size()) {
+                            continue outerLoop;
+                        }
                     }
+                }
+                if (recordsAdded == columnsToSelect.size()) {
+                    continue outerLoop;
                 }
             }
         }
