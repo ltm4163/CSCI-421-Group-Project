@@ -121,6 +121,10 @@ public class AttributeSchema {
         else if (type.startsWith("integer")) size = Integer.BYTES;
         else if (type.startsWith("double")) size = Double.BYTES;
         else if (type.startsWith("boolean")) size = 1;
+        else if (type.startsWith("int")) {
+            size = Integer.BYTES;
+            type = "integer";
+        }
 
         return new AttributeSchema(name, type, unique, notNull, primaryKey, size);
     }
