@@ -63,7 +63,7 @@ public class Main {
                 commandBuilder.append(" ").append(inputLine.trim());
                 
                 if (inputLine.trim().endsWith(";")) {
-                    parser.parse(commandBuilder.toString(), catalog, buffer, dbDirectory, pageSize, storageManager);
+                    parser.parse(commandBuilder.toString().trim(), catalog, buffer, dbDirectory, pageSize, storageManager);
                     commandBuilder.setLength(0);
                 }
             }
