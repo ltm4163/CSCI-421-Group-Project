@@ -433,6 +433,10 @@ public class parser {
             }
         }
 
+        if (records.get(0).isEmpty()) {
+            return;
+        }
+
         // Match ORDERBY clause if present
         boolean orderByCheck = false;
         Matcher orderByMatcher = orderByPattern.matcher(inputLine);
