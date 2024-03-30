@@ -455,19 +455,15 @@ public class parser {
             }
 
             if (!normalizedOrderByColumn.isEmpty()) {
-                System.out.println(normalizedOrderByColumn);
                 List<List<Object>> rows = getValueMap(records, tableSchemas, columnList2, columnList);
                 // TODO: Get the index of the attribute and sort by that index
-                TableSchema currentTable = null;
-                for (TableSchema tableSchema : tableSchemas) {
-                    if (tableSchema.getname().equals(normalizedOrderByColumn.substring(0, normalizedOrderByColumn.indexOf('.')))) {
-                        currentTable = tableSchema;
-                        break;
+                int index = 0;
+                for (int i = 0; i < columnList.size(); i++) {
+                    if (columnList.get(i).equals(normalizedOrderByColumn)) {
+                        index = i;
                     }
                 }
-                assert currentTable != null;
-                final int attributeIndex = currentTable.getAttributeIndex(normalizedOrderByColumn.substring(normalizedOrderByColumn.indexOf('.') + 1));
-                System.out.println(attributeIndex);
+                final int attributeIndex = index;
 
                 Collections.sort(rows, new Comparator<List<Object>>() {
                     @Override
