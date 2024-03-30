@@ -433,8 +433,15 @@ public class parser {
             }
         }
 
-        if (records.get(0).isEmpty()) {
-            return;
+        System.out.println(records);
+        for (List<Record> record : records) {
+            if (record.isEmpty()) {  // If where returns no records...
+                for (String columnName : columnList) {
+                    System.out.print(columnName + " | ");
+                }
+                System.out.println();
+                return;
+            }
         }
 
         // Match ORDERBY clause if present
