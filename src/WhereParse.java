@@ -35,13 +35,13 @@ public class WhereParse {
         WhereCondition rootCondition = null;
 
         for (int i = 0; i < conditions.length; i++) {
-            Matcher conditionMatcher = conditionPattern.matcher(conditions[i].trim());
+            Matcher conditionMatcher = conditionPattern.matcher(conditions[i].substring(conditions[i].indexOf('.') + 1).trim());
             if (!conditionMatcher.matches()) {
                 System.err.println("parseWhereClause: Failed to match condition pattern in part: " + conditions[i]);
                 continue;
             }
 
-            System.out.println("Attempting to match condition: " + conditions[i].trim());
+            System.out.println("Attempting to match condition: " + conditions[i].substring(conditions[i].indexOf('.') + 1).trim());
             if (!conditionMatcher.matches()) {
                 System.err.println("Failed to match condition pattern in part: " + conditions[i]);
                 continue;
