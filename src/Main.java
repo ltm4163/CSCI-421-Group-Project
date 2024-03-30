@@ -60,7 +60,7 @@ public class Main {
                     }
                     break;
                 }
-                commandBuilder.append(inputLine.trim());
+                commandBuilder.append(" ").append(inputLine.trim());
                 
                 if (inputLine.trim().endsWith(";")) {
                     parser.parse(commandBuilder.toString(), catalog, buffer, dbDirectory, pageSize, storageManager);
