@@ -406,7 +406,10 @@ public class parser {
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
             whereClause = whereClause.trim().replaceAll(";$", "");
-            whereRoot = WhereParse.parseWhereClause(whereClause);
+            whereRoot = WhereParse.parseWhereClause(whereClause, tableSchemas);
+            if (whereRoot == null) {
+                return;
+            }
             System.out.println("Debug: Parsed WHERE clause: " + whereRoot);
 
             final WhereCondition finalWhereRoot = whereRoot;
@@ -433,7 +436,6 @@ public class parser {
             }
         }
 
-        System.out.println(records);
         for (List<Record> record : records) {
             if (record.isEmpty()) {  // If where returns no records...
                 for (String columnName : columnList) {
@@ -450,6 +452,7 @@ public class parser {
         if (orderByMatcher.find()) {
             orderByCheck = true;
             String normalizedOrderByColumn = normalizeColumnName(orderByMatcher.group(1).trim());
+            String orderByColumnWithoutTable = normalizedOrderByColumn;
             if (normalizedOrderByColumn.indexOf('.') == -1) {
                 boolean found = false;
                 for (String column : columnList) {
@@ -463,11 +466,22 @@ public class parser {
                     System.err.println("Error: Column '" + normalizedOrderByColumn + "' does not exist in table schema.");
                     return;
                 }
+
+                List<TableSchema> foundInTables = new ArrayList<>();
+                for (TableSchema table : tableSchemas) {
+                    List<String> attributeNames = table.getAttributeNames();
+                    if (attributeNames.contains(orderByColumnWithoutTable)) {
+                        foundInTables.add(table);
+                    }
+                }
+                if (foundInTables.size() > 1) {
+                    System.out.println("Column '" + orderByColumnWithoutTable + "' is present in multiple tables: " + foundInTables);
+                    return;
+                }
             }
 
             if (!normalizedOrderByColumn.isEmpty()) {
                 List<List<Object>> rows = getValueMap(records, tableSchemas, columnList2, columnList);
-                // TODO: Get the index of the attribute and sort by that index
                 int index = 0;
                 for (int i = 0; i < columnList.size(); i++) {
                     if (columnList.get(i).equals(normalizedOrderByColumn)) {
