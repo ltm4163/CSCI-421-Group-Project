@@ -2,6 +2,13 @@ import java.util.*;
 
 public class CartesianProduct {
     public static Map<String, List<Object>> cartesianProduct(List<List<Record>> lists, List<String> columnsToSelect, List<TableSchema> tableSchemas) {
+        List<String> tablesInOrder = new ArrayList<>();
+        for (String column : columnsToSelect) {
+            if (!tablesInOrder.contains(column.substring(0, column.indexOf('.')))) {
+                tablesInOrder.add(column.substring(0, column.indexOf('.')));
+            }
+        }
+
         List<List<Record>> result = new ArrayList<>();
         cartesianProductHelper(lists, result, new ArrayList<>(), 0);
 
@@ -22,34 +29,46 @@ public class CartesianProduct {
 
         outerLoop:
         for (List<Record> recordList : result) {
+            //System.out.println(recordList);
             int recordsAdded = 0;
             int currentIndex = 0;
-            for (Record record : recordList) {
+            thisLoop:
+            for (int i = 0; i < recordList.size(); i++) {
                 Object value;
-                if (record.getNumElements() == 1) {
-                    value = record.getData().get(0);
+                if (recordList.get(i).getNumElements() == 1) {
+                    value = recordList.get(i).getData().get(0);
                     tableValues.get(columnsToSelect.get(currentIndex++)).add(value);
                     recordsAdded++;
                 }
                 else {
-                    for (int j = 0; j < record.getNumElements(); j++) {
-                        value = record.getData().get(j);
+                    for (int j = 0; j < recordList.get(i).getNumElements(); j++) {
+                        //System.out.println(recordList.get(i));
+                        value = recordList.get(i).getData().get(j);
                         TableSchema currentTable = null;
                         for (TableSchema tableSchema : tableSchemas) {
-                            if (tableSchema.getname().equals(columnsToSelect.get(currentIndex).substring(0, columnsToSelect.get(currentIndex).indexOf('.')))) {
+                            if (tableSchema.getname().equals(tablesInOrder.get(i))) {
                                 currentTable = tableSchema;
+                                if (!currentTable.getname().equals(columnsToSelect.get(currentIndex).substring(0, columnsToSelect.get(currentIndex).indexOf('.')))) {
+                                    continue thisLoop;
+                                }
                                 break;
                             }
+//                            if (tableSchema.getname().equals(columnsToSelect.get(currentIndex).substring(0, columnsToSelect.get(currentIndex).indexOf('.')))) {
+//                                currentTable = tableSchema;
+//                                break;
+//                            }
                         }
                         assert currentTable != null;
-                        List<String> attributeNames = currentTable.getAttributeNames();
+                        List<String> attributeNames = currentTable.getAttributeNamesWithTable();
                         int index = 0;
-                        for (int i = 0; i < attributeNames.size(); i++) {
-                            if (attributeNames.get(i).equals(columnsToSelect.get(currentIndex).substring(columnsToSelect.get(currentIndex).indexOf('.') + 1))) {
-                                index = i;
+                        for (int x = 0; x < attributeNames.size(); x++) {
+                            if (attributeNames.get(x).equals(columnsToSelect.get(currentIndex))) {
+                                index = x;
                                 break;
                             }
                         }
+//                        System.out.println(index + " " + j);
+//                        System.out.println(tablesInOrder.get(j));
                         if (index != j) {
                             continue;
                         }
