@@ -410,17 +410,14 @@ public class parser {
             if (whereRoot == null) {
                 return;
             }
-            System.out.println("Debug: Parsed WHERE clause: " + whereRoot);
 
             final WhereCondition finalWhereRoot = whereRoot;
 
             if (whereRoot != null) {
-                System.out.println("Debug: Where condition parse tree - " + whereRoot);
                 for (TableSchema tableSchema : tableSchemas) {
                     List<Record> tableRecords = storageManager.getRecords(tableSchema.gettableNumber()).stream()
                             .map(rawData -> new Record(rawData, calculateRecordSize(rawData, tableSchema.getattributes()), new ArrayList<>()))
                             .filter(record -> {
-                                System.out.println("Debug: Evaluating record: " + record);
                                 return finalWhereRoot == null || finalWhereRoot.evaluate(record, tableSchema);
                             }).toList();
                     records.add(tableRecords);
@@ -728,7 +725,7 @@ public class parser {
         Pattern fromPattern = Pattern.compile("FROM (.+?)(?: WHERE|$)", Pattern.CASE_INSENSITIVE);
         Pattern wherePattern = Pattern.compile("WHERE (.+)$", Pattern.CASE_INSENSITIVE);
 
-        TableSchema tableSchema = null;
+        List<TableSchema> tableSchemas = null;
         List<List<WhereParse.Condition>> whereClauseList;
         WhereCondition whereRoot = null;
 
@@ -737,7 +734,7 @@ public class parser {
         if (fromMatcher.find()) {
             String tableNames = fromMatcher.group(1);
             System.out.println("Table names: " + tableNames);
-            tableSchema = FromParse.parseFromClause(tableNames, c).get(0);
+            tableSchemas = FromParse.parseFromClause(tableNames, c);
         } else {
             System.out.println("Error: No FROM clause found");
             return;
@@ -748,12 +745,15 @@ public class parser {
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
             System.out.println("Where conditions: " + whereClause);
-            whereRoot = WhereParse.parseWhereClause(whereClause); //TODO: change this to WhereParse version after merge
+            whereClause = whereClause.trim().replaceAll(";$", "");
+            whereRoot = WhereParse.parseWhereClause(whereClause, tableSchemas); //TODO: change this to WhereParse version after merge
             // whereClauseList = WhereParse.parseWhereClause(whereClause);
         } else {
             System.out.println("No WHERE conditions specified");
         }
 
+        assert tableSchemas != null;
+        TableSchema tableSchema = tableSchemas.get(0);
         storageManager.deleteRecords(tableSchema, whereRoot);
     }
 
@@ -775,10 +775,6 @@ public class parser {
             value = matcher.group(3);
             condition = matcher.group(4);
 
-            System.out.println("DEBUG | tableName: " + tableName);
-            System.out.println("DEBUG | columnName: " + columnName);
-            System.out.println("DEBUG | value : " + value);
-            System.out.println("DEBUG | condition " + condition);
         } else {
             System.out.println("Invalid update statement format\nERROR");
             return;
@@ -801,9 +797,10 @@ public class parser {
         }
 
         WhereCondition whereRoot = null;
+        List<TableSchema> tableSchemas = new ArrayList<>();
+        tableSchemas.add(tableSchema);
         if(condition != null && !condition.isBlank()) {
-            whereRoot = WhereParse.parseWhereClause(condition);
-            System.out.println("DEBUG | parse WHERE clause: " + whereRoot);
+            whereRoot = WhereParse.parseWhereClause(condition, tableSchemas);
         }
 
         final WhereCondition finalWhereRoot = whereRoot;

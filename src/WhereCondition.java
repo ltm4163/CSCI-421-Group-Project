@@ -54,11 +54,9 @@ class WhereCondition {
         switch (operator) {
             case AND:
                 boolean andResult = left.evaluate(record, tableSchema) && right.evaluate(record, tableSchema);
-                System.out.println("Debug: AND Evaluation - " + andResult);
                 return andResult;
             case OR:
                 boolean orResult = left.evaluate(record, tableSchema) || right.evaluate(record, tableSchema);
-                System.out.println("Debug: OR Evaluation - " + orResult);
                 return orResult;
             default:
                 if (!tableSchema.contains(attribute)) {
@@ -66,7 +64,6 @@ class WhereCondition {
                 }
                 Object recordValue = record.getAttributeValue(attribute, tableSchema.getattributes());
                 boolean comparisonResult = compare(record, tableSchema, attribute, this.value, operator);
-                System.out.println("Debug: Comparing - Attribute: " + attribute + ", Record Value: " + recordValue + ", Condition Value: " + this.value + ", Result: " + comparisonResult);
                 return comparisonResult;
         }
     }
