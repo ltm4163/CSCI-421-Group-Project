@@ -168,11 +168,10 @@ public class StorageManager {
         }
         
         // Check if the page is overfull and handle splitting if necessary
-        // if (targetPage.isOverfull()) {
-        //     splitPage(targetPage);
-        // }
-        //else
-        buffer.updatePage(targetPage);
+        if (targetPage.isOverfull()) {
+            splitPage(targetPage);
+        }
+        else buffer.updatePage(targetPage);
         
         // Update the catalog and buffer as necessary
         //updateCatalogAndBufferAfterInsertion(catalog, table, targetPage);
@@ -270,7 +269,6 @@ public class StorageManager {
     public void splitPage(Page page) {
         List<Record> records = page.getRecords();
 
-        // TODO: Change this implementation from list to arraylist (dont think this is necessary)
         int midIndex = page.getNumRecords() / 2;
     
         // Use List interface for declaration, ArrayList for instantiation
