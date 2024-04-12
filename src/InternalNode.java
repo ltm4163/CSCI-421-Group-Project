@@ -2,8 +2,9 @@ import java.util.List;
 
 public class InternalNode extends Node {
 
-    private List<Integer> keys;
+    private List<Object> keys;
     private List<Node> children;
+    private List<Pair<Integer, Integer>> pointers; //position of children in file
 
     @Override
     public int search(int key) {
@@ -11,8 +12,8 @@ public class InternalNode extends Node {
     }
 
     @Override
-    public void insert(int key, int pointer) {
-
+    public Object insert(Record record, int key, int pointer) {
+        return null; //placeholder
     }
 
     @Override

@@ -12,11 +12,15 @@ public class BPlusTree {
         return root.search(key);
     }
 
-    public void insert(int key, int pointer) {
-        root.insert(key, pointer);
+    public void insert(Record record, int key, int pointer) {
+        root.insert(record, key, pointer);
     }
 
     public void delete(int key) {
         root.delete(key);
+    }
+
+    public void writeToFile() {
+
     }
 }
