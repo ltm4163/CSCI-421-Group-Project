@@ -19,4 +19,14 @@ public class InternalNode extends Node {
     public void delete(int key) {
 
     }
+
+    public List<Node> getChildren() {
+        return this.children;
+    }
+
+    // displays the contents of the node
+    public void display() {
+        System.out.println(this.keys.toString());
+        System.out.println(this.children.toString());
+    }
 }

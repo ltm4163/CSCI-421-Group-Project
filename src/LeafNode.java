@@ -19,4 +19,10 @@ public class LeafNode extends Node {
     public void delete(int key) {
 
     }
+
+    // displays the content of the node
+    public void display() {
+        System.out.println(this.keys.toString());
+        System.out.println(this.pointers.toString());
+    }
 }
