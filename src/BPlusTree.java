@@ -3,8 +3,8 @@ public class BPlusTree {
     private Node root;
     private int order;  // N value
 
-    public BPlusTree(int order) {
-        this.root = new LeafNode();
+    public BPlusTree(int order, String attrType, int tableNumber) {
+        this.root = new LeafNode(order, attrType, tableNumber, true);
         this.order = order;
     }
 

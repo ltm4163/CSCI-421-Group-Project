@@ -1,7 +1,8 @@
 public abstract class Node {
 
-    private boolean isLeaf;
-    private String attrType;
+    protected boolean isLeaf;
+    protected boolean isRoot;
+    protected String attrType;
     protected int tableNumber;
     protected int order; //N of tree
 
