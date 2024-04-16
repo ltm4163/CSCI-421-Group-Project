@@ -29,17 +29,26 @@ public class BPlusTree {
      * @param int pointer      pointer value
      */
     public void insert(Record record, int key, int pointer) {
+        // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
             // TODO set root to new leafnode?
         } else if (root instanceof LeafNode) {
+            // if B+ root is a leaf, treat as leaf
             LeafNode rootlf = (LeafNode) root;
             if(rootlf.isFull()) {
-                // TODO split
+                int mid = (int) Math.ceil(this.order / 2.0) - 1;
+                // construct child1 as leaf node with values from 0 to mid
+                // construct child2 as leaf node with values from mid+1 to len(keys)
+                // construct new root as internal node with children child1, child2, key = key at mid
+                // set root to new root node
             } else {
                 rootlf.insert(record, key, pointer);
+                // this.root = rootlf?
             }
         } else {
-            // TODO search internal nodes
+            // if not a leaf, it's internal, so insert that way
+            InternalNode rootint = (InternalNode) root;
+            this.root = rootint.insert(record, key, pointer);
         }
     }
 

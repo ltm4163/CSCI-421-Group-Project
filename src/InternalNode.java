@@ -13,7 +13,17 @@ public class InternalNode extends Node {
 
     @Override
     public Object insert(Record record, int key, int pointer) {
-        return null; //placeholder
+        for(int i = 0; i < keys.size(); i++) {
+            Object searchKey = keys.get(i);
+            if (searchKey != null) {
+                if(compare(key, searchKey) == 0) {
+                    // TODO ???
+                }
+                if(compare(key, searchKey) < 0) {
+                    // recurse insert down to child at corresponding pointer
+                }
+            }
+        }
     }
 
     @Override
