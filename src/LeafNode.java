@@ -79,4 +79,10 @@ public class LeafNode extends Node {
     public void delete(int key) {
 
     }
+
+    public boolean isFull() {
+        if (this.isRoot && this.keys.size() == this.order - 1) {
+            return true;
+        } else { return this.keys.size() == this.order; }
+    }
 }
