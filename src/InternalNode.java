@@ -24,6 +24,7 @@ public class InternalNode extends Node {
                 }
             }
         }
+        return null;
     }
 
     @Override

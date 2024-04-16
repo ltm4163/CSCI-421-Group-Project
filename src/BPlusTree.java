@@ -48,7 +48,7 @@ public class BPlusTree {
         } else {
             // if not a leaf, it's internal, so insert that way
             InternalNode rootint = (InternalNode) root;
-            this.root = rootint.insert(record, key, pointer);
+            this.root = (Node) rootint.insert(record, key, pointer);
         }
     }
 
