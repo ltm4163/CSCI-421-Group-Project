@@ -2,8 +2,9 @@ public abstract class Node {
 
     protected boolean isLeaf;
     protected boolean isRoot;
-    protected String attrType;
+    protected AttributeSchema attr;
     protected int tableNumber;
+    protected int pageNumber; //location in index file
     protected int order; //N of tree
 
     public abstract int search(int key);
@@ -12,8 +13,10 @@ public abstract class Node {
 
     public abstract void delete(int key);
 
+    public abstract void writeToFile();
+
     public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
-        if (attrType.equalsIgnoreCase("integer")) {
+        if (attr.gettype().equalsIgnoreCase("integer")) {
             return (int)insertValue - (int)existingValue;
         }
         return 0; //placeholder value

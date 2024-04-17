@@ -1,16 +1,18 @@
 import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.nio.ByteBuffer;
+import java.io.RandomAccessFile;
 
 public class LeafNode extends Node {
 
     private LinkedList<Object> keys;
     private LinkedList<Pair<Integer, Integer>> pointers; //position of records in table file
 
-    public LeafNode(int order, String attrType, int tableNumber, boolean isRoot) {
+    public LeafNode(int order, AttributeSchema attr, int tableNumber, boolean isRoot) {
         this.order = order;
         this.tableNumber = tableNumber;
-        this.attrType = attrType;
+        this.attr = attr;
         this.isRoot = isRoot;
         this.isLeaf = true;
         this.keys = new LinkedList<>();
@@ -54,7 +56,7 @@ public class LeafNode extends Node {
 
         if (keys.size() == order) { // if values in leaf = N, split node
             double splitIndex = Math.ceil(order/2); // split point for leaf nodes
-            LeafNode newNode = new LeafNode(order, attrType, tableNumber, false);
+            LeafNode newNode = new LeafNode(order, attr, tableNumber, false);
             List<Object> clonedKeys = keys.subList((int)splitIndex, keys.size()).stream().map(object -> object)
                         .collect(Collectors.toList());
             keys.subList((int)splitIndex, keys.size()).clear();
@@ -78,6 +80,63 @@ public class LeafNode extends Node {
     @Override
     public void delete(int key) {
 
+    }
+
+    @Override
+    public void writeToFile() {
+        ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
+        buffer.putInt(keys.size()); // Amount of keys in node
+
+        //add first pointer pair to buffer
+        Pair<Integer, Integer> pointer = pointers.get(0);
+        buffer.putInt(pointer.getPageNumber());
+        buffer.putInt(pointer.getIndex());
+
+        //add each key and remaining pointer to buffer
+        for (int i = 0; i < keys.size(); i++) {
+            Object key = keys.get(i);
+            switch (attr.gettype().toLowerCase()) {
+                case "varchar":
+                    String varcharValue = (String) key;
+                    byte[] varcharBytes = varcharValue.getBytes();
+                    buffer.putInt(varcharValue.length());
+                    buffer.put(varcharBytes);
+                    break;
+                case "char":
+                    String charValue =  (String) key;
+                    String paddedCharValue = String.format("%-" + attr.getsize() + "s", charValue);
+                    byte[] charBytes = paddedCharValue.getBytes();
+                    buffer.put(charBytes);
+                    break;
+                case "integer":
+                    int intValue = (int) key;
+                    buffer.putInt(intValue);
+                    break;
+                case "double":
+                    double doubleValue = (double) key;
+                    buffer.putDouble(doubleValue);
+                    break;
+                case "boolean":
+                    boolean booleanValue = (boolean) key;
+                    byte booleanByte = (byte) (booleanValue ? 1 : 0);
+                    buffer.put(booleanByte);
+                    break;
+            }
+            pointer = pointers.get(i+1);
+            buffer.putInt(pointer.getPageNumber());
+            buffer.putInt(pointer.getIndex());
+        }
+
+        // write buffer to file
+        try {
+            String fileName = Main.getDbDirectory() + "/indexFiles/" + tableNumber + ".bin";
+            RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
+            int address = (pageNumber*Main.getPageSize()); //seek to page location in file
+            fileOut.seek(address);
+            fileOut.write(buffer.array());
+        } catch (Exception e) {
+            // TODO: handle exception
+        }
     }
 
     public boolean isFull() {

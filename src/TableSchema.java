@@ -13,6 +13,8 @@ public class TableSchema {
     private int numPages;
     private int numAttributes;
     private int[] pageLocations; //index: location; value: pageNum
+    private int numNodes; //number of nodes in index tree
+    private ArrayList<Integer> freeSpaces; //open locations in index file for nodes (resulting from deleted nodes)
     
     public TableSchema(int numAttributes, String name, int tableNumber, AttributeSchema[] attributes) {
         this.numAttributes = numAttributes;
@@ -21,6 +23,20 @@ public class TableSchema {
         this.attributes = attributes;
         this.numPages=0;
         this.pageLocations = new int[0];
+        this.numNodes = 0;
+        this.freeSpaces = new ArrayList<>();
+    }
+
+    public void addTreeNode() {
+        this.numNodes++;
+    }
+
+    public void deleteTreeNode() {
+        this.numNodes--;
+    }
+
+    public int getNumNodes() {
+        return this.numNodes;
     }
     
     public void setnumAttributes(int numAttributes){
