@@ -23,7 +23,7 @@ public class BPlusNode extends Node {
     }
 
     @Override
-    public Object insert(Record record, int searchKey, int pointer) {
+    public Object insert(Record record, Object searchKey, int pointer) {
         if(this.isLeaf) {
             for(int i = 0; i < keys.size(); i++) {
                 Object key = keys.get(i);
