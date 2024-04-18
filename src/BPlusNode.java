@@ -17,7 +17,6 @@ public class BPlusNode extends Node {
         this.keys = new LinkedList<>();
         this.pointers = new LinkedList<>();
         this.parent = null;
-        this.n = 0;
         AttributeSchema attr1 = new AttributeSchema("num", "integer", false, false, true, Integer.BYTES);
         this.attr = attr1;
         this.children = new LinkedList<BPlusNode>();
