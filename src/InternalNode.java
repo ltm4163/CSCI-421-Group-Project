@@ -25,7 +25,7 @@ public class InternalNode extends Node {
     }
 
     @Override
-    public Object insert(Record record, int key, int pointer) {
+    public Object insert(Record record, Object key, int pointer) {
         for(int i = 0; i < keys.size(); i++) {
             Object searchKey = keys.get(i);
             if (searchKey != null) {

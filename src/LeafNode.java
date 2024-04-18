@@ -25,7 +25,7 @@ public class LeafNode extends Node {
     }
 
     @Override
-    public Object insert(Record record, int key, int pointer) {
+    public Object insert(Record record, Object key, int pointer) {
         if (keys.size() == 0) { //create key & pointer lists, add key
             keys.add(key);
             System.out.println("adding: " + key);

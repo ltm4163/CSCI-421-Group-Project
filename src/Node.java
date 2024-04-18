@@ -9,7 +9,7 @@ public abstract class Node {
 
     public abstract int search(int key);
 
-    public abstract Object insert(Record record, int key, int pointer);
+    public abstract Object insert(Record record, Object key, int pointer);
 
     public abstract void delete(int key);
 
