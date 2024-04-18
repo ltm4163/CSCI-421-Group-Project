@@ -70,7 +70,7 @@ public class BPlusNode extends Node {
                 LeafNode1.keys = keys;
                 LeafNode1.pointers = pointers;
                 LeafNode2.keys = clonedKeys;
-                LeafNode2.pointers = clonedPointers;
+                LeafNode2.pointers = pointers;
                 System.out.println(this.isRoot);
                 if(this.isRoot) {
                     System.out.println("key on split: " + keyOnSplit);
