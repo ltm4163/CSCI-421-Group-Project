@@ -20,7 +20,7 @@ public class LeafNode extends Node {
     }
 
     @Override
-    public int search(int key) {
+    public int search(Object key) {
         return 0;
     }
 

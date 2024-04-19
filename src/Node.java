@@ -7,7 +7,7 @@ public abstract class Node {
     protected int pageNumber; //location in index file
     protected int order; //N of tree
 
-    public abstract int search(int key);
+    public abstract int search(Object key);
 
     public abstract Object insert(Record record, Object key, int pointer);
 
@@ -16,10 +16,16 @@ public abstract class Node {
     public abstract void writeToFile();
 
     public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
-        if (attr.gettype().equalsIgnoreCase("integer")) {
-            return (int)insertValue - (int)existingValue;
+        if (insertValue instanceof Integer) {
+            return ((Integer) insertValue).compareTo((Integer) existingValue);
+        } else if (insertValue instanceof Double) {
+            return ((Double) insertValue).compareTo((Double) existingValue);
+        } else if (insertValue instanceof String) {
+            return ((String) insertValue).compareTo((String) existingValue);
+        } else {
+            // Handle other types if needed
+            throw new IllegalArgumentException("Unsupported type");
         }
-        return 0; //placeholder value
     }
 
     static class Pair<K, V> {

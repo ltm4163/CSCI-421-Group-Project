@@ -109,7 +109,44 @@ public class BPlusNode extends Node {
     @Override
     public void delete(int key) { return; }
     @Override
-    public int search(int key) { return -1; }
+    public int search(Object key) {
+        if (isLeaf) {
+            for (int i = 0; i < keys.size(); i++) {
+                // If the key is found in the current leaf node...
+                if (compare(key, keys.get(i)) == 0) {
+                    Pair<Integer, Integer> pointer = pointers.get(i);
+                    return pointer.getIndex();  // Return index/pointer value
+                }
+            }
+            return -1;  // Key not found in leaf node
+        }
+        else {  // If not leaf, traverse to appropriate child node
+            BPlusNode childNode = getChildNodeForKey(key);
+            if (childNode != null) {
+                return childNode.search(key);  // Recursively search in child node
+            }
+        }
+        return -1;  // Key not found in tree
+    }
+
+    // Gets the appropriate child node for a given search key
+    private BPlusNode getChildNodeForKey(Object key) {
+        for (int i = 0; i < keys.size(); i++) {
+            if (i == 0 && compare(key, keys.get(i)) < 0) {
+                // Key is less than first key, choose leftmost child
+                return children.get(i);
+            }
+            else if (i == keys.size() - 1 && compare(key, keys.get(i)) >= 0) {
+                // Key is greater than or equal to last key, choose the rightmost child
+                return children.get(i + 1);
+            }
+            else if (i > 0 && compare(key, keys.get(i - 1)) >= 0 && compare(key, keys.get(i)) < 0) {
+                // Key is between two keys, choose the corresponding child
+                return children.get(i);
+            }
+        }
+        return null; // Should never reach here
+    }
 
     @Override
     public void writeToFile() {
