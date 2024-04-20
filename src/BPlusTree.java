@@ -5,15 +5,16 @@ import java.util.ArrayList;
 
 public class BPlusTree {
 
-    private Node root;
+    private BPlusNode root;
     private int order;  // N value
+    private AttributeSchema attr;
 
     // default constructor
 
     public BPlusTree(int order, AttributeSchema attr, int tableNumber) {
-        this.root = new LeafNode(order, attr, tableNumber, true);
+        this.root = new BPlusNode(order, true, tableNumber, attr);
+        this.attr = attr;
         TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
-        this.root.pageNumber = tableSchema.getNumNodes();
         tableSchema.addTreeNode();
         this.order = order;
     }
@@ -39,7 +40,7 @@ public class BPlusTree {
     public void insert(Record record, int key, int pointer) {
         // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
-            root = new BPlusNode(order, true, 0);
+            root = new BPlusNode(order, true, 0, this.attr);
             root.insert(record, key, pointer);
         } else {
             root.insert(record, key, pointer);

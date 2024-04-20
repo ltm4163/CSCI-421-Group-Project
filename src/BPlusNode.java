@@ -3,13 +3,19 @@ import java.nio.ByteBuffer;
 import java.io.RandomAccessFile;
 import java.util.LinkedList;
 import java.util.stream.Collectors;
-public class BPlusNode extends Node {
+public class BPlusNode {
+    private boolean isLeaf;
+    private boolean isRoot;
+    private AttributeSchema attr;
+    private int tableNumber;
+    private int pageNumber;
+    private int order;
     private LinkedList<Object> keys;
     private LinkedList<BPlusNode> children;
     private LinkedList<Pair<Integer, Integer>> pointers;
     private BPlusNode parent;
 
-    public BPlusNode(int order, boolean isRoot, int tableNumber) {
+    public BPlusNode(int order, boolean isRoot, int tableNumber, AttributeSchema attr) {
         this.order = order;
         this.isRoot = isRoot;
         this.tableNumber = tableNumber;
@@ -17,13 +23,10 @@ public class BPlusNode extends Node {
         this.keys = new LinkedList<>();
         this.pointers = new LinkedList<>();
         this.parent = null;
-        this.n = 0;
-        AttributeSchema attr1 = new AttributeSchema("num", "integer", false, false, true, Integer.BYTES);
-        this.attr = attr1;
+        this.attr = attr;
         this.children = new LinkedList<BPlusNode>();
     }
 
-    @Override
     public Object insert(Record record, int searchKey, int pointer) {
         if(this.isLeaf) {
             for(int i = 0; i < keys.size(); i++) {
@@ -45,8 +48,8 @@ public class BPlusNode extends Node {
             if(keys.size() == order) {
                 int splitIndex = (int)Math.ceil(order/2);
                 Object keyOnSplit = keys.get(splitIndex);
-                BPlusNode LeafNode1 = new BPlusNode(order, false, tableNumber);
-                BPlusNode LeafNode2 = new BPlusNode(order, false, tableNumber);
+                BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr);
+                BPlusNode LeafNode2 = new BPlusNode(order, false, 0, this.attr);
                 LeafNode1.parent = this.parent;
                 LeafNode2.parent = this.parent;
 
@@ -107,12 +110,10 @@ public class BPlusNode extends Node {
 
     }
 
-    @Override
     public void delete(int key) { return; }
-    @Override
+
     public int search(int key) { return -1; }
 
-    @Override
     public void writeToFile() {
         ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
         buffer.putInt(keys.size()); // Amount of keys in node
@@ -169,7 +170,7 @@ public class BPlusNode extends Node {
         }
 
         // have children write themselves to file
-        for (Node child : children) {
+        for (BPlusNode child : children) {
             child.writeToFile();
         }
     }
@@ -186,6 +187,31 @@ public class BPlusNode extends Node {
         int level = n + 1;
         for(BPlusNode child : children) {
             child._display(level);
+        }
+    }
+
+    public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
+        if (attr.gettype().equalsIgnoreCase("integer")) {
+            return (int)insertValue - (int)existingValue;
+        }
+        return 0; //placeholder value
+    }
+
+    static class Pair<K, V> {
+        private final K pageNumber;
+        private final V index;
+
+        public Pair(K first, V second) {
+            this.pageNumber = first;
+            this.index = second;
+        }
+
+        public K getPageNumber() {
+            return pageNumber;
+        }
+
+        public V getIndex() {
+            return index;
         }
     }
 }
