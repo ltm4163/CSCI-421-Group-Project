@@ -14,8 +14,6 @@ public class BPlusTree {
     public BPlusTree(int order, AttributeSchema attr, int tableNumber) {
         this.root = new BPlusNode(order, true, tableNumber, attr);
         this.attr = attr;
-        TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
-        tableSchema.addTreeNode();
         this.order = order;
     }
 
@@ -37,14 +35,39 @@ public class BPlusTree {
      * @param int key          key value
      * @param int pointer      pointer value
      */
+
+    //else {
+        //BPlusNode childToInsert = null;
+      //  for(BPlusNode child : this.children) {
+          //  for(Object key : child.keys) {
+            //    if(compare(key, searchKey) < 0) {
+    //          childToInsert = child;
+              //  }
+           // }
+        //}
+        //childToInsert.insert(record, searchKey, pointer);
+   // }
+
+    //    return null;
     public void insert(Record record, int key, int pointer) {
         // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
             root.insert(record, key, pointer);
-        } else {
+        } else if(root.isLeaf) {
             root.insert(record, key, pointer);
+        } else {
+            BPlusNode childToInsert = null;
+            for(BPlusNode child : this.root.children) {
+                for(Object searchKey : child.keys) {
+                    if(compare(searchKey, key) < 0) {
+                        childToInsert = child;
+                    }
+                }
+            }
+            childToInsert.insert(record, key, pointer);
         }
+
     }
 
     public void delete(int key) {
@@ -130,5 +153,16 @@ public class BPlusTree {
         }
         
         return null; //placeholder
+    }
+
+    public void display() {
+        root.display();
+    }
+
+    public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
+        if (attr.gettype().equalsIgnoreCase("integer")) {
+            return (int)insertValue - (int)existingValue;
+        }
+        return 0; //placeholder value
     }
 }

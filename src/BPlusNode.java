@@ -4,14 +4,14 @@ import java.io.RandomAccessFile;
 import java.util.LinkedList;
 import java.util.stream.Collectors;
 public class BPlusNode {
-    private boolean isLeaf;
+    public boolean isLeaf;
     private boolean isRoot;
     private AttributeSchema attr;
     private int tableNumber;
     private int pageNumber;
     private int order;
-    private LinkedList<Object> keys;
-    private LinkedList<BPlusNode> children;
+    public LinkedList<Object> keys;
+    public LinkedList<BPlusNode> children;
     private LinkedList<Pair<Integer, Integer>> pointers;
     private BPlusNode parent;
 
@@ -27,19 +27,18 @@ public class BPlusNode {
         this.children = new LinkedList<BPlusNode>();
     }
 
-    public Object insert(Record record, int searchKey, int pointer) {
-        if(this.isLeaf) {
+    public void insert(Record record, int searchKey, int pointer) {
             for(int i = 0; i < keys.size(); i++) {
                 Object key = keys.get(i);
                 if (key != null) {
                     if (compare(searchKey, key) == 0) { //duplicate primarykey, cancel insert
                         System.err.println("Duplicate primarykey, insert cancelled");
-                        return null;
+                        return;
                     }
                     if (compare(searchKey, key) < 0) { //insert key at this position
                         keys.add(i, searchKey);
                         System.out.println("adding: " + key);
-                        return null;
+                        return;
                     }
                 }
             }
@@ -48,7 +47,7 @@ public class BPlusNode {
             if(keys.size() == order) {
                 int splitIndex = (int)Math.ceil(order/2);
                 Object keyOnSplit = keys.get(splitIndex);
-                BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr);
+                BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr); // TODO fix table number for these two
                 BPlusNode LeafNode2 = new BPlusNode(order, false, 0, this.attr);
                 LeafNode1.parent = this.parent;
                 LeafNode2.parent = this.parent;
@@ -78,35 +77,22 @@ public class BPlusNode {
                 if(this.isRoot) {
                     System.out.println("key on split: " + keyOnSplit);
                     this.keys = new LinkedList<Object>();
-                    this.keys.add(keyOnSplit);
+                    this.insert(null, (int)keyOnSplit, 0);
                     LeafNode1.parent = this;
                     LeafNode2.parent = this;
                     this.children.add(LeafNode1);
                     this.children.add(LeafNode2);
                     this.isLeaf = false;
-                    return null;
                 } else {
                     System.out.println();
                     parent.children.add(LeafNode1);
                     parent.children.add(LeafNode2);
-                    parent.keys.add(keyOnSplit);
+                    parent.insert(null, (int)keyOnSplit, 0);
                     parent.children.remove(this);
                 }
 
             }
-        } else {
-            BPlusNode childToInsert = null;
-            for(BPlusNode child : this.children) {
-                for(Object key : child.keys) {
-                    if(compare(key, searchKey) < 0) {
-                        childToInsert = child;
-                    }
-                }
-            }
-            childToInsert.insert(record, searchKey, pointer);
-        }
 
-        return null;
 
     }
 
@@ -176,19 +162,16 @@ public class BPlusNode {
     }
 
     public void display() {
-        this._display(0);
-    }
-    public void _display(int n) {
-        System.out.println("level: " + n);
         for(Object key : this.keys) {
             System.out.print("| " + key);
         }
+
         System.out.print(" |\n");
-        int level = n + 1;
         for(BPlusNode child : children) {
-            child._display(level);
+            child.display();
         }
     }
+
 
     public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
         if (attr.gettype().equalsIgnoreCase("integer")) {
