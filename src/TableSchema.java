@@ -38,6 +38,14 @@ public class TableSchema {
     public int getNumNodes() {
         return this.numNodes;
     }
+
+    public void setNumNodes(int numNodes) {
+        this.numNodes = numNodes;
+    }
+
+    private void setFreeSpaces(ArrayList<Integer> freeSpacesList) {
+        this.freeSpaces = freeSpacesList;
+    }
     
     public void setnumAttributes(int numAttributes){
         this.numAttributes=numAttributes;
@@ -259,6 +267,9 @@ public class TableSchema {
         for (int location : this.pageLocations) {
             dos.writeInt(location);
         }
+        dos.writeInt(numNodes);
+        dos.writeInt(freeSpaces.size());
+        for (int location : freeSpaces) dos.writeInt(location);
     }
 
     public static TableSchema readFromStream(DataInputStream dis) throws IOException {
@@ -275,6 +286,13 @@ public class TableSchema {
         table.pageLocations = new int[numPages];
         for (int i = 0; i < numPages; i++) {
             table.pageLocations[i] = dis.readInt();
+        }
+        int numNodes = dis.readInt();
+        table.setNumNodes(numNodes);
+        ArrayList<Integer> freeSpacesList = new ArrayList<>();
+        int freeSpaces = dis.readInt();
+        for (int i = 0; i < freeSpaces; i++) {
+            freeSpacesList.add(dis.readInt());
         }
         return table;
     }

@@ -11,10 +11,12 @@ public class BPlusTree {
 
     // default constructor
 
-    public BPlusTree(int order, AttributeSchema attr, int tableNumber) {
-        this.root = new BPlusNode(order, true, tableNumber, attr);
-        this.attr = attr;
-        this.order = order;
+    public BPlusTree(AttributeSchema attr, int tableNumber) {
+        this.root = new LeafNode(order, attr, tableNumber, true);
+        TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
+        this.root.pageNumber = tableSchema.getNumNodes();
+        tableSchema.addTreeNode();
+        this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
     }
 
     public int search(int key) {
@@ -35,21 +37,7 @@ public class BPlusTree {
      * @param int key          key value
      * @param int pointer      pointer value
      */
-
-    //else {
-        //BPlusNode childToInsert = null;
-      //  for(BPlusNode child : this.children) {
-          //  for(Object key : child.keys) {
-            //    if(compare(key, searchKey) < 0) {
-    //          childToInsert = child;
-              //  }
-           // }
-        //}
-        //childToInsert.insert(record, searchKey, pointer);
-   // }
-
-    //    return null;
-    public void insert(Record record, int key, int pointer) {
+    public void insert(Record record, Object key, int pointer) {
         // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
@@ -67,7 +55,6 @@ public class BPlusTree {
             }
             childToInsert.insert(record, key, pointer);
         }
-
     }
 
     public void delete(int key) {

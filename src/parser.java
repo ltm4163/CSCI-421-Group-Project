@@ -73,8 +73,11 @@ public class parser {
         attributesLine = attributesLine.substring(1, attributesLine.length() - 2); // Remove surrounding '()' from attribute definitions
         String[] attributeTokens = attributesLine.split(",\\s*");
         ArrayList<AttributeSchema> attributes = new ArrayList<>();
+        AttributeSchema primaryKey = null; // used for BPlusTree creation
         for (String token : attributeTokens) {
-            attributes.add(AttributeSchema.parse(token.trim()));
+            AttributeSchema attr = AttributeSchema.parse(token.trim());
+            attributes.add(attr);
+            if (attr.getprimarykey()) primaryKey = attr;
         }
 
         List<AttributeSchema> attributesWithPrimaryKey = attributes.stream().filter(attr -> attr.getprimarykey() == true)
@@ -97,6 +100,14 @@ public class parser {
     
         TableSchema table = new TableSchema(attributes.size(), tableName, catalog.getNextTableNumber(), attributes.toArray(new AttributeSchema[0]));
         catalog.addTable(table);
+
+        // if indexing turned on, create BPlusTree for table
+        if (Main.getIndexing()) {
+            ArrayList<BPlusTree> trees = Main.getTrees();
+            BPlusTree newTree = new BPlusTree(primaryKey, table.gettableNumber());
+            trees.add(table.gettableNumber(), newTree);
+        }
+
         System.out.println("Table " + tableName + " created successfully.");
     }
     
@@ -213,6 +224,7 @@ public class parser {
     
             ArrayList<Byte> nullBitMap = new ArrayList<>(table.getnumAttributes());
             ArrayList<Object> recordValues = new ArrayList<>();
+            Object primaryKeyValue = null; // used for inserting into BPlusTree
             for (int i = 0; i < values.length; i++) {
                 String value = values[i].trim();
                 AttributeSchema attribute = table.getattributes()[i];
@@ -247,13 +259,25 @@ public class parser {
                 }
                 recordValues.add(parsedValue);
                 nullBitMap.add((byte)0);
+
+                // get key for BPlusTree insertion
+                if (attribute.getprimarykey()) primaryKeyValue = value;
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size
             Record newRecord = new Record(recordValues, recordSize, nullBitMap);
-            boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
-            if (!worked) {
-                return;
+
+            // choose insert operation based on if indexing is on or not
+            if (Main.getIndexing()) {
+                BPlusTree bPlusTree = Main.getTrees().get(table.gettableNumber());
+                bPlusTree.insert(newRecord, primaryKeyValue, recordSize); //TODO: pointer probably shouldn't be a param
+                //TODO: check if insert failed, cancel if so
+            }
+            else {
+                boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+                if (!worked) {
+                    return;
+                }
             }
         }
     

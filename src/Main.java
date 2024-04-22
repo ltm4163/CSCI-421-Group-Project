@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class Main {
@@ -121,5 +122,13 @@ public class Main {
 
     public static void writeCatalogToFile(String catalogPath) throws IOException {
         catalog.writeCatalogToFile(catalogPath);
+    }
+
+    public static boolean getIndexing() {
+        throw new UnsupportedOperationException("Method not implemented");
+    }
+
+    public static ArrayList<BPlusTree> getTrees() {
+        throw new UnsupportedOperationException("Method not implemented");
     }
 }
