@@ -43,7 +43,19 @@ public class BPlusTree {
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
             root.insert(record, key, pointer);
-        } else { root.insert(record, key, pointer); }
+        } else if(root.isLeaf) {
+            root.insert(record, key, pointer);
+        } else {
+            BPlusNode childToInsert = null;
+            for(BPlusNode child : this.root.children) {
+                for(Object searchKey : child.keys) {
+                    if(compare(searchKey, key) < 0) {
+                        childToInsert = child;
+                    }
+                }
+            }
+            childToInsert.insert(record, key, pointer);
+        }
     }
 
     public void delete(int key) {

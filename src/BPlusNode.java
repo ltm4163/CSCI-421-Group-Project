@@ -94,15 +94,11 @@ public class BPlusNode {
 
                 }
             } else {
-                BPlusNode childToInsert = null;
-                for(BPlusNode child : this.children) {
-                    for(Object key : this.keys) {
-                        if (compare(key, searchKey) < 0) {
-                            childToInsert = child;
-                        }
+                for(int i = 0; i < keys.size(); i++) {
+                    if(compare(keys.get(i),searchKey) < 0) {
+                        children.get(i).insert(record,searchKey,pointer);
                     }
                 }
-                childToInsert.insert(record, searchKey, pointer);
             }
 
 
@@ -193,6 +189,19 @@ public class BPlusNode {
     public void delete(int key) { return; }
 
     public int search(int key) { return -1; }
+
+    public BPlusNode findLeafToInsert(Object searchKey) {
+        if(this.isLeaf) {
+            return this;
+        }
+        for(int i = 0; i < keys.size(); i++) {
+            if(compare(searchKey, keys.get(i)) < 0) {
+                System.out.println("here");
+                return this.children.get(i).findLeafToInsert(searchKey);
+            }
+        }
+        return null;
+    }
 
     public int search(Object key) {
         if (isLeaf) {
