@@ -12,8 +12,7 @@ public class BPlusTree {
     // default constructor
 
     public BPlusTree(AttributeSchema attr, int tableNumber) {
-        this.order = 5;
-        //this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
+        this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
         System.out.println(this.order);
         this.attr = attr;
         this.root = null;

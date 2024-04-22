@@ -27,8 +27,18 @@ public class BPlusNode {
         this.pointers = new LinkedList<>();
     }
 
+    /*
+     * BPlusTree insert function
+     *
+     * @param Record record    record to insert
+     * @param Object searchKey  key to search on
+     * @param int pointer       is this needed...?
+     * @param boolean intoInternal  indicates if inserting into internal node
+     */
     public void insert(Record record, Object searchKey, int pointer, boolean intoInternal) {
-            if(this.isLeaf || intoInternal) {
+            // if inserting into leaf or internal node
+            if(isLeaf || intoInternal) {
+                // insert key into node
                 for (int i = 0; i < keys.size(); i++) {
                     Object key = keys.get(i);
                     if (key != null) {
@@ -45,6 +55,7 @@ public class BPlusNode {
                 }
                 keys.add(searchKey);
                 pointers.add(new Pair<Integer, Integer>(pointer, pointer));
+                // if keys become overfull, split
                 if (keys.size() == order) {
                     int splitIndex = (int) Math.ceil(order / 2);
                     Object keyOnSplit = keys.get(splitIndex);
@@ -59,6 +70,7 @@ public class BPlusNode {
                     }
                     keys.subList((int) splitIndex, keys.size()).clear();
 
+                    // are pointers even needed with this setup?
                     List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
                             .map(Pair -> Pair).collect(Collectors.toList());
                     pointers.subList(splitIndex, pointers.size()).clear();
@@ -68,28 +80,30 @@ public class BPlusNode {
                     LeafNode1.pointers = pointers;
                     LeafNode2.keys = clonedKeys;
                     LeafNode2.pointers = pointers;
+                    // if the node has children, it's children must be split among the new nodes
                     if (this.children.size() > 0) {
                         for (int i = 0; i < splitIndex + 1; i++) {
-                            this.children.get(i).parent = LeafNode1;
-                            LeafNode1.children.add(this.children.get(i));
+                            children.get(i).parent = LeafNode1;
+                            LeafNode1.children.add(children.get(i));
                         }
-                        for (int i = splitIndex + 1; i < this.children.size(); i++) {
-                            this.children.get(i).parent = LeafNode2;
-                            LeafNode2.children.add(this.children.get(i));
+                        for (int i = splitIndex + 1; i < children.size(); i++) {
+                            children.get(i).parent = LeafNode2;
+                            LeafNode2.children.add(children.get(i));
                         }
                         LeafNode1.isLeaf = false;
                         LeafNode2.isLeaf = false;
                         this.children = new LinkedList<BPlusNode>();
                     }
                     if (this.isRoot) {
-                        this.keys = new LinkedList<Object>();
+                        keys = new LinkedList<Object>();
                         this.insert(record, keyOnSplit, pointer, true);
                         LeafNode1.parent = this;
                         LeafNode2.parent = this;
+                        // idk why this needs to be done but it works
                         if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
-                        this.children.add(LeafNode1);
-                        this.children.add(LeafNode2);
-                        this.isLeaf = false;
+                        children.add(LeafNode1);
+                        children.add(LeafNode2);
+                        isLeaf = false;
                     } else {
                         if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
                         parent.children.add(LeafNode1);
@@ -100,6 +114,7 @@ public class BPlusNode {
 
                 }
             } else {
+                // TODO make searching work without, use search function?
                 BPlusNode childToInsert = null;
                 for(BPlusNode child : this.children) {
                     for(Object key : this.keys) {
