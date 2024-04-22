@@ -4,36 +4,36 @@ import java.io.RandomAccessFile;
 import java.util.LinkedList;
 import java.util.stream.Collectors;
 public class BPlusNode {
-    public boolean isLeaf;
+    private boolean isLeaf;
     private boolean isRoot;
     private AttributeSchema attr;
     private int tableNumber;
-    public int pageNumber;
+    private int pageNumber;
     private int order;
-    public LinkedList<Object> keys;
-    public LinkedList<BPlusNode> children;
+    private LinkedList<Object> keys;
+    private LinkedList<BPlusNode> children;
     private LinkedList<Pair<Integer, Integer>> pointers;
     private BPlusNode parent;
 
     public BPlusNode(int order, boolean isRoot, int tableNumber, AttributeSchema attr) {
         this.order = order;
         this.isRoot = isRoot;
-        this.tableNumber = tableNumber;
         this.isLeaf = true;
-        this.keys = new LinkedList<>();
-        this.pointers = new LinkedList<>();
+        this.tableNumber = tableNumber;
         this.parent = null;
         this.attr = attr;
         this.children = new LinkedList<BPlusNode>();
+        this.keys = new LinkedList<>();
+        this.pointers = new LinkedList<>();
     }
 
-    public void insert(Record record, Object searchKey, int pointer) {
+    public void insert(Record record, Object searchKey, int pointer, boolean internal) {
             System.out.println("Inserting into: ");
             for(Object key : this.keys) {
                 System.out.print("| " + key);
             }
             System.out.println("|\n");
-            if(this.isLeaf) {
+            if(this.isLeaf || internal) {
                 for (int i = 0; i < keys.size(); i++) {
                     Object key = keys.get(i);
                     if (key != null) {
@@ -51,13 +51,13 @@ public class BPlusNode {
                 keys.add(searchKey);
                 pointers.add(new Pair<Integer, Integer>(pointer, pointer));
                 if (keys.size() == order) {
-                    this.split(searchKey, pointer, false);
+                    this.split(record,searchKey, pointer, internal);
 
                 }
             } else {
                 for(int i = 0; i < keys.size(); i++) {
                     if(compare(keys.get(i),searchKey) < 0) {
-                        children.get(i).insert(record,searchKey,pointer);
+                        children.get(i).insert(record,searchKey,pointer,false);
                     }
                 }
             }
@@ -65,41 +65,13 @@ public class BPlusNode {
 
     }
 
-    public void insertInternal(Object searchKey, int pointer) {
-        System.out.println("InternalInserting into: ");
-        for(Object key : this.keys) {
-            System.out.print("| " + key);
-        }
-        System.out.println("|\n");
 
-        for (int i = 0; i < keys.size(); i++) {
-            Object key = keys.get(i);
-            if (key != null) {
-                if (compare(searchKey, key) == 0) { //duplicate primarykey, cancel insert
-                    System.err.println("Duplicate primarykey, insert cancelled");
-                    return;
-                }
-                if (compare(searchKey, key) < 0) { //insert key at this position
-                    keys.add(i, searchKey);
-                    System.out.println("adding: " + key);
-                    return;
-                }
-            }
-        }
-        keys.add(searchKey);
-        pointers.add(new Pair<Integer, Integer>(pointer, pointer));
-
-        if (keys.size() == order) {
-            this.split(searchKey, pointer, true);
-
-        }
-    }
 
     public void delete(int key) { return; }
 
     public int search(int key) { return -1; }
 
-    public void split(Object searchKey, int pointer, boolean internal) {
+    public void split(Record record, Object searchKey, int pointer, boolean internal) {
         int splitIndex = (int) Math.ceil(order / 2);
         Object keyOnSplit = keys.get(splitIndex);
         BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr); // TODO fix table number for these two
@@ -138,7 +110,7 @@ public class BPlusNode {
         if (this.isRoot) {
             System.out.println("key on split: " + keyOnSplit);
             this.keys = new LinkedList<Object>();
-            this.insertInternal(keyOnSplit, pointer);
+            this.insert(record, keyOnSplit, pointer, true);
             LeafNode1.parent = this;
             LeafNode2.parent = this;
             if(internal) { LeafNode2.keys.remove(keyOnSplit); }
@@ -152,22 +124,21 @@ public class BPlusNode {
             if(internal) { LeafNode2.keys.remove(keyOnSplit); }
             parent.children.add(LeafNode1);
             parent.children.add(LeafNode2);
-            parent.insertInternal(keyOnSplit, 0);
+            parent.insert(record, keyOnSplit, 0, true);
             parent.children.remove(this);
         }
     }
 
-    public BPlusNode findLeafToInsert(Object searchKey) {
-        if(this.isLeaf) {
-            return this;
-        }
-        for(int i = 0; i < keys.size(); i++) {
-            if(compare(searchKey, keys.get(i)) < 0) {
-                System.out.println("here");
-                return this.children.get(i).findLeafToInsert(searchKey);
-            }
-        }
-        return null;
+    public LinkedList<BPlusNode> getChildren() {
+        return this.children;
+    }
+
+    public LinkedList<Object> getKeys() {
+        return this.keys;
+    }
+
+    public boolean isLeaf() {
+        return this.isLeaf;
     }
 
     public int search(Object key) {
