@@ -27,13 +27,8 @@ public class BPlusNode {
         this.pointers = new LinkedList<>();
     }
 
-    public void insert(Record record, Object searchKey, int pointer, boolean internal) {
-            System.out.println("Inserting into: ");
-            for(Object key : this.keys) {
-                System.out.print("| " + key);
-            }
-            System.out.println("|\n");
-            if(this.isLeaf || internal) {
+    public void insert(Record record, Object searchKey, int pointer, boolean intoInternal) {
+            if(this.isLeaf || intoInternal) {
                 for (int i = 0; i < keys.size(); i++) {
                     Object key = keys.get(i);
                     if (key != null) {
@@ -51,82 +46,77 @@ public class BPlusNode {
                 keys.add(searchKey);
                 pointers.add(new Pair<Integer, Integer>(pointer, pointer));
                 if (keys.size() == order) {
-                    this.split(record,searchKey, pointer, internal);
+                    int splitIndex = (int) Math.ceil(order / 2);
+                    Object keyOnSplit = keys.get(splitIndex);
+                    BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr); // TODO fix table number for these two
+                    BPlusNode LeafNode2 = new BPlusNode(order, false, 0, this.attr);
+                    LeafNode1.parent = this.parent;
+                    LeafNode2.parent = this.parent;
+
+                    LinkedList<Object> clonedKeys = new LinkedList<Object>();
+                    for (int i = splitIndex; i < keys.size(); i++) {
+                        clonedKeys.add(keys.get(i));
+                    }
+                    keys.subList((int) splitIndex, keys.size()).clear();
+
+                    List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
+                            .map(Pair -> Pair).collect(Collectors.toList());
+                    pointers.subList(splitIndex, pointers.size()).clear();
+
+
+                    LeafNode1.keys = keys;
+                    LeafNode1.pointers = pointers;
+                    LeafNode2.keys = clonedKeys;
+                    LeafNode2.pointers = pointers;
+                    if (this.children.size() > 0) {
+                        for (int i = 0; i < splitIndex + 1; i++) {
+                            this.children.get(i).parent = LeafNode1;
+                            LeafNode1.children.add(this.children.get(i));
+                        }
+                        for (int i = splitIndex + 1; i < this.children.size(); i++) {
+                            this.children.get(i).parent = LeafNode2;
+                            LeafNode2.children.add(this.children.get(i));
+                        }
+                        LeafNode1.isLeaf = false;
+                        LeafNode2.isLeaf = false;
+                        this.children = new LinkedList<BPlusNode>();
+                    }
+                    if (this.isRoot) {
+                        this.keys = new LinkedList<Object>();
+                        this.insert(record, keyOnSplit, pointer, true);
+                        LeafNode1.parent = this;
+                        LeafNode2.parent = this;
+                        if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
+                        this.children.add(LeafNode1);
+                        this.children.add(LeafNode2);
+                        this.isLeaf = false;
+                    } else {
+                        if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
+                        parent.children.add(LeafNode1);
+                        parent.children.add(LeafNode2);
+                        parent.insert(record, keyOnSplit, 0, true);
+                        parent.children.remove(this);
+                    }
 
                 }
             } else {
-                for(int i = 0; i < keys.size(); i++) {
-                    if(compare(keys.get(i),searchKey) < 0) {
-                        children.get(i).insert(record,searchKey,pointer,false);
+                BPlusNode childToInsert = null;
+                for(BPlusNode child : this.children) {
+                    for(Object key : this.keys) {
+                        if (compare(key, searchKey) < 0) {
+                            childToInsert = child;
+                            break;
+                        }
                     }
                 }
+                childToInsert.insert(record, searchKey, pointer, false);
             }
 
 
     }
 
-
-
-    public void delete(int key) { return; }
-
-    public int search(int key) { return -1; }
-
-    public void split(Record record, Object searchKey, int pointer, boolean internal) {
-        int splitIndex = (int) Math.ceil(order / 2);
-        Object keyOnSplit = keys.get(splitIndex);
-        BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr); // TODO fix table number for these two
-        BPlusNode LeafNode2 = new BPlusNode(order, false, 0, this.attr);
-        LeafNode1.parent = this.parent;
-        LeafNode2.parent = this.parent;
-
-        LinkedList<Object> clonedKeys = new LinkedList<Object>();
-        for (int i = splitIndex; i < keys.size(); i++) {
-            clonedKeys.add(keys.get(i));
-        }
-        keys.subList((int) splitIndex, keys.size()).clear();
-
-        List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
-                .map(Pair -> Pair).collect(Collectors.toList());
-        pointers.subList(splitIndex, pointers.size()).clear();
-
-
-        LeafNode1.keys = keys;
-        LeafNode1.pointers = pointers;
-        LeafNode2.keys = clonedKeys;
-        LeafNode2.pointers = pointers;
-        if (this.children.size() > 0) {
-            for (int i = 0; i < splitIndex + 1; i++) {
-                this.children.get(i).parent = LeafNode1;
-                LeafNode1.children.add(this.children.get(i));
-            }
-            for (int i = splitIndex + 1; i < this.children.size(); i++) {
-                this.children.get(i).parent = LeafNode2;
-                LeafNode2.children.add(this.children.get(i));
-            }
-            LeafNode1.isLeaf = false;
-            LeafNode2.isLeaf = false;
-            this.children = new LinkedList<BPlusNode>();
-        }
-        if (this.isRoot) {
-            System.out.println("key on split: " + keyOnSplit);
-            this.keys = new LinkedList<Object>();
-            this.insert(record, keyOnSplit, pointer, true);
-            LeafNode1.parent = this;
-            LeafNode2.parent = this;
-            if(internal) { LeafNode2.keys.remove(keyOnSplit); }
-            this.children.add(LeafNode1);
-            this.children.add(LeafNode2);
-            this.isLeaf = false;
-        } else {
-            System.out.println();
-            System.out.println("Parent");
-            parent.display();
-            if(internal) { LeafNode2.keys.remove(keyOnSplit); }
-            parent.children.add(LeafNode1);
-            parent.children.add(LeafNode2);
-            parent.insert(record, keyOnSplit, 0, true);
-            parent.children.remove(this);
-        }
+    public void delete(Object key) {
+        return;
     }
 
     public LinkedList<BPlusNode> getChildren() {

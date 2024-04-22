@@ -42,23 +42,11 @@ public class BPlusTree {
         // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
-            root.insert(record, key, pointer,false);
-        } else if(root.isLeaf()) {
-            root.insert(record, key, pointer,false);
-        } else {
-            BPlusNode childToInsert = null;
-            for(BPlusNode child : this.root.getChildren()) {
-                for(Object searchKey : child.getKeys()) {
-                    if(compare(searchKey, key) < 0) {
-                        childToInsert = child;
-                    }
-                }
-            }
-            childToInsert.insert(record, key, pointer,false);
-        }
+            root.insert(record, key, pointer, false);
+        } else { root.insert(record, key, pointer, false); }
     }
 
-    public void delete(int key) {
+    public void delete(Object key) {
         root.delete(key);
     }
 
