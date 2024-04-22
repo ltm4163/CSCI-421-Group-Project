@@ -8,7 +8,7 @@ public class BPlusNode {
     private boolean isRoot;
     private AttributeSchema attr;
     private int tableNumber;
-    private int pageNumber;
+    public int pageNumber;
     private int order;
     public LinkedList<Object> keys;
     public LinkedList<BPlusNode> children;
@@ -27,7 +27,7 @@ public class BPlusNode {
         this.children = new LinkedList<BPlusNode>();
     }
 
-    public void insert(Record record, int searchKey, int pointer) {
+    public void insert(Record record, Object searchKey, int pointer) {
             for(int i = 0; i < keys.size(); i++) {
                 Object key = keys.get(i);
                 if (key != null) {

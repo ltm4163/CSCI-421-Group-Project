@@ -7,16 +7,16 @@ public class BPlusTree {
 
     private BPlusNode root;
     private int order;  // N value
-    private AttributeSchema attr;
+    private static AttributeSchema attr;
 
     // default constructor
 
     public BPlusTree(AttributeSchema attr, int tableNumber) {
-        this.root = new LeafNode(order, attr, tableNumber, true);
         TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
         this.root.pageNumber = tableSchema.getNumNodes();
         tableSchema.addTreeNode();
         this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
+        this.root = null;
     }
 
     public int search(int key) {
@@ -92,14 +92,14 @@ public class BPlusTree {
 
         // TODO: change this to general node after internal and leaf nodes are combined
         // reconstruct root node from file
-        InternalNode root = new InternalNode(order, primaryKey, tableNumber, true);
+        BPlusNode root = new BPlusNode(order, true, tableNumber, attr);
         LinkedList<Object> keys = new LinkedList<>();
-        LinkedList<Node.Pair<Integer, Integer>> pointers = new LinkedList<>();
+        LinkedList<BPlusNode.Pair<Integer, Integer>> pointers = new LinkedList<>();
 
         //get first pointer pair from buffer
         int pageNumber = buffer.getInt();
         int index = buffer.getInt();
-        Node.Pair<Integer, Integer> pointer = new Node.Pair<Integer,Integer>(pageNumber, index);
+        BPlusNode.Pair<Integer, Integer> pointer = new BPlusNode.Pair<Integer,Integer>(pageNumber, index);
         pointers.add(pointer);
 
         // Populate root with keys and pointers using data from file
@@ -135,7 +135,7 @@ public class BPlusTree {
 
             pageNumber = buffer.getInt();
             index = buffer.getInt();
-            pointer = new Node.Pair<Integer,Integer>(pageNumber, index);
+            pointer = new BPlusNode.Pair<Integer,Integer>(pageNumber, index);
             pointers.add(pointer);
         }
         
