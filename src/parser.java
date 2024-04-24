@@ -261,7 +261,7 @@ public class parser {
                 nullBitMap.add((byte)0);
 
                 // get key for BPlusTree insertion
-                if (attribute.getprimarykey()) primaryKeyValue = value;
+                if (attribute.getprimarykey()) primaryKeyValue = parsedValue;
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size

@@ -141,7 +141,7 @@ public class Catalog {
     }
 
     public int getNextTableNumber() {
-        return this.tables.size() + 1;
+        return this.tables.size();
     }
 
     public TableSchema getTableSchemaByName(String tableName) {

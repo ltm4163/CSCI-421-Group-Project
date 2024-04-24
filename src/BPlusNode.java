@@ -20,6 +20,9 @@ public class BPlusNode {
         this.isRoot = isRoot;
         this.isLeaf = true;
         this.tableNumber = tableNumber;
+        TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
+        this.pageNumber = tableSchema.getNumNodes();
+        tableSchema.addTreeNode();
         this.parent = null;
         this.attr = attr;
         this.children = new LinkedList<BPlusNode>();
@@ -59,8 +62,8 @@ public class BPlusNode {
                 if (keys.size() == order) {
                     int splitIndex = (int) Math.ceil(order / 2);
                     Object keyOnSplit = keys.get(splitIndex);
-                    BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr); // TODO fix table number for these two
-                    BPlusNode LeafNode2 = new BPlusNode(order, false, 0, this.attr);
+                    BPlusNode LeafNode1 = new BPlusNode(order, false, tableNumber, this.attr);
+                    BPlusNode LeafNode2 = new BPlusNode(order, false, tableNumber, this.attr);
                     LeafNode1.parent = this.parent;
                     LeafNode2.parent = this.parent;
 
@@ -70,7 +73,6 @@ public class BPlusNode {
                     }
                     keys.subList((int) splitIndex, keys.size()).clear();
 
-                    // are pointers even needed with this setup?
                     List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
                             .map(Pair -> Pair).collect(Collectors.toList());
                     pointers.subList(splitIndex, pointers.size()).clear();
@@ -132,6 +134,10 @@ public class BPlusNode {
 
     public void delete(Object key) {
         return;
+    }
+
+    public int getPageNumber() {
+        return pageNumber;
     }
 
     public LinkedList<BPlusNode> getChildren() {
