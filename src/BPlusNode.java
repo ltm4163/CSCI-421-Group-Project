@@ -130,39 +130,62 @@ public class BPlusNode {
 
     }
 
-    public void delete(Object key) {
-        if(isLeaf) {
-            keys.remove(key);
+    public void delete(Object searchKey, boolean intoInternal) {
+        if(isRoot && intoInternal) {
+            keys.remove(searchKey);
+            if(keys.size() == 0) {
+                keys.add(children.get(1).keys.get(0));
+                children.get(1).keys.remove(0);
+            }
+            return;
+        }
+        if(isLeaf || intoInternal) {
+            if(intoInternal) { System.out.println("deleting from internal"); }
+            keys.remove(searchKey);
             // TODO remove pointer
             if(keys.size() == 1) {
                 BPlusNode merged = new BPlusNode(order, false, tableNumber, attr); // TODO what is tablenumber
                 BPlusNode nodeToMerge = null;
                 int index = parent.getChildren().indexOf(this);
-                if(index - 1 >= 0) {
-                    nodeToMerge = parent.getChildren().get(index - 1);
+                if(parent.isRoot) {
+                    nodeToMerge = parent;
+                    merged.keys.addAll(this.keys);
+                    merged.keys.addAll(nodeToMerge.keys);
                 } else {
-                    nodeToMerge = parent.getChildren().get(index + 1);
-                }
-                merged.keys.addAll(nodeToMerge.keys);
-                merged.keys.addAll(this.keys);
-                parent.keys.remove(key);
+                    if(index - 1 >= 0) {
+                        nodeToMerge = parent.getChildren().get(index - 1);
+                    } else {
+                        nodeToMerge = parent.getChildren().get(index + 1);
+                    }
+                    merged.keys.addAll(nodeToMerge.keys);
+                    merged.keys.addAll(this.keys);
+                 }
+                parent.delete(searchKey, true);
+                parent.delete(this.keys.get(0), true);
                 parent.children.remove(this);
                 parent.children.remove(nodeToMerge);
-                parent.children.add(index - 1, merged);
+                if(intoInternal) {
+                    System.out.println("here");
+                    merged.isLeaf = false;
+                    merged.children = this.children;
+                }
+                if(index - 1 > 0) {
+                    parent.children.add(index - 1, merged);
+                } else { parent.children.add(0, merged); }
                 merged.parent = this.parent;
             }
         } else {
             // TODO make searching work without, use search function?
             BPlusNode childToDelete = null;
             for(BPlusNode child : this.children) {
-                for(Object searchKey : child.keys) {
-                    if (compare(key, searchKey) == 0) {
+                for(Object key : child.keys) {
+                    if (compare(key, searchKey) == 0 || compare(key, searchKey) < 0) {
                         childToDelete = child;
                         break;
                     }
                 }
             }
-            childToDelete.delete(key);
+            childToDelete.delete(searchKey, false);
         }
 
     }

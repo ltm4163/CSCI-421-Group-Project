@@ -52,7 +52,7 @@ public class BPlusTree {
 
     public void delete(Object key) {
         System.out.println("Deleting: " + key);
-        root.delete(key);
+        root.delete(key, false);
     }
 
     public void writeToFile() {
