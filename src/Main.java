@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Objects;
 
 public class Main {
@@ -14,7 +15,8 @@ public class Main {
     private static int pageSize;
     private static int bufferSize;
 
-    private static String indexing;
+    private static boolean indexing;
+    private static ArrayList<BPlusTree> bPlusTrees;
 
     public static void main(String[] args) {
         if (args.length != 4) {
@@ -25,9 +27,9 @@ public class Main {
         dbDirectory = args[0].endsWith("/") ? args[0] : args[0] + "/";
         pageSize = Integer.parseInt(args[1]);
         bufferSize = Integer.parseInt(args[2]);
-        indexing = args[3];
+        indexing = Boolean.parseBoolean(args[3]);
 
-        if (!indexing.equalsIgnoreCase("true")) {
+        if (!indexing == true) {
             new File(dbDirectory + "tables").mkdirs();
 
             String catalogPath = dbDirectory + "catalog.bin";
@@ -37,6 +39,7 @@ public class Main {
             catalog = new Catalog(dbDirectory, pageSize, bufferSize);
             buffer = new PageBuffer(bufferSize);
             storageManager = new StorageManager(catalog, buffer);
+            bPlusTrees = new ArrayList<>();
 
             // Load/init the catalog
             try {
@@ -88,6 +91,8 @@ public class Main {
         }
         else {  // TEMPORARY separate main definition for indexing for testing purposes
             System.out.println("Working");
+            //Testing
+            //End testing
         }
     }
 
@@ -113,6 +118,14 @@ public class Main {
 
     public static int getBufferSize() {
         return bufferSize;
+    }
+
+    public static boolean getIndexing() {
+        return indexing;
+    }
+
+    public static ArrayList<BPlusTree> getTrees() {
+        return bPlusTrees;
     }
 
     public static void writeBufferToHardware() {
