@@ -20,10 +20,25 @@ public class BPlusTest {
         recTuple1.add(string1);
         Record record1 = new Record(recTuple1, Integer.BYTES + 20, nullBitMap);
 
-        for (int i = 1; i <= 1000000; i++) {
+        for (int i = 1; i <= 9; i++) {
             BPlusTest.insert(record1, i, 0);
-            BPlusTest.display();
         }
+
+        BPlusTest.display();
+
+        BPlusTest.delete(8);
+
+        BPlusTest.display();
+
+        BPlusTest.delete(3);
+
+        BPlusTest.display();
+
+        BPlusTest.delete(9);
+
+        BPlusTest.display();
+
+
 
     }
 }

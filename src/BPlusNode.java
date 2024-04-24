@@ -131,7 +131,40 @@ public class BPlusNode {
     }
 
     public void delete(Object key) {
-        return;
+        if(isLeaf) {
+            keys.remove(key);
+            // TODO remove pointer
+            if(keys.size() == 1) {
+                BPlusNode merged = new BPlusNode(order, false, tableNumber, attr); // TODO what is tablenumber
+                BPlusNode nodeToMerge = null;
+                int index = parent.getChildren().indexOf(this);
+                if(index - 1 >= 0) {
+                    nodeToMerge = parent.getChildren().get(index - 1);
+                } else {
+                    nodeToMerge = parent.getChildren().get(index + 1);
+                }
+                merged.keys.addAll(nodeToMerge.keys);
+                merged.keys.addAll(this.keys);
+                parent.keys.remove(key);
+                parent.children.remove(this);
+                parent.children.remove(nodeToMerge);
+                parent.children.add(index - 1, merged);
+                merged.parent = this.parent;
+            }
+        } else {
+            // TODO make searching work without, use search function?
+            BPlusNode childToDelete = null;
+            for(BPlusNode child : this.children) {
+                for(Object searchKey : child.keys) {
+                    if (compare(key, searchKey) == 0) {
+                        childToDelete = child;
+                        break;
+                    }
+                }
+            }
+            childToDelete.delete(key);
+        }
+
     }
 
     public LinkedList<BPlusNode> getChildren() {
