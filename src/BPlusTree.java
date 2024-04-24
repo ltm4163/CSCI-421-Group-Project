@@ -19,7 +19,11 @@ public class BPlusTree {
         this.root = null;
     }
 
-    public int search(int key) {
+//    public int search(int key) {
+//        return root.search(key);
+//    }
+
+    public BPlusNode search(int key) {
         return root.search(key);
     }
 

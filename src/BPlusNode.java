@@ -179,24 +179,37 @@ public class BPlusNode {
         return this.isLeaf;
     }
 
-    public int search(Object key) {
-        if (isLeaf) {
-            for (int i = 0; i < keys.size(); i++) {
-                // If the key is found in the current leaf node...
-                if (compare(key, keys.get(i)) == 0) {
-                    Pair<Integer, Integer> pointer = pointers.get(i);
-                    return pointer.getIndex();  // Return index/pointer value
-                }
-            }
-            return -1;  // Key not found in leaf node
-        }
-        else {  // If not leaf, traverse to appropriate child node
+//    public int search(Object key) {
+//        if (isLeaf) {
+//            for (int i = 0; i < keys.size(); i++) {
+//                // If the key is found in the current leaf node...
+//                if (compare(key, keys.get(i)) == 0) {
+//                    Pair<Integer, Integer> pointer = pointers.get(i);
+//                    return pointer.getIndex();  // Return index/pointer value
+//                }
+//            }
+//            return -1;  // Key not found in leaf node
+//        }
+//        else {  // If not leaf, traverse to appropriate child node
+//            BPlusNode childNode = getChildNodeForKey(key);
+//            if (childNode != null) {
+//                return childNode.search(key);  // Recursively search in child node
+//            }
+//        }
+//        return -1;  // Key not found in tree
+//    }
+
+    public BPlusNode search(Object key) {
+        if (!isLeaf) {
             BPlusNode childNode = getChildNodeForKey(key);
             if (childNode != null) {
-                return childNode.search(key);  // Recursively search in child node
+                if (childNode.isLeaf) {
+                    return childNode;
+                }
+                return childNode.search(key);
             }
         }
-        return -1;  // Key not found in tree
+        return null;  // Key not found in tree
     }
 
     // Gets the appropriate child node for a given search key
