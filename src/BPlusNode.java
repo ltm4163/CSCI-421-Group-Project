@@ -132,8 +132,64 @@ public class BPlusNode {
 
     }
 
-    public void delete(Object key) {
-        return;
+    public void delete(Object searchKey, boolean intoInternal) {
+        if(isRoot && intoInternal) {
+            keys.remove(searchKey);
+            if(keys.size() == 0) {
+                keys.add(children.get(1).keys.get(0));
+                children.get(1).keys.remove(0);
+            }
+            return;
+        }
+        if(isLeaf || intoInternal) {
+            if(intoInternal) { System.out.println("deleting from internal"); }
+            keys.remove(searchKey);
+            // TODO remove pointer
+            if(keys.size() == 1) {
+                BPlusNode merged = new BPlusNode(order, false, tableNumber, attr); // TODO what is tablenumber
+                BPlusNode nodeToMerge = null;
+                int index = parent.getChildren().indexOf(this);
+                if(parent.isRoot) {
+                    nodeToMerge = parent;
+                    merged.keys.addAll(this.keys);
+                    merged.keys.addAll(nodeToMerge.keys);
+                } else {
+                    if(index - 1 >= 0) {
+                        nodeToMerge = parent.getChildren().get(index - 1);
+                    } else {
+                        nodeToMerge = parent.getChildren().get(index + 1);
+                    }
+                    merged.keys.addAll(nodeToMerge.keys);
+                    merged.keys.addAll(this.keys);
+                 }
+                parent.delete(searchKey, true);
+                parent.delete(this.keys.get(0), true);
+                parent.children.remove(this);
+                parent.children.remove(nodeToMerge);
+                if(intoInternal) {
+                    System.out.println("here");
+                    merged.isLeaf = false;
+                    merged.children = this.children;
+                }
+                if(index - 1 > 0) {
+                    parent.children.add(index - 1, merged);
+                } else { parent.children.add(0, merged); }
+                merged.parent = this.parent;
+            }
+        } else {
+            // TODO make searching work without, use search function?
+            BPlusNode childToDelete = null;
+            for(BPlusNode child : this.children) {
+                for(Object key : child.keys) {
+                    if (compare(key, searchKey) == 0 || compare(key, searchKey) < 0) {
+                        childToDelete = child;
+                        break;
+                    }
+                }
+            }
+            childToDelete.delete(searchKey, false);
+        }
+
     }
 
     public int getPageNumber() {
@@ -152,24 +208,37 @@ public class BPlusNode {
         return this.isLeaf;
     }
 
-    public int search(Object key) {
-        if (isLeaf) {
-            for (int i = 0; i < keys.size(); i++) {
-                // If the key is found in the current leaf node...
-                if (compare(key, keys.get(i)) == 0) {
-                    Pair<Integer, Integer> pointer = pointers.get(i);
-                    return pointer.getIndex();  // Return index/pointer value
-                }
-            }
-            return -1;  // Key not found in leaf node
-        }
-        else {  // If not leaf, traverse to appropriate child node
+//    public int search(Object key) {
+//        if (isLeaf) {
+//            for (int i = 0; i < keys.size(); i++) {
+//                // If the key is found in the current leaf node...
+//                if (compare(key, keys.get(i)) == 0) {
+//                    Pair<Integer, Integer> pointer = pointers.get(i);
+//                    return pointer.getIndex();  // Return index/pointer value
+//                }
+//            }
+//            return -1;  // Key not found in leaf node
+//        }
+//        else {  // If not leaf, traverse to appropriate child node
+//            BPlusNode childNode = getChildNodeForKey(key);
+//            if (childNode != null) {
+//                return childNode.search(key);  // Recursively search in child node
+//            }
+//        }
+//        return -1;  // Key not found in tree
+//    }
+
+    public BPlusNode search(Object key) {
+        if (!isLeaf) {
             BPlusNode childNode = getChildNodeForKey(key);
             if (childNode != null) {
-                return childNode.search(key);  // Recursively search in child node
+                if (childNode.isLeaf) {
+                    return childNode;
+                }
+                return childNode.search(key);
             }
         }
-        return -1;  // Key not found in tree
+        return null;  // Key not found in tree
     }
 
     // Gets the appropriate child node for a given search key

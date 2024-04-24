@@ -13,12 +13,17 @@ public class BPlusTree {
 
     public BPlusTree(AttributeSchema attr, int tableNumber) {
         this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
+        this.order = 5;
         System.out.println(this.order);
         this.attr = attr;
         this.root = null;
     }
 
-    public int search(int key) {
+//    public int search(int key) {
+//        return root.search(key);
+//    }
+
+    public BPlusNode search(int key) {
         return root.search(key);
     }
 
@@ -46,7 +51,8 @@ public class BPlusTree {
     }
 
     public void delete(Object key) {
-        root.delete(key);
+        System.out.println("Deleting: " + key);
+        root.delete(key, false);
     }
 
     public void writeToFile() {

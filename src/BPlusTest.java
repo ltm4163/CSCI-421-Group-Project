@@ -20,9 +20,8 @@ public class BPlusTest {
         recTuple1.add(string1);
         Record record1 = new Record(recTuple1, Integer.BYTES + 20, nullBitMap);
 
-        for (int i = 1; i <= 1000000; i++) {
+        for (int i = 1; i <= 18; i++) {
             BPlusTest.insert(record1, i, 0);
-            BPlusTest.display();
         }
         
         //Create a BPlusTree instance with appropriate attribute schema and order
@@ -35,36 +34,51 @@ public class BPlusTest {
         recTuple2.add(int2);
         recTuple2.add(string2);
         Record record = new Record(recTuple2, Integer.BYTES + 20, nullBitMap1);
-         
- 
-         // Test basic insertion
-         testBasicInsertion(bPlusTree, record);
+
+        BPlusTest.display();
+
+        BPlusTest.delete(17);
+
+        BPlusTest.display();
+
+        BPlusTest.delete(13);
+
+        BPlusTest.display();
+
+        BPlusTest.delete(5);
+
+        BPlusTest.display();
+
+
+
+        // Test basic insertion
+         //testBasicInsertion(bPlusTree, record);
  
          // Test insertion into non-empty tree
-         testInsertionIntoNonEmptyTree(bPlusTree, record);
+         //testInsertionIntoNonEmptyTree(bPlusTree, record);
  
          // Test insertion of duplicates
-         testInsertionOfDuplicates(bPlusTree, record);
+         //testInsertionOfDuplicates(bPlusTree, record);
  
          // Test insertion into full leaf nodes
-         testInsertionIntoFullLeafNodes(bPlusTree, record);
+         //testInsertionIntoFullLeafNodes(bPlusTree, record);
  
          // Test insertion into full internal nodes
-         testInsertionIntoFullInternalNodes(bPlusTree, record);
+         //testInsertionIntoFullInternalNodes(bPlusTree, record);
  
          // Test insertion at different levels
-         testInsertionAtDifferentLevels(bPlusTree, record);
+         //testInsertionAtDifferentLevels(bPlusTree, record);
  
          
  
          // Test insertion with large data sets
-         testInsertionWithLargeDataSets(bPlusTree, record);
+        //testInsertionWithLargeDataSets(bPlusTree, record);
  
          // Test insertion and search
-         testInsertionAndSearch(bPlusTree, record);
+         //testInsertionAndSearch(bPlusTree, record);
  
          // Test edge cases and boundary conditions
-         testEdgeCasesAndBoundaryConditions(bPlusTree);
+         //testEdgeCasesAndBoundaryConditions(bPlusTree);
 
         
      }
@@ -164,5 +178,8 @@ public class BPlusTest {
             bPlusTree.display();
         }
      }
+
+
+
 
     }
