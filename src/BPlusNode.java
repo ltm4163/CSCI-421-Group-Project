@@ -3,115 +3,188 @@ import java.nio.ByteBuffer;
 import java.io.RandomAccessFile;
 import java.util.LinkedList;
 import java.util.stream.Collectors;
-public class BPlusNode extends Node {
+public class BPlusNode {
+    private boolean isLeaf;
+    private boolean isRoot;
+    private AttributeSchema attr;
+    private int tableNumber;
+    private int pageNumber;
+    private int order;
     private LinkedList<Object> keys;
     private LinkedList<BPlusNode> children;
     private LinkedList<Pair<Integer, Integer>> pointers;
     private BPlusNode parent;
 
-    public BPlusNode(int order, boolean isRoot, int tableNumber) {
+    public BPlusNode(int order, boolean isRoot, int tableNumber, AttributeSchema attr) {
         this.order = order;
         this.isRoot = isRoot;
-        this.tableNumber = tableNumber;
         this.isLeaf = true;
+        this.tableNumber = tableNumber;
+        this.parent = null;
+        this.attr = attr;
+        this.children = new LinkedList<BPlusNode>();
         this.keys = new LinkedList<>();
         this.pointers = new LinkedList<>();
-        this.parent = null;
-        AttributeSchema attr1 = new AttributeSchema("num", "integer", false, false, true, Integer.BYTES);
-        this.attr = attr1;
-        this.children = new LinkedList<BPlusNode>();
     }
 
-    @Override
-    public Object insert(Record record, int searchKey, int pointer) {
-        if(this.isLeaf) {
-            for(int i = 0; i < keys.size(); i++) {
-                Object key = keys.get(i);
-                if (key != null) {
-                    if (compare(searchKey, key) == 0) { //duplicate primarykey, cancel insert
-                        System.err.println("Duplicate primarykey, insert cancelled");
-                        return null;
-                    }
-                    if (compare(searchKey, key) < 0) { //insert key at this position
-                        keys.add(i, searchKey);
-                        System.out.println("adding: " + key);
-                        return null;
-                    }
-                }
-            }
-            keys.add(searchKey);
-            pointers.add(new Pair<Integer,Integer>(pointer, pointer));
-            if(keys.size() == order) {
-                int splitIndex = (int)Math.ceil(order/2);
-                Object keyOnSplit = keys.get(splitIndex);
-                BPlusNode LeafNode1 = new BPlusNode(order, false, tableNumber);
-                BPlusNode LeafNode2 = new BPlusNode(order, false, tableNumber);
-                LeafNode1.parent = this.parent;
-                LeafNode2.parent = this.parent;
-
-                LinkedList<Object> clonedKeys = new LinkedList<Object>();
-                for(int i = splitIndex; i < keys.size(); i++) {
-                    clonedKeys.add(keys.get(i));
-                }
-                keys.subList((int)splitIndex, keys.size()).clear();
-
-                System.out.println("og list");
-                for (Object object2 : keys) System.out.println(object2);
-                System.out.println("new list");
-                for (Object object3 : clonedKeys) System.out.println(object3);
-
-                List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
-                        .map(Pair -> Pair).collect(Collectors.toList());
-                pointers.subList(splitIndex, pointers.size()).clear();
-
-
-
-                LeafNode1.keys = keys;
-                LeafNode1.pointers = pointers;
-                LeafNode2.keys = clonedKeys;
-                LeafNode2.pointers = pointers;
-                System.out.println(this.isRoot);
-                if(this.isRoot) {
-                    System.out.println("key on split: " + keyOnSplit);
-                    this.keys = new LinkedList<Object>();
-                    this.keys.add(keyOnSplit);
-                    LeafNode1.parent = this;
-                    LeafNode2.parent = this;
-                    this.children.add(LeafNode1);
-                    this.children.add(LeafNode2);
-                    this.isLeaf = false;
-                    return null;
-                } else {
-                    System.out.println();
-                    parent.children.add(LeafNode1);
-                    parent.children.add(LeafNode2);
-                    parent.keys.add(keyOnSplit);
-                    parent.children.remove(this);
-                }
-
-            }
-        } else {
-            BPlusNode childToInsert = null;
-            for(BPlusNode child : this.children) {
-                for(Object key : child.keys) {
-                    if(compare(key, searchKey) < 0) {
-                        childToInsert = child;
+    /*
+     * BPlusTree insert function
+     *
+     * @param Record record    record to insert
+     * @param Object searchKey  key to search on
+     * @param int pointer       is this needed...?
+     * @param boolean intoInternal  indicates if inserting into internal node
+     */
+    public void insert(Record record, Object searchKey, int pointer, boolean intoInternal) {
+            // if inserting into leaf or internal node
+            if(isLeaf || intoInternal) {
+                // insert key into node
+                for (int i = 0; i < keys.size(); i++) {
+                    Object key = keys.get(i);
+                    if (key != null) {
+                        if (compare(searchKey, key) == 0) { //duplicate primarykey, cancel insert
+                            System.err.println("Duplicate primarykey, insert cancelled");
+                            return;
+                        }
+                        if (compare(searchKey, key) < 0) { //insert key at this position
+                            keys.add(i, searchKey);
+                            System.out.println("adding: " + key);
+                            return;
+                        }
                     }
                 }
+                keys.add(searchKey);
+                pointers.add(new Pair<Integer, Integer>(pointer, pointer));
+                // if keys become overfull, split
+                if (keys.size() == order) {
+                    int splitIndex = (int) Math.ceil(order / 2);
+                    Object keyOnSplit = keys.get(splitIndex);
+                    BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr); // TODO fix table number for these two
+                    BPlusNode LeafNode2 = new BPlusNode(order, false, 0, this.attr);
+                    LeafNode1.parent = this.parent;
+                    LeafNode2.parent = this.parent;
+
+                    LinkedList<Object> clonedKeys = new LinkedList<Object>();
+                    for (int i = splitIndex; i < keys.size(); i++) {
+                        clonedKeys.add(keys.get(i));
+                    }
+                    keys.subList((int) splitIndex, keys.size()).clear();
+
+                    // are pointers even needed with this setup?
+                    List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
+                            .map(Pair -> Pair).collect(Collectors.toList());
+                    pointers.subList(splitIndex, pointers.size()).clear();
+
+
+                    LeafNode1.keys = keys;
+                    LeafNode1.pointers = pointers;
+                    LeafNode2.keys = clonedKeys;
+                    LeafNode2.pointers = pointers;
+                    // if the node has children, it's children must be split among the new nodes
+                    if (this.children.size() > 0) {
+                        for (int i = 0; i < splitIndex + 1; i++) {
+                            children.get(i).parent = LeafNode1;
+                            LeafNode1.children.add(children.get(i));
+                        }
+                        for (int i = splitIndex + 1; i < children.size(); i++) {
+                            children.get(i).parent = LeafNode2;
+                            LeafNode2.children.add(children.get(i));
+                        }
+                        LeafNode1.isLeaf = false;
+                        LeafNode2.isLeaf = false;
+                        this.children = new LinkedList<BPlusNode>();
+                    }
+                    if (this.isRoot) {
+                        keys = new LinkedList<Object>();
+                        this.insert(record, keyOnSplit, pointer, true);
+                        LeafNode1.parent = this;
+                        LeafNode2.parent = this;
+                        // idk why this needs to be done but it works
+                        if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
+                        children.add(LeafNode1);
+                        children.add(LeafNode2);
+                        isLeaf = false;
+                    } else {
+                        if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
+                        parent.children.add(LeafNode1);
+                        parent.children.add(LeafNode2);
+                        parent.insert(record, keyOnSplit, 0, true);
+                        parent.children.remove(this);
+                    }
+
+                }
+            } else {
+                // TODO make searching work without, use search function?
+                BPlusNode childToInsert = null;
+                for(BPlusNode child : this.children) {
+                    for(Object key : this.keys) {
+                        if (compare(key, searchKey) < 0) {
+                            childToInsert = child;
+                            break;
+                        }
+                    }
+                }
+                childToInsert.insert(record, searchKey, pointer, false);
             }
-            childToInsert.insert(record, searchKey, pointer);
+
+
+    }
+
+    public void delete(Object key) {
+        return;
+    }
+
+    public LinkedList<BPlusNode> getChildren() {
+        return this.children;
+    }
+
+    public LinkedList<Object> getKeys() {
+        return this.keys;
+    }
+
+    public boolean isLeaf() {
+        return this.isLeaf;
+    }
+
+    public int search(Object key) {
+        if (isLeaf) {
+            for (int i = 0; i < keys.size(); i++) {
+                // If the key is found in the current leaf node...
+                if (compare(key, keys.get(i)) == 0) {
+                    Pair<Integer, Integer> pointer = pointers.get(i);
+                    return pointer.getIndex();  // Return index/pointer value
+                }
+            }
+            return -1;  // Key not found in leaf node
         }
-
-        return null;
-
+        else {  // If not leaf, traverse to appropriate child node
+            BPlusNode childNode = getChildNodeForKey(key);
+            if (childNode != null) {
+                return childNode.search(key);  // Recursively search in child node
+            }
+        }
+        return -1;  // Key not found in tree
     }
 
-    @Override
-    public void delete(int key) { return; }
-    @Override
-    public int search(int key) { return -1; }
+    // Gets the appropriate child node for a given search key
+    private BPlusNode getChildNodeForKey(Object key) {
+        for (int i = 0; i < keys.size(); i++) {
+            if (i == 0 && compare(key, keys.get(i)) < 0) {
+                // Key is less than first key, choose leftmost child
+                return children.get(i);
+            }
+            else if (i == keys.size() - 1 && compare(key, keys.get(i)) >= 0) {
+                // Key is greater than or equal to last key, choose the rightmost child
+                return children.get(i + 1);
+            }
+            else if (i > 0 && compare(key, keys.get(i - 1)) >= 0 && compare(key, keys.get(i)) < 0) {
+                // Key is between two keys, choose the corresponding child
+                return children.get(i);
+            }
+        }
+        return null; // Should never reach here
+    }
 
-    @Override
     public void writeToFile() {
         ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
         buffer.putInt(keys.size()); // Amount of keys in node
@@ -168,23 +241,48 @@ public class BPlusNode extends Node {
         }
 
         // have children write themselves to file
-        for (Node child : children) {
+        for (BPlusNode child : children) {
             child.writeToFile();
         }
     }
 
     public void display() {
-        this._display(0);
-    }
-    public void _display(int n) {
-        System.out.println("level: " + n);
+        if(this.isRoot) { System.out.print("root: ");}
+        if(this.isLeaf) { System.out.print("leaf: "); }
+        else { System.out.print("internal: "); }
         for(Object key : this.keys) {
             System.out.print("| " + key);
         }
+
         System.out.print(" |\n");
-        int level = n + 1;
         for(BPlusNode child : children) {
-            child._display(level);
+            child.display();
+        }
+    }
+
+
+    public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
+        if (attr.gettype().equalsIgnoreCase("integer")) {
+            return (int)insertValue - (int)existingValue;
+        }
+        return 0; //placeholder value
+    }
+
+    static class Pair<K, V> {
+        private final K pageNumber;
+        private final V index;
+
+        public Pair(K first, V second) {
+            this.pageNumber = first;
+            this.index = second;
+        }
+
+        public K getPageNumber() {
+            return pageNumber;
+        }
+
+        public V getIndex() {
+            return index;
         }
     }
 }

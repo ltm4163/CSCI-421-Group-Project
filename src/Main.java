@@ -135,4 +135,12 @@ public class Main {
     public static void writeCatalogToFile(String catalogPath) throws IOException {
         catalog.writeCatalogToFile(catalogPath);
     }
+
+    public static boolean getIndexing() {
+        throw new UnsupportedOperationException("Method not implemented");
+    }
+
+    public static ArrayList<BPlusTree> getTrees() {
+        throw new UnsupportedOperationException("Method not implemented");
+    }
 }

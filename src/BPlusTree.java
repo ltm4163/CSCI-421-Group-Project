@@ -5,17 +5,17 @@ import java.util.ArrayList;
 
 public class BPlusTree {
 
-    private Node root;
+    private BPlusNode root;
     private int order;  // N value
+    private static AttributeSchema attr;
 
     // default constructor
 
     public BPlusTree(AttributeSchema attr, int tableNumber) {
-        this.root = new LeafNode(order, attr, tableNumber, true);
-        TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
-        this.root.pageNumber = tableSchema.getNumNodes();
-        tableSchema.addTreeNode();
         this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
+        System.out.println(this.order);
+        this.attr = attr;
+        this.root = null;
     }
 
     public int search(int key) {
@@ -37,16 +37,15 @@ public class BPlusTree {
      * @param int pointer      pointer value
      */
     public void insert(Record record, Object key, int pointer) {
+        System.out.println("Inserting: " + key);
         // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
-            root = new BPlusNode(order, true, 0);
-            root.insert(record, key, pointer);
-        } else {
-            root.insert(record, key, pointer);
-        }
+            root = new BPlusNode(order, true, 0, this.attr);
+            root.insert(record, key, pointer, false);
+        } else { root.insert(record, key, pointer, false); }
     }
 
-    public void delete(int key) {
+    public void delete(Object key) {
         root.delete(key);
     }
 
@@ -81,14 +80,14 @@ public class BPlusTree {
 
         // TODO: change this to general node after internal and leaf nodes are combined
         // reconstruct root node from file
-        InternalNode root = new InternalNode(order, primaryKey, tableNumber, true);
+        BPlusNode root = new BPlusNode(order, true, tableNumber, attr);
         LinkedList<Object> keys = new LinkedList<>();
-        LinkedList<Node.Pair<Integer, Integer>> pointers = new LinkedList<>();
+        LinkedList<BPlusNode.Pair<Integer, Integer>> pointers = new LinkedList<>();
 
         //get first pointer pair from buffer
         int pageNumber = buffer.getInt();
         int index = buffer.getInt();
-        Node.Pair<Integer, Integer> pointer = new Node.Pair<Integer,Integer>(pageNumber, index);
+        BPlusNode.Pair<Integer, Integer> pointer = new BPlusNode.Pair<Integer,Integer>(pageNumber, index);
         pointers.add(pointer);
 
         // Populate root with keys and pointers using data from file
@@ -124,10 +123,21 @@ public class BPlusTree {
 
             pageNumber = buffer.getInt();
             index = buffer.getInt();
-            pointer = new Node.Pair<Integer,Integer>(pageNumber, index);
+            pointer = new BPlusNode.Pair<Integer,Integer>(pageNumber, index);
             pointers.add(pointer);
         }
         
         return null; //placeholder
+    }
+
+    public void display() {
+        root.display();
+    }
+
+    public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
+        if (attr.gettype().equalsIgnoreCase("integer")) {
+            return (int)insertValue - (int)existingValue;
+        }
+        return 0; //placeholder value
     }
 }
