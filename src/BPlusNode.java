@@ -135,7 +135,7 @@ public class BPlusNode {
                 // TODO make searching work without, use search function?
                 return search(searchKey).insert(record, searchKey, pointer, false);
             }
-            return false;
+            return true;
     }
 
     public void delete(Object searchKey, boolean intoInternal) {

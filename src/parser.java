@@ -271,8 +271,10 @@ public class parser {
             if (Main.getIndexing()) {
                 BPlusTree bPlusTree = Main.getTrees().get(table.gettableNumber());
                 boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize); //TODO: pointer probably shouldn't be a param
-                //System.out.println(success);
-                //TODO: check if insert failed, cancel if so
+                if (!success) {
+                    System.out.println("Insert failed: duplicate primary key");
+                    return;
+                }
             }
             else {
                 boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
