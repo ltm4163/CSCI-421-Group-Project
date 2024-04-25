@@ -51,9 +51,17 @@ public class BPlusNode {
                         }
                         if (compare(searchKey, key) < 0) { //insert key at this position
                             keys.add(i, searchKey);
-                            if (isLeaf) {
+                            if (isLeaf) { // if leaf node, insert record into table, add pointer to record and adjust following pointer
                                 Pair<Integer, Integer> nextPointer = pointers.get(i);
-                                pointers.add(new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index+1));
+                                StorageManager storageManager = Main.getStorageManager();
+                                Page page = storageManager.getPage(tableNumber, nextPointer.getPageNumber());
+                                page.shiftRecordsAndAdd(record, nextPointer.getIndex());
+                                pointers.set(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index+1));
+                                pointers.add(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index));
+                                if (page.isOverfull()) {
+                                    storageManager.splitPage(page);
+                                    //TODO: adjust pointers accordingly
+                                }
                             }
                             System.out.println("adding: " + key);
                             return;
@@ -61,7 +69,26 @@ public class BPlusNode {
                     }
                 }
                 keys.add(searchKey);
-                pointers.add(new Pair<Integer, Integer>(pointer, pointer));
+                if (isLeaf) {// if leaf node, insert record into table, add pointer to record
+                    if (pointers.isEmpty()) { // create page if first entry in table
+                        Page newPage = new Page(0, tableNumber, true);
+                        newPage.addRecord(record);
+                        Main.getCatalog().getTableSchema(tableNumber).addPage(newPage);
+                        //Main.getBuffer().addPage(newPage.getPageNumber(), newPage);
+                        pointers.add(new Pair<Integer,Integer>(0, 0));
+                    }
+                    else { // adjusts previous pointer
+                        Pair<Integer, Integer> prevPointer = pointers.getLast();
+                        StorageManager storageManager = Main.getStorageManager();
+                        Page page = storageManager.getPage(tableNumber, prevPointer.getPageNumber());
+                        page.addRecord(record);
+                        pointers.add(new Pair<Integer, Integer>(prevPointer.pageNumber, prevPointer.index+1));
+                        if (page.isOverfull()) {
+                            storageManager.splitPage(page);
+                            //TODO: adjust pointers accordingly
+                        }
+                    }
+                }
                 // TODO fix this
                 // if(intoInternal) { pointers.add(new Pair<page number, -1>); }
                 // else { pointers.add(new Pair<Integer, Integer>(pointer, pointer)); }
@@ -80,30 +107,34 @@ public class BPlusNode {
                     }
                     keys.subList((int) splitIndex, keys.size()).clear();
 
-                    List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
-                            .map(Pair -> Pair).collect(Collectors.toList());
-                    pointers.subList(splitIndex, pointers.size()).clear();
-
-
                     LeafNode1.keys = keys;
-                    LeafNode1.pointers = pointers;
                     LeafNode2.keys = clonedKeys;
-                    LeafNode2.pointers = pointers;
                     // if the node has children, it's children must be split among the new nodes
                     if (this.children.size() > 0) {
                         for (int i = 0; i < splitIndex + 1; i++) {
                             BPlusNode child = children.get(i);
                             child.parent = LeafNode1;
                             LeafNode1.children.add(child);
+                            LeafNode1.pointers.add(pointers.get(i));
                         }
                         for (int i = splitIndex + 1; i < children.size(); i++) {
                             BPlusNode child = children.get(i);
                             child.parent = LeafNode2;
                             LeafNode2.children.add(child);
+                            LeafNode2.pointers.add(pointers.get(i));
                         }
                         LeafNode1.isLeaf = false;
                         LeafNode2.isLeaf = false;
                         this.children = new LinkedList<BPlusNode>();
+                    }
+                    else { // if leaf node, copy pointers
+                        LinkedList<Pair<Integer, Integer>> clonedPointers = new LinkedList<>();
+                        for (int i = splitIndex; i < pointers.size(); i++) {
+                            clonedPointers.add(pointers.get(i));
+                        }
+                        pointers.subList((int) splitIndex, pointers.size()).clear();
+                        LeafNode2.pointers = clonedPointers;
+                        LeafNode1.pointers = pointers;
                     }
                     if (this.isRoot) {
                         keys = new LinkedList<Object>();
@@ -344,9 +375,9 @@ public class BPlusNode {
         private final K pageNumber;
         private final V index;
 
-        public Pair(K first, V second) {
-            this.pageNumber = first;
-            this.index = second;
+        public Pair(K pageNumber, V index) {
+            this.pageNumber = pageNumber;
+            this.index = index;
         }
 
         public K getPageNumber() {

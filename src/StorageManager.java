@@ -155,7 +155,7 @@ public class StorageManager {
             targetPage = new Page(0, tableNumber, true);
             targetPage.addRecord(record);
             table.addPage(targetPage);
-            buffer.addPage(targetPage.getPageNumber(), targetPage);
+            //buffer.addPage(targetPage.getPageNumber(), targetPage);
         }
         else if (indexFound) {
             targetPage = getPage(tableNumber, pageIndex);

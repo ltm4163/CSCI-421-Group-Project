@@ -13,8 +13,6 @@ public class BPlusTree {
 
     public BPlusTree(AttributeSchema attr, int tableNumber) {
         this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
-        this.order = 5;
-        System.out.println(this.order);
         this.attr = attr;
         this.root = null;
     }
