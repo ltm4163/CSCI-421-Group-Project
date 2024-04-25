@@ -105,7 +105,7 @@ public class parser {
         if (Main.getIndexing()) {
             ArrayList<BPlusTree> trees = Main.getTrees();
             BPlusTree newTree = new BPlusTree(primaryKey, table.gettableNumber());
-            trees.add(table.gettableNumber(), newTree);
+            trees.add(newTree);
         }
 
         System.out.println("Table " + tableName + " created successfully.");
@@ -270,8 +270,11 @@ public class parser {
             // choose insert operation based on if indexing is on or not
             if (Main.getIndexing()) {
                 BPlusTree bPlusTree = Main.getTrees().get(table.gettableNumber());
-                bPlusTree.insert(newRecord, primaryKeyValue, recordSize); //TODO: pointer probably shouldn't be a param
-                //TODO: check if insert failed, cancel if so
+                boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize); //TODO: pointer probably shouldn't be a param
+                if (!success) {
+                    System.out.println("Insert failed: duplicate primary key");
+                    return;
+                }
             }
             else {
                 boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
