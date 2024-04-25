@@ -51,6 +51,10 @@ public class BPlusNode {
                         }
                         if (compare(searchKey, key) < 0) { //insert key at this position
                             keys.add(i, searchKey);
+                            if (isLeaf) {
+                                Pair<Integer, Integer> nextPointer = pointers.get(i);
+                                pointers.add(new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index+1));
+                            }
                             System.out.println("adding: " + key);
                             return;
                         }
@@ -88,12 +92,14 @@ public class BPlusNode {
                     // if the node has children, it's children must be split among the new nodes
                     if (this.children.size() > 0) {
                         for (int i = 0; i < splitIndex + 1; i++) {
-                            children.get(i).parent = LeafNode1;
-                            LeafNode1.children.add(children.get(i));
+                            BPlusNode child = children.get(i);
+                            child.parent = LeafNode1;
+                            LeafNode1.children.add(child);
                         }
                         for (int i = splitIndex + 1; i < children.size(); i++) {
-                            children.get(i).parent = LeafNode2;
-                            LeafNode2.children.add(children.get(i));
+                            BPlusNode child = children.get(i);
+                            child.parent = LeafNode2;
+                            LeafNode2.children.add(child);
                         }
                         LeafNode1.isLeaf = false;
                         LeafNode2.isLeaf = false;
@@ -108,13 +114,20 @@ public class BPlusNode {
                         if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
                         children.add(LeafNode1);
                         children.add(LeafNode2);
+                        pointers = new LinkedList<>();
+                        // pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
+                        // pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
                         isLeaf = false;
                     } else {
                         if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
                         parent.children.add(LeafNode1);
                         parent.children.add(LeafNode2);
+                        //parent.pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
+                        //parent.pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
                         parent.insert(record, keyOnSplit, 0, true);
+                        //parent.pointers.remove(Pair<Integer, Integer>(this.pageNumber, -1));
                         parent.children.remove(this);
+                        Main.getCatalog().getTableSchema(tableNumber).deleteTreeNode();
                     }
 
                 }
