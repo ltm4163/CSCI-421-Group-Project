@@ -58,6 +58,9 @@ public class BPlusNode {
                 }
                 keys.add(searchKey);
                 pointers.add(new Pair<Integer, Integer>(pointer, pointer));
+                // TODO fix this
+                // if(intoInternal) { pointers.add(new Pair<page number, -1>); }
+                // else { pointers.add(new Pair<Integer, Integer>(pointer, pointer)); }
                 // if keys become overfull, split
                 if (keys.size() == order) {
                     int splitIndex = (int) Math.ceil(order / 2);
@@ -117,16 +120,7 @@ public class BPlusNode {
                 }
             } else {
                 // TODO make searching work without, use search function?
-                BPlusNode childToInsert = null;
-                for(BPlusNode child : this.children) {
-                    for(Object key : this.keys) {
-                        if (compare(key, searchKey) < 0) {
-                            childToInsert = child;
-                            break;
-                        }
-                    }
-                }
-                childToInsert.insert(record, searchKey, pointer, false);
+                search(searchKey).insert(record, searchKey, pointer, false);
             }
 
 
@@ -177,17 +171,7 @@ public class BPlusNode {
                 merged.parent = this.parent;
             }
         } else {
-            // TODO make searching work without, use search function?
-            BPlusNode childToDelete = null;
-            for(BPlusNode child : this.children) {
-                for(Object key : child.keys) {
-                    if (compare(key, searchKey) == 0 || compare(key, searchKey) < 0) {
-                        childToDelete = child;
-                        break;
-                    }
-                }
-            }
-            childToDelete.delete(searchKey, false);
+            search(searchKey).delete(searchKey, false);
         }
 
     }
