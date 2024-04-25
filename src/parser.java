@@ -105,7 +105,7 @@ public class parser {
         if (Main.getIndexing()) {
             ArrayList<BPlusTree> trees = Main.getTrees();
             BPlusTree newTree = new BPlusTree(primaryKey, table.gettableNumber());
-            trees.add(table.gettableNumber(), newTree);
+            trees.add(newTree);
         }
 
         System.out.println("Table " + tableName + " created successfully.");
@@ -270,7 +270,8 @@ public class parser {
             // choose insert operation based on if indexing is on or not
             if (Main.getIndexing()) {
                 BPlusTree bPlusTree = Main.getTrees().get(table.gettableNumber());
-                bPlusTree.insert(newRecord, primaryKeyValue, recordSize); //TODO: pointer probably shouldn't be a param
+                boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize); //TODO: pointer probably shouldn't be a param
+                //System.out.println(success);
                 //TODO: check if insert failed, cancel if so
             }
             else {

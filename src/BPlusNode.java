@@ -38,7 +38,7 @@ public class BPlusNode {
      * @param int pointer       is this needed...?
      * @param boolean intoInternal  indicates if inserting into internal node
      */
-    public void insert(Record record, Object searchKey, int pointer, boolean intoInternal) {
+    public boolean insert(Record record, Object searchKey, int pointer, boolean intoInternal) {
             // if inserting into leaf or internal node
             if(isLeaf || intoInternal) {
                 // insert key into node
@@ -47,7 +47,7 @@ public class BPlusNode {
                     if (key != null) {
                         if (compare(searchKey, key) == 0) { //duplicate primarykey, cancel insert
                             System.err.println("Duplicate primarykey, insert cancelled");
-                            return;
+                            return false;
                         }
                         if (compare(searchKey, key) < 0) { //insert key at this position
                             keys.add(i, searchKey);
@@ -56,7 +56,7 @@ public class BPlusNode {
                                 pointers.add(new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index+1));
                             }
                             System.out.println("adding: " + key);
-                            return;
+                            return true;
                         }
                     }
                 }
@@ -133,10 +133,9 @@ public class BPlusNode {
                 }
             } else {
                 // TODO make searching work without, use search function?
-                search(searchKey).insert(record, searchKey, pointer, false);
+                return search(searchKey).insert(record, searchKey, pointer, false);
             }
-
-
+            return false;
     }
 
     public void delete(Object searchKey, boolean intoInternal) {

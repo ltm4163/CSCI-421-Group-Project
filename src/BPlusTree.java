@@ -13,7 +13,7 @@ public class BPlusTree {
 
     public BPlusTree(AttributeSchema attr, int tableNumber) {
         this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
-        this.order = 5;
+        //this.order = 5;
         System.out.println(this.order);
         this.attr = attr;
         this.root = null;
@@ -41,13 +41,13 @@ public class BPlusTree {
      * @param int key          key value
      * @param int pointer      pointer value
      */
-    public void insert(Record record, Object key, int pointer) {
+    public boolean insert(Record record, Object key, int pointer) {
         System.out.println("Inserting: " + key);
         // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
-            root.insert(record, key, pointer, false);
-        } else { root.insert(record, key, pointer, false); }
+        }
+        return root.insert(record, key, pointer, false);
     }
 
     public void delete(Object key) {
