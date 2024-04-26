@@ -47,6 +47,10 @@ public class TableSchema {
         this.freeSpaces = freeSpacesList;
     }
     
+    public ArrayList<Integer> getFreeSpaces() {
+        return freeSpaces;
+    }
+    
     public void setnumAttributes(int numAttributes){
         this.numAttributes=numAttributes;
     }

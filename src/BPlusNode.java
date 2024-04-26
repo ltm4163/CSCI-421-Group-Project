@@ -22,13 +22,26 @@ public class BPlusNode {
         this.isLeaf = true;
         this.tableNumber = tableNumber;
         TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
-        this.pageNumber = tableSchema.getNumNodes();
+        ArrayList<Integer> freeSpaces = tableSchema.getFreeSpaces();
+        if (freeSpaces.size() > 0) this.pageNumber = freeSpaces.remove(0);
+        else this.pageNumber = tableSchema.getNumNodes();
         tableSchema.addTreeNode();
         this.parent = null;
         this.attr = attr;
         this.children = new LinkedList<BPlusNode>();
         this.keys = new LinkedList<>();
         this.pointers = new LinkedList<>();
+    }
+
+    // increments index of subsequent pointers sharing same pagenumber as added record
+    // returns true if ended early, false otherwise
+    public boolean incrementPointerIndexes(int pageNum, int indexInPointerList) {
+        for (int i = indexInPointerList; i < pointers.size(); i++) {
+            Pair<Integer, Integer> pointer = pointers.get(i);
+            if (pointer.getPageNumber() == pageNum) pointers.set(i, new Pair<Integer,Integer>(pointer.getPageNumber(), pointer.getIndex()+1));
+            else return true;
+        }
+        return false;
     }
 
     /*
@@ -52,13 +65,25 @@ public class BPlusNode {
                         }
                         if (compare(searchKey, key) < 0) { //insert key at this position
                             keys.add(i, searchKey);
+                            System.out.println(searchKey + " < " + key);
                             if (isLeaf) { // if leaf node, insert record into table, add pointer to record and adjust following pointer
                                 Pair<Integer, Integer> nextPointer = pointers.get(i);
+                                System.out.println("npagenum: " + nextPointer.getPageNumber() + ", nindex: " + nextPointer.getIndex());
                                 StorageManager storageManager = Main.getStorageManager();
                                 Page page = storageManager.getPage(tableNumber, nextPointer.getPageNumber());
                                 page.shiftRecordsAndAdd(record, nextPointer.getIndex());
                                 pointers.set(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index+1));
                                 pointers.add(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index));
+
+                                if (pointers.size() >= i+2) incrementPointerIndexes(nextPointer.getPageNumber(), i+2);
+                                BPlusNode rightNeighbor = getRightSibling();
+                                while (rightNeighbor != null) {
+                                    if(!rightNeighbor.incrementPointerIndexes(nextPointer.getPageNumber(), 0)) {
+                                        rightNeighbor = rightNeighbor.getRightSibling();
+                                    }
+                                }
+                                // get rightneighbors and incrementpointerindexes until reach next page in table
+
                                 if (page.isOverfull()) { // if page overfull, split page and adjust b+tree pointers
                                     Record firstRecInNewPage = storageManager.splitPage(page);
                                     AttributeSchema[] attributeSchemas = Main.getCatalog().getTableSchema(tableNumber).getattributes();
@@ -87,11 +112,12 @@ public class BPlusNode {
                                     // EDIT: I think we also need to figure out the pointers for the parent node on a split
                                 }
                             }
-                            System.out.println("adding: " + key);
+                            System.out.println("adding: " + searchKey);
                             return true;
                         }
                     }
                 }
+                System.out.println("end: " + searchKey);
                 keys.add(searchKey);
                 if (isLeaf) {// if leaf node, insert record into table, add pointer to record
                     if (pointers.isEmpty()) { // create page if first entry in table
@@ -101,8 +127,9 @@ public class BPlusNode {
                         //Main.getBuffer().addPage(newPage.getPageNumber(), newPage);
                         pointers.add(new Pair<Integer,Integer>(0, 0));
                     }
-                    else { // adjusts previous pointer
+                    else {
                         Pair<Integer, Integer> prevPointer = pointers.getLast();
+                        System.out.println("prpagenum: " + prevPointer.getPageNumber() + ", prindex: " + prevPointer.getIndex());
                         StorageManager storageManager = Main.getStorageManager();
                         Page page = storageManager.getPage(tableNumber, prevPointer.getPageNumber());
                         page.addRecord(record);
@@ -207,7 +234,10 @@ public class BPlusNode {
             int index = keys.indexOf(searchKey);
             keys.remove(searchKey);
             Pair<Integer, Integer> pointer = pointers.remove(index);
-            // TODO remove pointer
+            Page page = Main.getStorageManager().getPage(tableNumber, pointer.getPageNumber());
+            Record record = page.getRecords().get(pointer.getIndex());
+            page.deleteRecord(record, pointer.getIndex());
+            if (page.getNumRecords() == 0) Main.getCatalog().getTableSchema(tableNumber).dropPage(page.getPageNumber());
              // if the node becomes underfull, borrow. If you can't borrow, merge.
             if(children.size() > (int)Math.ceil(order/2) || (isRoot && children.size() == 0)) {
                 if(borrowFrom()) {
@@ -227,6 +257,7 @@ public class BPlusNode {
 
     // returns the right sibling of a node
     public BPlusNode getRightSibling() {
+        if (parent == null) return null;
         int index = parent.children.indexOf(this);
         if(index + 1 < parent.children.size()) {
             return parent.children.get(index + 1);
@@ -236,6 +267,7 @@ public class BPlusNode {
 
     // returns the left sibling of a node
     public BPlusNode getLeftSibling() {
+        if (parent == null) return null;
         int index = parent.children.indexOf(this);
         if(index - 1 >= 0) {
             return parent.children.get(index - 1);
