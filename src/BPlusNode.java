@@ -125,53 +125,138 @@ public class BPlusNode {
     }
 
     public void delete(Object searchKey, boolean intoInternal) {
-        if(isRoot && intoInternal) {
-            keys.remove(searchKey);
-            if(keys.size() == 0) {
-                keys.add(children.get(1).keys.get(0));
-                children.get(1).keys.remove(0);
-            }
-            return;
-        }
-        if(isLeaf || intoInternal) {
-            if(intoInternal) { System.out.println("deleting from internal"); }
+         if(isLeaf || intoInternal) {
+             // FOR BUG TESTING
+
             keys.remove(searchKey);
             // TODO remove pointer
-            if(keys.size() == 1) {
-                BPlusNode merged = new BPlusNode(order, false, tableNumber, attr); // TODO what is tablenumber
-                BPlusNode nodeToMerge = null;
-                int index = parent.getChildren().indexOf(this);
-                if(parent.isRoot) {
-                    nodeToMerge = parent;
-                    merged.keys.addAll(this.keys);
-                    merged.keys.addAll(nodeToMerge.keys);
-                } else {
-                    if(index - 1 >= 0) {
-                        nodeToMerge = parent.getChildren().get(index - 1);
-                    } else {
-                        nodeToMerge = parent.getChildren().get(index + 1);
-                    }
-                    merged.keys.addAll(nodeToMerge.keys);
-                    merged.keys.addAll(this.keys);
-                 }
-                parent.delete(searchKey, true);
-                parent.delete(this.keys.get(0), true);
-                parent.children.remove(this);
-                parent.children.remove(nodeToMerge);
-                if(intoInternal) {
-                    System.out.println("here");
-                    merged.isLeaf = false;
-                    merged.children = this.children;
+            if(children.size() > Math.ceil(order/2) || (isRoot && children.size() == 0)) {
+                if(borrowFrom()) {
+                    return;
                 }
-                if(index - 1 > 0) {
-                    parent.children.add(index - 1, merged);
-                } else { parent.children.add(0, merged); }
-                merged.parent = this.parent;
+                if(isRoot) {
+                    children.get(0).merge();
+
+                } else { merge(); }
+
             }
         } else {
             search(searchKey).delete(searchKey, false);
         }
 
+    }
+
+    public BPlusNode getRightSibling() {
+        int index = parent.children.indexOf(this);
+        if(index + 1 < parent.children.size()) {
+            return parent.children.get(index + 1);
+        }
+        return null;
+    }
+
+    public BPlusNode getLeftSibling() {
+        int index = parent.children.indexOf(this);
+        if(index - 1 >= 0) {
+            return parent.children.get(index - 1);
+        }
+        return null;
+    }
+
+
+    public boolean mergeRight() {
+        int index = parent.children.indexOf(this);
+        BPlusNode nodeToMerge = this.getRightSibling();
+        BPlusNode merged = new BPlusNode(order, isRoot, tableNumber, attr);
+        if (nodeToMerge == null) { return false; }
+        for(Object key : this.keys) {
+            merged.insert(null, key, 0, true);
+        }
+        for(Object key : nodeToMerge.keys) {
+            merged.insert(null, key, 0, true);
+        }
+        merged.children.addAll(this.children);
+        merged.children.addAll(nodeToMerge.children);
+        merged.parent = parent;
+        parent.children.remove(this);
+        parent.children.remove(nodeToMerge);
+        parent.children.add(index, merged);
+        if(parent.children.size() == 1) {
+            merged.isRoot = true;
+            merged.parent = null;
+            merged.isLeaf = false;
+            return true;
+        }
+        parent.delete(parent.keys.get(index), true);
+        return true;
+    }
+
+    public boolean mergeLeft() {
+        BPlusNode nodeToMerge = this.getLeftSibling();
+        int index = parent.children.indexOf(nodeToMerge);
+        BPlusNode merged = new BPlusNode(order, isRoot, tableNumber, attr);
+        if (nodeToMerge == null) { return false; }
+        for(Object key : this.keys) {
+            merged.insert(null, key, 0, true);
+        }
+        for(Object key : nodeToMerge.keys) {
+            merged.insert(null, key, 0, true);
+        }
+        merged.children.addAll(this.children);
+        merged.children.addAll(nodeToMerge.children);
+        merged.parent = parent;
+        parent.children.remove(this);
+        parent.children.remove(nodeToMerge);
+        parent.children.add(index, merged);
+        if(parent.children.size() == 1) {
+            merged.isRoot = true;
+            merged.parent = null;
+            merged.isLeaf = false;
+            return true;
+        }
+        parent.delete(parent.keys.get(index), true);
+        return true;
+    }
+
+
+
+
+    public void merge() {
+        if(mergeLeft())
+            return;
+        if(mergeRight())
+            return;
+    }
+
+    public boolean borrowFrom() {
+        BPlusNode toBorrowFrom = null;
+        Object key = null;
+        if(isRoot) {
+            toBorrowFrom = children.get(children.size() - 1);
+            key = toBorrowFrom.keys.get(0);
+        } else if(parent.isRoot) {
+            toBorrowFrom = parent;
+            key = parent.keys.get(0);
+        } else if(getLeftSibling() != null) {
+            toBorrowFrom = getLeftSibling();
+            key = toBorrowFrom.keys.get(toBorrowFrom.keys.size() - 1);
+            toBorrowFrom.isRoot = false;
+        } else if(getRightSibling() != null) {
+            toBorrowFrom = getRightSibling();
+            key = toBorrowFrom.keys.get(0);
+        }
+        // TODO fix size to reflect actual capacity
+        if(toBorrowFrom == null || toBorrowFrom.keys.size() == 2) {
+            return false;
+        }
+        if(isRoot) {
+            BPlusNode nodeToRedistribute = toBorrowFrom.children.get(toBorrowFrom.keys.indexOf(key));
+            toBorrowFrom.children.remove(nodeToRedistribute);
+            children.get(children.indexOf(toBorrowFrom) - 1).children.add(nodeToRedistribute);
+
+        }
+        insert(null, key, 0, !isLeaf);
+        toBorrowFrom.delete(key, !toBorrowFrom.isLeaf);
+        return true;
     }
 
     public LinkedList<BPlusNode> getChildren() {
