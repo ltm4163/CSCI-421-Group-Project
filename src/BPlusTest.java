@@ -63,6 +63,20 @@ public class BPlusTest {
         BPlusTest.display();
         System.out.println();
 
+        BPlusTest.delete(1);
+
+        BPlusTest.delete(18);
+
+        BPlusTest.delete(28);
+
+        BPlusTest.delete(12);
+
+        BPlusTest.delete(8);
+
+        BPlusTest.delete(16);
+
+        BPlusTest.display();
+
 
 
         // Test basic insertion
