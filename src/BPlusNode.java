@@ -187,7 +187,6 @@ public class BPlusNode {
 
                 }
             } else {
-                // TODO make searching work without, use search function?
                 return search(searchKey).insert(record, searchKey, pointer, false, leafNodes);
             }
             return true;
@@ -205,7 +204,9 @@ public class BPlusNode {
              // FOR BUG TESTING
 
              // removes the key from the node
+            int index = keys.indexOf(searchKey);
             keys.remove(searchKey);
+            Pair<Integer, Integer> pointer = pointers.remove(index);
             // TODO remove pointer
              // if the node becomes underfull, borrow. If you can't borrow, merge.
             if(children.size() > (int)Math.ceil(order/2) || (isRoot && children.size() == 0)) {

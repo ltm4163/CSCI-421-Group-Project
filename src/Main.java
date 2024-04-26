@@ -58,7 +58,14 @@ public class Main {
             try {
                 if (new File(dbDirectory + "/indexFiles").exists()) {
                     for (TableSchema tableSchema : catalog.getTables()) {
-                        BPlusTree tree = BPlusTree.fromFile(tableSchema.gettableNumber());
+                        AttributeSchema primaryKey = null;
+                        for (AttributeSchema attributeSchema : tableSchema.getattributes()) {
+                            if (attributeSchema.isPrimaryKey()) {
+                                primaryKey = attributeSchema;
+                                break;
+                            }
+                        }
+                        BPlusTree tree = BPlusTree.fromFile(tableSchema.gettableNumber(), primaryKey);
                         bPlusTrees.add(tableSchema.gettableNumber(), tree);
                     }
                     System.out.println("BPlus trees loaded successfully.");

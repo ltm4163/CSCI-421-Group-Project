@@ -7,7 +7,7 @@ public class BPlusTree {
 
     private BPlusNode root;
     private int order;  // N value
-    private static AttributeSchema attr;
+    private AttributeSchema attr;
 
     // default constructor
 
@@ -74,7 +74,7 @@ public class BPlusTree {
         root.writeToFile();
     }
 
-    public static BPlusTree fromFile(int tableNumber) {
+    public static BPlusTree fromFile(int tableNumber, AttributeSchema attr) {
         String fileName = Main.getDbDirectory() + "/indexFile/" + tableNumber + ".bin";
         byte[] data = new byte[Main.getPageSize()];
 
