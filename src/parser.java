@@ -848,7 +848,7 @@ public class parser {
         final WhereCondition finalWhereRoot = whereRoot;
 
         Object objectValue = value;
-        if (whereRoot != null) {
+        if (whereRoot != null && !Main.getIndexing()) {
             // Update records based on the condition
             boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
             if (success) {
@@ -856,7 +856,20 @@ public class parser {
             } else {
                 System.out.println("Update failed");
             }
-        } else {
+        }
+        else if (whereRoot != null) {
+            Object primaryKeyValue = null;
+            for (AttributeSchema attributeSchema : tableSchema.getattributes()) {
+                if (attributeSchema.getprimarykey()) {
+                    value = value.replaceAll("\\s", "");
+                    value = value.substring(value.indexOf('=') + 1);
+                    primaryKeyValue = parseValueBasedOnType(value, attributeSchema);
+                }
+            }
+            BPlusTree bPlusTree = Main.getTrees().get(tableSchema.gettableNumber());
+            //bPlusTree.update(record, primaryKeyValue, 0);  // TODO: pointer; need a way to duplicate current record with new data
+        }
+        else {  // I don't think this is needed
             // Update all records (no condition specified)
             boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
             if (success) {
