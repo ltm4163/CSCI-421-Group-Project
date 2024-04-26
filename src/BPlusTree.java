@@ -58,6 +58,11 @@ public class BPlusTree {
         }
     }
 
+    public void update(Object keyToUpdate, Object key) {
+        root.update(keyToUpdate, key);
+    }
+
+
     public void writeToFile() {
         root.writeToFile();
     }

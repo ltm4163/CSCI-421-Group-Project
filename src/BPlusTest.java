@@ -37,46 +37,11 @@ public class BPlusTest {
         Record record = new Record(recTuple2, Integer.BYTES + 20, nullBitMap1);
 
         BPlusTest.display();
-        System.out.println();
-        BPlusTest.delete(17);
 
+        BPlusTest.update(5, 38);
         BPlusTest.display();
-        System.out.println();
-        BPlusTest.delete(13);
-
+        BPlusTest.update(28, 29);
         BPlusTest.display();
-        System.out.println();
-        BPlusTest.delete(5);
-
-        BPlusTest.display();
-        System.out.println();
-        BPlusTest.delete(15);
-
-        BPlusTest.display();
-        System.out.println();
-        BPlusTest.delete(3);
-
-        BPlusTest.display();
-        System.out.println();
-        BPlusTest.delete(4);
-
-        BPlusTest.display();
-        System.out.println();
-
-        BPlusTest.delete(1);
-
-        BPlusTest.delete(18);
-
-        BPlusTest.delete(28);
-
-        BPlusTest.delete(12);
-
-        BPlusTest.delete(8);
-
-        BPlusTest.delete(16);
-
-        BPlusTest.display();
-
 
 
         // Test basic insertion

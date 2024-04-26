@@ -284,6 +284,11 @@ public class BPlusNode {
         return true;
     }
 
+    public void update(Object keyToUpdate, Object key) {
+        delete(keyToUpdate, false);
+        insert(null, key, 0, false);
+    }
+
     public LinkedList<BPlusNode> getChildren() {
         return this.children;
     }
