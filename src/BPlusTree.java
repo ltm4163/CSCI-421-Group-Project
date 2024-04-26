@@ -13,8 +13,6 @@ public class BPlusTree {
 
     public BPlusTree(AttributeSchema attr, int tableNumber) {
         this.order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
-        this.order = 4;
-        System.out.println(this.order);
         this.attr = attr;
         this.root = null;
     }
@@ -23,7 +21,7 @@ public class BPlusTree {
 //        return root.search(key);
 //    }
 
-    public BPlusNode search(int key) {
+    public BPlusNode search(Object key) {
         return root.search(key);
     }
 
@@ -41,13 +39,17 @@ public class BPlusTree {
      * @param int key          key value
      * @param int pointer      pointer value
      */
-    public void insert(Record record, Object key, int pointer) {
+    public boolean insert(Record record, Object key, int pointer) {
         System.out.println("Inserting: " + key);
         // if the B+Tree is completely empty, insert as new leaf
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
-            root.insert(record, key, pointer, false);
-        } else { root.insert(record, key, pointer, false); }
+        }
+        return root.insert(record, key, pointer, false, getLeafNodes());
+    }
+
+    public ArrayList<BPlusNode> getLeafNodes() {
+        return root.getLeafNodes();
     }
 
     public void delete(Object key) {
@@ -58,16 +60,21 @@ public class BPlusTree {
         }
     }
 
-    public void update(Object keyToUpdate, Object key) {
-        root.update(keyToUpdate, key);
-    }
+    public void update(Record record, Object searchKey, int pointer) {
+        boolean exists = search(searchKey) != null;  // Determine if record exists in tree
 
+        if (exists) {
+            delete(searchKey);
+        }
+
+        insert(record, searchKey, pointer);
+    }
 
     public void writeToFile() {
         root.writeToFile();
     }
 
-    public static BPlusTree fromFile(int tableNumber, int order) {
+    public static BPlusTree fromFile(int tableNumber) {
         String fileName = Main.getDbDirectory() + "/indexFile/" + tableNumber + ".bin";
         byte[] data = new byte[Main.getPageSize()];
 
@@ -94,6 +101,7 @@ public class BPlusTree {
 
         // TODO: change this to general node after internal and leaf nodes are combined
         // reconstruct root node from file
+        int order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
         BPlusNode root = new BPlusNode(order, true, tableNumber, attr);
         LinkedList<Object> keys = new LinkedList<>();
         LinkedList<BPlusNode.Pair<Integer, Integer>> pointers = new LinkedList<>();

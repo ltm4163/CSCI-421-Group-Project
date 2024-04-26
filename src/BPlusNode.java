@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 import java.nio.ByteBuffer;
 import java.io.RandomAccessFile;
@@ -20,6 +21,9 @@ public class BPlusNode {
         this.isRoot = isRoot;
         this.isLeaf = true;
         this.tableNumber = tableNumber;
+        TableSchema tableSchema = Main.getCatalog().getTableSchema(tableNumber);
+        this.pageNumber = tableSchema.getNumNodes();
+        tableSchema.addTreeNode();
         this.parent = null;
         this.attr = attr;
         this.children = new LinkedList<BPlusNode>();
@@ -35,96 +39,158 @@ public class BPlusNode {
      * @param int pointer       is this needed...?
      * @param boolean intoInternal  indicates if inserting into internal node
      */
-    public void insert(Record record, Object searchKey, int pointer, boolean intoInternal) {
-        // if inserting into leaf or internal node
-        if (isLeaf || intoInternal) {
-            // insert key into node
-            for (int i = 0; i < keys.size(); i++) {
-                Object key = keys.get(i);
-                if (key != null) {
-                    if (compare(searchKey, key) == 0) { //duplicate primarykey, cancel insert
-                        System.err.println("Duplicate primarykey, insert cancelled");
-                        return;
-                    }
-                    if (compare(searchKey, key) < 0) { //insert key at this position
-                        keys.add(i, searchKey);
-                        System.out.println("adding: " + key);
-                        return;
+    public boolean insert(Record record, Object searchKey, int pointer, boolean intoInternal, ArrayList<BPlusNode> leafNodes) {
+            // if inserting into leaf or internal node
+            if(isLeaf || intoInternal) {
+                // insert key into node
+                for (int i = 0; i < keys.size(); i++) {
+                    Object key = keys.get(i);
+                    if (key != null) {
+                        if (compare(searchKey, key) == 0) { //duplicate primarykey, cancel insert
+                            System.err.println("Duplicate primarykey, insert cancelled");
+                            return false;
+                        }
+                        if (compare(searchKey, key) < 0) { //insert key at this position
+                            keys.add(i, searchKey);
+                            if (isLeaf) { // if leaf node, insert record into table, add pointer to record and adjust following pointer
+                                Pair<Integer, Integer> nextPointer = pointers.get(i);
+                                StorageManager storageManager = Main.getStorageManager();
+                                Page page = storageManager.getPage(tableNumber, nextPointer.getPageNumber());
+                                page.shiftRecordsAndAdd(record, nextPointer.getIndex());
+                                pointers.set(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index+1));
+                                pointers.add(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index));
+                                if (page.isOverfull()) { // if page overfull, split page and adjust b+tree pointers
+                                    Record firstRecInNewPage = storageManager.splitPage(page);
+                                    AttributeSchema[] attributeSchemas = Main.getCatalog().getTableSchema(tableNumber).getattributes();
+                                    Object firstValInNewPage = firstRecInNewPage.getAttributeValue(attr.getname(), attributeSchemas);
+
+                                    for (BPlusNode node : leafNodes) {
+                                        for (int j = 0; j < node.pointers.size(); j++) {
+                                            Pair<Integer, Integer> pointerForAdjustment = node.pointers.get(j);
+                                            if (pointerForAdjustment.getPageNumber() >= page.getPageNumber()) {
+                                                pointerForAdjustment.setPageNumber(pointerForAdjustment.getPageNumber() + 1);
+                                            }
+                                            else if (pointerForAdjustment.getPageNumber() == page.getPageNumber()) {
+                                                Object keyForAdjustment = node.keys.get(i);
+                                                if (compare(keyForAdjustment, firstValInNewPage) >= 0) {
+                                                    pointerForAdjustment.setPageNumber(pointerForAdjustment.getPageNumber() + 1);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    //TODO: adjust pointers accordingly
+                                    // go through each leaf node. for each entry, check if its pagenum (in table, NOT tree) >= pagenum
+                                    // of split page. if >, increase its pagenum of pointer by 1. if =, check if searchkey value >
+                                    // firstValInNewPage. if it is, increase pagenum of pointer by 1 and update index (this part im
+                                    // not sure exactly how to do, I imagine you just set the first changed one to 0 and increment
+                                    // from there though)
+                                    // EDIT: I think we also need to figure out the pointers for the parent node on a split
+                                }
+                            }
+                            System.out.println("adding: " + key);
+                            return true;
+                        }
                     }
                 }
+                keys.add(searchKey);
+                if (isLeaf) {// if leaf node, insert record into table, add pointer to record
+                    if (pointers.isEmpty()) { // create page if first entry in table
+                        Page newPage = new Page(0, tableNumber, true);
+                        newPage.addRecord(record);
+                        Main.getCatalog().getTableSchema(tableNumber).addPage(newPage);
+                        //Main.getBuffer().addPage(newPage.getPageNumber(), newPage);
+                        pointers.add(new Pair<Integer,Integer>(0, 0));
+                    }
+                    else { // adjusts previous pointer
+                        Pair<Integer, Integer> prevPointer = pointers.getLast();
+                        StorageManager storageManager = Main.getStorageManager();
+                        Page page = storageManager.getPage(tableNumber, prevPointer.getPageNumber());
+                        page.addRecord(record);
+                        pointers.add(new Pair<Integer, Integer>(prevPointer.pageNumber, prevPointer.index+1));
+                        if (page.isOverfull()) {
+                            storageManager.splitPage(page);
+                            //TODO: adjust pointers accordingly
+                        }
+                    }
+                }
+                // TODO fix this
+                // if(intoInternal) { pointers.add(new Pair<page number, -1>); }
+                // else { pointers.add(new Pair<Integer, Integer>(pointer, pointer)); }
+                // if keys become overfull, split
+                if (keys.size() == order) {
+                    int splitIndex = (int) Math.ceil(order / 2);
+                    Object keyOnSplit = keys.get(splitIndex);
+                    BPlusNode LeafNode1 = new BPlusNode(order, false, tableNumber, this.attr);
+                    BPlusNode LeafNode2 = new BPlusNode(order, false, tableNumber, this.attr);
+                    LeafNode1.parent = this.parent;
+                    LeafNode2.parent = this.parent;
+
+                    LinkedList<Object> clonedKeys = new LinkedList<Object>();
+                    for (int i = splitIndex; i < keys.size(); i++) {
+                        clonedKeys.add(keys.get(i));
+                    }
+                    keys.subList((int) splitIndex, keys.size()).clear();
+
+                    LeafNode1.keys = keys;
+                    LeafNode2.keys = clonedKeys;
+                    // if the node has children, it's children must be split among the new nodes
+                    if (this.children.size() > 0) {
+                        for (int i = 0; i < splitIndex + 1; i++) {
+                            BPlusNode child = children.get(i);
+                            child.parent = LeafNode1;
+                            LeafNode1.children.add(child);
+                            LeafNode1.pointers.add(pointers.get(i));
+                        }
+                        for (int i = splitIndex + 1; i < children.size(); i++) {
+                            BPlusNode child = children.get(i);
+                            child.parent = LeafNode2;
+                            LeafNode2.children.add(child);
+                            LeafNode2.pointers.add(pointers.get(i));
+                        }
+                        LeafNode1.isLeaf = false;
+                        LeafNode2.isLeaf = false;
+                        this.children = new LinkedList<BPlusNode>();
+                    }
+                    else { // if leaf node, copy pointers
+                        LinkedList<Pair<Integer, Integer>> clonedPointers = new LinkedList<>();
+                        for (int i = splitIndex; i < pointers.size(); i++) {
+                            clonedPointers.add(pointers.get(i));
+                        }
+                        pointers.subList((int) splitIndex, pointers.size()).clear();
+                        LeafNode2.pointers = clonedPointers;
+                        LeafNode1.pointers = pointers;
+                    }
+                    if (this.isRoot) {
+                        keys = new LinkedList<Object>();
+                        this.insert(record, keyOnSplit, pointer, true, leafNodes);
+                        LeafNode1.parent = this;
+                        LeafNode2.parent = this;
+                        // idk why this needs to be done but it works
+                        if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
+                        children.add(LeafNode1);
+                        children.add(LeafNode2);
+                        pointers = new LinkedList<>();
+                        pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
+                        pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
+                        isLeaf = false;
+                    } else {
+                        if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
+                        parent.children.add(LeafNode1);
+                        parent.children.add(LeafNode2);
+                        parent.pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
+                        parent.pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
+                        parent.insert(record, keyOnSplit, 0, true, leafNodes);
+                        //parent.pointers.remove(Pair<Integer, Integer>(this.pageNumber, -1));
+                        parent.children.remove(this);
+                        Main.getCatalog().getTableSchema(tableNumber).deleteTreeNode();
+                    }
+
+                }
+            } else {
+                // TODO make searching work without, use search function?
+                return search(searchKey).insert(record, searchKey, pointer, false, leafNodes);
             }
-            keys.add(searchKey);
-            pointers.add(new Pair<Integer, Integer>(pointer, pointer));
-            // TODO fix this
-            // if(intoInternal) { pointers.add(new Pair<page number, -1>); }
-            // else { pointers.add(new Pair<Integer, Integer>(pointer, pointer)); }
-            // if keys become overfull, split
-            if (keys.size() == order) {
-                int splitIndex = (int) Math.ceil(order / 2);
-                Object keyOnSplit = keys.get(splitIndex);
-                BPlusNode LeafNode1 = new BPlusNode(order, false, 0, this.attr); // TODO fix table number for these two
-                BPlusNode LeafNode2 = new BPlusNode(order, false, 0, this.attr);
-                LeafNode1.parent = this.parent;
-                LeafNode2.parent = this.parent;
-
-                LinkedList<Object> clonedKeys = new LinkedList<Object>();
-                for (int i = splitIndex; i < keys.size(); i++) {
-                    clonedKeys.add(keys.get(i));
-                }
-                keys.subList((int) splitIndex, keys.size()).clear();
-
-                // are pointers even needed with this setup?
-                List<Pair<Integer, Integer>> clonedPointers = pointers.subList(splitIndex, pointers.size()).stream()
-                        .map(Pair -> Pair).collect(Collectors.toList());
-                pointers.subList(splitIndex, pointers.size()).clear();
-
-
-                LeafNode1.keys = keys;
-                LeafNode1.pointers = pointers;
-                LeafNode2.keys = clonedKeys;
-                LeafNode2.pointers = pointers;
-                // if the node has children, it's children must be split among the new nodes
-                if (this.children.size() > 0) {
-                    for (int i = 0; i < splitIndex + 1; i++) {
-                        children.get(i).parent = LeafNode1;
-                        LeafNode1.children.add(children.get(i));
-                    }
-                    for (int i = splitIndex + 1; i < children.size(); i++) {
-                        children.get(i).parent = LeafNode2;
-                        LeafNode2.children.add(children.get(i));
-                    }
-                    LeafNode1.isLeaf = false;
-                    LeafNode2.isLeaf = false;
-                    this.children = new LinkedList<BPlusNode>();
-                }
-                if (this.isRoot) {
-                    keys = new LinkedList<Object>();
-                    this.insert(record, keyOnSplit, pointer, true);
-                    LeafNode1.parent = this;
-                    LeafNode2.parent = this;
-                    // idk why this needs to be done but it works
-                    if (intoInternal) {
-                        LeafNode2.keys.remove(keyOnSplit);
-                    }
-                    children.add(LeafNode1);
-                    children.add(LeafNode2);
-                    isLeaf = false;
-                } else {
-                    if (intoInternal) {
-                        LeafNode2.keys.remove(keyOnSplit);
-                    }
-                    parent.children.add(LeafNode1);
-                    parent.children.add(LeafNode2);
-                    parent.insert(record, keyOnSplit, 0, true);
-                    parent.children.remove(this);
-                }
-
-            }
-        } else {
-            // TODO make searching work without, use search function?
-            search(searchKey).insert(record, searchKey, pointer, false);
-        }
-
+            return true;
     }
 
     /*
@@ -289,6 +355,10 @@ public class BPlusNode {
         insert(null, key, 0, false);
     }
 
+    public int getPageNumber() {
+        return pageNumber;
+    }
+
     public LinkedList<BPlusNode> getChildren() {
         return this.children;
     }
@@ -351,6 +421,23 @@ public class BPlusNode {
             }
         }
         return null; // Should never reach here
+    }
+
+    public ArrayList<BPlusNode> getLeafNodes() {
+        ArrayList<BPlusNode> leafNodes = new ArrayList<>();
+        collectLeafNodes(this, leafNodes);
+        return leafNodes;
+    }
+
+    private void collectLeafNodes(BPlusNode node, ArrayList<BPlusNode> leafNodes) {
+        if (node.isLeaf) {
+            leafNodes.add(node);
+        }
+        else {
+            for (BPlusNode child : node.children) {
+                collectLeafNodes(child, leafNodes);
+            }
+        }
     }
 
     public void writeToFile() {
@@ -431,22 +518,31 @@ public class BPlusNode {
 
     public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
         if (attr.gettype().equalsIgnoreCase("integer")) {
-            return (int)insertValue - (int)existingValue;
+            return ((Integer) insertValue).compareTo((Integer) existingValue);
         }
-        return 0; //placeholder value
+        else if (attr.gettype().equalsIgnoreCase("double")) {
+            return ((Double) insertValue).compareTo((Double) existingValue);
+        }
+        else {
+            return ((String) insertValue).compareTo((String) existingValue);
+        }
     }
 
     static class Pair<K, V> {
-        private final K pageNumber;
+        private K pageNumber;
         private final V index;
 
-        public Pair(K first, V second) {
-            this.pageNumber = first;
-            this.index = second;
+        public Pair(K pageNumber, V index) {
+            this.pageNumber = pageNumber;
+            this.index = index;
         }
 
         public K getPageNumber() {
             return pageNumber;
+        }
+
+        public void setPageNumber(K value) {
+            pageNumber = value;
         }
 
         public V getIndex() {
