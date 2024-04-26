@@ -1,3 +1,4 @@
+import java.util.ArrayList;
 import java.util.List;
 import java.nio.ByteBuffer;
 import java.io.RandomAccessFile;
@@ -38,7 +39,7 @@ public class BPlusNode {
      * @param int pointer       is this needed...?
      * @param boolean intoInternal  indicates if inserting into internal node
      */
-    public boolean insert(Record record, Object searchKey, int pointer, boolean intoInternal) {
+    public boolean insert(Record record, Object searchKey, int pointer, boolean intoInternal, ArrayList<BPlusNode> leafNodes) {
             // if inserting into leaf or internal node
             if(isLeaf || intoInternal) {
                 // insert key into node
@@ -62,12 +63,28 @@ public class BPlusNode {
                                     Record firstRecInNewPage = storageManager.splitPage(page);
                                     AttributeSchema[] attributeSchemas = Main.getCatalog().getTableSchema(tableNumber).getattributes();
                                     Object firstValInNewPage = firstRecInNewPage.getAttributeValue(attr.getname(), attributeSchemas);
+
+                                    for (BPlusNode node : leafNodes) {
+                                        for (int j = 0; j < node.pointers.size(); j++) {
+                                            Pair<Integer, Integer> pointerForAdjustment = node.pointers.get(j);
+                                            if (pointerForAdjustment.getPageNumber() >= page.getPageNumber()) {
+                                                pointerForAdjustment.setPageNumber(pointerForAdjustment.getPageNumber() + 1);
+                                            }
+                                            else if (pointerForAdjustment.getPageNumber() == page.getPageNumber()) {
+                                                Object keyForAdjustment = node.keys.get(i);
+                                                if (compare(keyForAdjustment, firstValInNewPage) >= 0) {
+                                                    pointerForAdjustment.setPageNumber(pointerForAdjustment.getPageNumber() + 1);
+                                                }
+                                            }
+                                        }
+                                    }
                                     //TODO: adjust pointers accordingly
                                     // go through each leaf node. for each entry, check if its pagenum (in table, NOT tree) >= pagenum
                                     // of split page. if >, increase its pagenum of pointer by 1. if =, check if searchkey value >
                                     // firstValInNewPage. if it is, increase pagenum of pointer by 1 and update index (this part im
                                     // not sure exactly how to do, I imagine you just set the first changed one to 0 and increment 
                                     // from there though)
+                                    // EDIT: I think we also need to figure out the pointers for the parent node on a split
                                 }
                             }
                             System.out.println("adding: " + key);
@@ -145,7 +162,7 @@ public class BPlusNode {
                     }
                     if (this.isRoot) {
                         keys = new LinkedList<Object>();
-                        this.insert(record, keyOnSplit, pointer, true);
+                        this.insert(record, keyOnSplit, pointer, true, leafNodes);
                         LeafNode1.parent = this;
                         LeafNode2.parent = this;
                         // idk why this needs to be done but it works
@@ -162,7 +179,7 @@ public class BPlusNode {
                         parent.children.add(LeafNode2);
                         parent.pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
                         parent.pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
-                        parent.insert(record, keyOnSplit, 0, true);
+                        parent.insert(record, keyOnSplit, 0, true, leafNodes);
                         //parent.pointers.remove(Pair<Integer, Integer>(this.pageNumber, -1));
                         parent.children.remove(this);
                         Main.getCatalog().getTableSchema(tableNumber).deleteTreeNode();
@@ -171,7 +188,7 @@ public class BPlusNode {
                 }
             } else {
                 // TODO make searching work without, use search function?
-                return search(searchKey).insert(record, searchKey, pointer, false);
+                return search(searchKey).insert(record, searchKey, pointer, false, leafNodes);
             }
             return true;
     }
@@ -294,6 +311,23 @@ public class BPlusNode {
         return null; // Should never reach here
     }
 
+    public ArrayList<BPlusNode> getLeafNodes() {
+        ArrayList<BPlusNode> leafNodes = new ArrayList<>();
+        collectLeafNodes(this, leafNodes);
+        return leafNodes;
+    }
+
+    private void collectLeafNodes(BPlusNode node, ArrayList<BPlusNode> leafNodes) {
+        if (node.isLeaf) {
+            leafNodes.add(node);
+        }
+        else {
+            for (BPlusNode child : node.children) {
+                collectLeafNodes(child, leafNodes);
+            }
+        }
+    }
+
     public void writeToFile() {
         ByteBuffer buffer = ByteBuffer.allocate(Main.getPageSize());
         buffer.putInt(keys.size()); // Amount of keys in node
@@ -383,7 +417,7 @@ public class BPlusNode {
     }
 
     static class Pair<K, V> {
-        private final K pageNumber;
+        private K pageNumber;
         private final V index;
 
         public Pair(K pageNumber, V index) {
@@ -393,6 +427,10 @@ public class BPlusNode {
 
         public K getPageNumber() {
             return pageNumber;
+        }
+
+        public void setPageNumber(K value) {
+            pageNumber = value;
         }
 
         public V getIndex() {

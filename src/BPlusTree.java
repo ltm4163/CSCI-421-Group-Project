@@ -21,7 +21,7 @@ public class BPlusTree {
 //        return root.search(key);
 //    }
 
-    public BPlusNode search(int key) {
+    public BPlusNode search(Object key) {
         return root.search(key);
     }
 
@@ -45,12 +45,26 @@ public class BPlusTree {
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
         }
-        return root.insert(record, key, pointer, false);
+        return root.insert(record, key, pointer, false, getLeafNodes());
+    }
+
+    public ArrayList<BPlusNode> getLeafNodes() {
+        return root.getLeafNodes();
     }
 
     public void delete(Object key) {
         System.out.println("Deleting: " + key);
         root.delete(key, false);
+    }
+
+    public void update(Record record, Object searchKey, int pointer) {
+        boolean exists = search(searchKey) != null;  // Determine if record exists in tree
+
+        if (exists) {
+            delete(searchKey);
+        }
+
+        insert(record, searchKey, pointer);
     }
 
     public void writeToFile() {
