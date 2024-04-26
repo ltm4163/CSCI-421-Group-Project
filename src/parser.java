@@ -769,10 +769,12 @@ public class parser {
 
         // Match WHERE clause if present
         Matcher whereMatcher = wherePattern.matcher(inputLine);
+        String value = null;
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
             System.out.println("Where conditions: " + whereClause);
             whereClause = whereClause.trim().replaceAll(";$", "");
+            value = whereClause;
             whereRoot = WhereParse.parseWhereClause(whereClause, tableSchemas); //TODO: change this to WhereParse version after merge
             // whereClauseList = WhereParse.parseWhereClause(whereClause);
         } else {
@@ -781,6 +783,19 @@ public class parser {
 
         assert tableSchemas != null;
         TableSchema tableSchema = tableSchemas.get(0);
+        if (Main.getIndexing() && value != null) {  // If there is no where clause, there is no need to use the tree
+            Object primaryKeyValue = null;
+            for (AttributeSchema attributeSchema : tableSchema.getattributes()) {
+                if (attributeSchema.getprimarykey()) {
+                    value = value.replaceAll("\\s", "");
+                    value = value.substring(value.indexOf('=') + 1);
+                    primaryKeyValue = parseValueBasedOnType(value, attributeSchema);
+                }
+            }
+            BPlusTree bPlusTree = Main.getTrees().get(tableSchema.gettableNumber());
+            bPlusTree.delete(primaryKeyValue);
+            return;
+        }
         storageManager.deleteRecords(tableSchema, whereRoot);
     }
 
