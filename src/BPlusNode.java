@@ -372,9 +372,14 @@ public class BPlusNode {
 
     public int compare(Object insertValue, Object existingValue) { //used for finding where to insert search keys
         if (attr.gettype().equalsIgnoreCase("integer")) {
-            return (int)insertValue - (int)existingValue;
+            return ((Integer) insertValue).compareTo((Integer) existingValue);
         }
-        return 0; //placeholder value
+        else if (attr.gettype().equalsIgnoreCase("double")) {
+            return ((Double) insertValue).compareTo((Double) existingValue);
+        }
+        else {
+            return ((String) insertValue).compareTo((String) existingValue);
+        }
     }
 
     static class Pair<K, V> {
