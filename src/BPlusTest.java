@@ -38,9 +38,9 @@ public class BPlusTest {
 
         BPlusTest.display();
 
-        BPlusTest.update(5, 38);
+        //BPlusTest.update(5, 38);
         BPlusTest.display();
-        BPlusTest.update(28, 29);
+        //BPlusTest.update(28, 29);
         BPlusTest.display();
 
 

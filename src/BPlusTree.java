@@ -45,7 +45,7 @@ public class BPlusTree {
         if(isEmpty()) {
             root = new BPlusNode(order, true, 0, this.attr);
         }
-        return root.insert(record, key, pointer, false, getLeafNodes());
+        return root.insert(record, key, pointer, false);//, getLeafNodes());
     }
 
     public ArrayList<BPlusNode> getLeafNodes() {
