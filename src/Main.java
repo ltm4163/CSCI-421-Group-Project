@@ -53,6 +53,22 @@ public class Main {
             return;
         }
 
+        // Load tree roots from file
+        if (indexing) {
+            try {
+                if (new File(dbDirectory + "/indexFiles").exists()) {
+                    for (TableSchema tableSchema : catalog.getTables()) {
+                        BPlusTree tree = BPlusTree.fromFile(tableSchema.gettableNumber());
+                        bPlusTrees.add(tableSchema.gettableNumber(), tree);
+                    }
+                    System.out.println("BPlus trees loaded successfully.");
+                }
+            } catch (Exception e) {
+                System.err.println("Failed to load bplustree");
+                return;
+            }
+        }
+
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
             StringBuilder commandBuilder = new StringBuilder();
             String inputLine;
@@ -84,6 +100,9 @@ public class Main {
             catalog.writeCatalogToFile(catalogPath);
         } catch (IOException e) {
             System.err.println("Error saving catalog: " + e.getMessage());
+        }
+        for (BPlusTree tree : bPlusTrees) {
+            tree.writeToFile();
         }
 
         System.out.println("Exiting...");

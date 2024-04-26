@@ -58,9 +58,16 @@ public class BPlusNode {
                                 page.shiftRecordsAndAdd(record, nextPointer.getIndex());
                                 pointers.set(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index+1));
                                 pointers.add(i, new Pair<Integer, Integer>(nextPointer.pageNumber, nextPointer.index));
-                                if (page.isOverfull()) {
-                                    storageManager.splitPage(page);
+                                if (page.isOverfull()) { // if page overfull, split page and adjust b+tree pointers
+                                    Record firstRecInNewPage = storageManager.splitPage(page);
+                                    AttributeSchema[] attributeSchemas = Main.getCatalog().getTableSchema(tableNumber).getattributes();
+                                    Object firstValInNewPage = firstRecInNewPage.getAttributeValue(attr.getname(), attributeSchemas);
                                     //TODO: adjust pointers accordingly
+                                    // go through each leaf node. for each entry, check if its pagenum (in table, NOT tree) >= pagenum
+                                    // of split page. if >, increase its pagenum of pointer by 1. if =, check if searchkey value >
+                                    // firstValInNewPage. if it is, increase pagenum of pointer by 1 and update index (this part im
+                                    // not sure exactly how to do, I imagine you just set the first changed one to 0 and increment 
+                                    // from there though)
                                 }
                             }
                             System.out.println("adding: " + key);
@@ -146,15 +153,15 @@ public class BPlusNode {
                         children.add(LeafNode1);
                         children.add(LeafNode2);
                         pointers = new LinkedList<>();
-                        // pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
-                        // pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
+                        pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
+                        pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
                         isLeaf = false;
                     } else {
                         if(intoInternal) { LeafNode2.keys.remove(keyOnSplit);}
                         parent.children.add(LeafNode1);
                         parent.children.add(LeafNode2);
-                        //parent.pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
-                        //parent.pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
+                        parent.pointers.add(new Pair<Integer,Integer>(LeafNode1.pageNumber, -1));
+                        parent.pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
                         parent.insert(record, keyOnSplit, 0, true);
                         //parent.pointers.remove(Pair<Integer, Integer>(this.pageNumber, -1));
                         parent.children.remove(this);

@@ -57,7 +57,7 @@ public class BPlusTree {
         root.writeToFile();
     }
 
-    public static BPlusTree fromFile(int tableNumber, int order) {
+    public static BPlusTree fromFile(int tableNumber) {
         String fileName = Main.getDbDirectory() + "/indexFile/" + tableNumber + ".bin";
         byte[] data = new byte[Main.getPageSize()];
 
@@ -84,6 +84,7 @@ public class BPlusTree {
 
         // TODO: change this to general node after internal and leaf nodes are combined
         // reconstruct root node from file
+        int order = (int) (Math.floor(Main.getPageSize()/(attr.getsize() + (2*Integer.BYTES)))-1);
         BPlusNode root = new BPlusNode(order, true, tableNumber, attr);
         LinkedList<Object> keys = new LinkedList<>();
         LinkedList<BPlusNode.Pair<Integer, Integer>> pointers = new LinkedList<>();

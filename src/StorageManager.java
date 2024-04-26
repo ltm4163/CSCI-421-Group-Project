@@ -266,7 +266,8 @@ public class StorageManager {
 
 
     // Split page into two
-    public void splitPage(Page page) {
+    public Record splitPage(Page page) {
+        Record firstRecInNewPage = null;
         List<Record> records = page.getRecords();
 
         int midIndex = page.getNumRecords() / 2;
@@ -285,6 +286,9 @@ public class StorageManager {
         }
         for (int i = midIndex; i < page.getNumRecords(); i++) {
             Record record = records.get(i);
+            if (i == midIndex) {
+                firstRecInNewPage = record;
+            }
             secondHalf.add(record);
             secondPageSize += record.getSize();
         }
@@ -315,6 +319,8 @@ public class StorageManager {
         else buffer.updatePage(page);
         if (newPage.isOverfull()) splitPage(newPage);
         else buffer.addPage(newPage.getPageNumber(), newPage);
+
+        return firstRecInNewPage;
     }
     
     // Tells findInsertionPage if current location is where to insert record
