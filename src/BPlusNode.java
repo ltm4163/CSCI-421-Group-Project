@@ -89,6 +89,12 @@ public class BPlusNode {
                                     AttributeSchema[] attributeSchemas = Main.getCatalog().getTableSchema(tableNumber).getattributes();
                                     Object firstValInNewPage = firstRecInNewPage.getAttributeValue(attr.getname(), attributeSchemas);
 
+                                    rightNeighbor = getRightSibling();
+                                    while (rightNeighbor != null) {
+                                        if(!rightNeighbor.incrementPointerIndexes(nextPointer.getPageNumber(), 0)) {
+                                            rightNeighbor = rightNeighbor.getRightSibling();
+                                        }
+                                    }
 //                                    for (BPlusNode node : leafNodes) {
 //                                        for (int j = 0; j < node.pointers.size(); j++) {
 //                                            Pair<Integer, Integer> pointerForAdjustment = node.pointers.get(j);
@@ -208,6 +214,7 @@ public class BPlusNode {
                         parent.pointers.add(new Pair<Integer,Integer>(LeafNode2.pageNumber, -1));
                         parent.insert(record, keyOnSplit, 0, true);//, leafNodes);
                         //parent.pointers.remove(Pair<Integer, Integer>(this.pageNumber, -1));
+                        parent.pointers.remove(parent.children.indexOf(this));
                         parent.children.remove(this);
                         Main.getCatalog().getTableSchema(tableNumber).deleteTreeNode();
                     }
@@ -239,7 +246,7 @@ public class BPlusNode {
             page.deleteRecord(record, pointer.getIndex());
             if (page.getNumRecords() == 0) Main.getCatalog().getTableSchema(tableNumber).dropPage(page.getPageNumber());
              // if the node becomes underfull, borrow. If you can't borrow, merge.
-            if(children.size() > (int)Math.ceil(order/2) || (isRoot && children.size() == 0)) {
+            if(children.size() < (int)Math.ceil(order/2)) {
                 if(borrowFrom()) {
                     return;
                 }
