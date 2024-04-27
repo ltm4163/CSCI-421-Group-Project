@@ -53,22 +53,17 @@ public class BPlusTree {
         return root.getLeafNodes();
     }
 
-    public void delete(Object key) {
+    public Record delete(Object key) {
         System.out.println("Deleting: " + key);
-        root.delete(key, false);
+        Record record = root.delete(key, false);
         if(root.getChildren().size() == 1) {
             root = root.getChildren().get(0);
         }
+        return record;
     }
 
-    public void update(Record record, Object searchKey, int pointer) {
-        boolean exists = search(searchKey) != null;  // Determine if record exists in tree
-
-        if (exists) {
-            delete(searchKey);
-        }
-
-        insert(record, searchKey, pointer);
+    public void update(Record record, Object keyToUpdate, Object key) {
+        root.update(record, keyToUpdate, key);
     }
 
     public void writeToFile() {

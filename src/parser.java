@@ -1,8 +1,5 @@
 import java.io.IOException;
 import java.util.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -859,15 +856,80 @@ public class parser {
         }
         else if (whereRoot != null) {
             Object primaryKeyValue = null;
-            for (AttributeSchema attributeSchema : tableSchema.getattributes()) {
+            AttributeSchema[] attributeSchemas = tableSchema.getattributes();
+            String conditionValue =  whereRoot.value;
+            for (AttributeSchema attributeSchema : attributeSchemas) {
                 if (attributeSchema.getprimarykey()) {
-                    value = value.replaceAll("\\s", "");
-                    value = value.substring(value.indexOf('=') + 1);
-                    primaryKeyValue = parseValueBasedOnType(value, attributeSchema);
+                    conditionValue = conditionValue.replaceAll("\\s", "");
+                    conditionValue = conditionValue.substring(conditionValue.indexOf('=') + 1);
+                    primaryKeyValue = parseValueBasedOnType(conditionValue, attributeSchema);
                 }
             }
             BPlusTree bPlusTree = Main.getTrees().get(tableSchema.gettableNumber());
-            //bPlusTree.update(record, primaryKeyValue, 0);  // TODO: pointer; need a way to duplicate current record with new data
+            BPlusNode node = bPlusTree.search(primaryKeyValue);
+            LinkedList<Object> keys = node.getKeys();
+            Record record = null;
+            for (int i = 0; i < keys.size(); i++) {
+                Object key = keys.get(i);
+                if (key.equals(primaryKeyValue)) {
+                    BPlusNode.Pair<Integer, Integer> pointer = node.getPointers().get(i);
+                    Page page = Main.getStorageManager().getPage(tableSchema.gettableNumber(), pointer.getPageNumber());
+                    record = page.getRecords().get(pointer.getIndex());
+                }
+            }
+            Object oldValue = record.getAttributeValue(columnName, attributeSchemas);
+            Record updatedRecord = record;
+            Object updatedValue = value;
+            if (whereRoot.evaluate(record, tableSchema)) {
+                ArrayList<Object> recData = record.getData();
+                
+                // calculate size change in record
+                ArrayList<Byte> nullBitMap = record.getNullBitMap();
+                AttributeSchema attr = tableSchema.getAttributeByName(columnName);
+                int sizeRemoved = (oldValue == null) ? 0 : attr.getsize();
+                int sizeAdded = (primaryKeyValue == null) ? 0 : attr.getsize();
+                if (attr.gettype().equals("varchar")) {
+                    sizeAdded = (primaryKeyValue == null) ? 0 : ((String)primaryKeyValue).length() + Integer.BYTES;
+                    sizeRemoved = (oldValue == null) ? 0 : ((String)oldValue).length() + Integer.BYTES;
+                }
+
+                int columnIndex = -1;
+                for(int i = 0; i < attributeSchemas.length; i++) {
+                    if(attributeSchemas[i].getname().equals(columnName)) {
+                        columnIndex = i;
+                        break;
+                    }
+                }
+                
+                // Convert to appropriate data type (to avoid casting errors)
+                switch (attr.gettype()) {
+                    case "double":
+                        updatedValue = Double.parseDouble((String) value);
+                        break;
+                    case "integer":
+                        updatedValue = Integer.parseInt((String)value);
+                        break;
+                    case "boolean":
+                        updatedValue = Boolean.parseBoolean((String)value);
+                        if (attr.isPrimaryKey()) {
+                            //TODO: revisit this after checking if above works
+                        }
+                        break;
+                }
+                recData.set(columnIndex, updatedValue); // Update the value of the specified column
+
+                // update record's nullBitMap
+                if (updatedValue == null) nullBitMap.set(columnIndex, (byte)0);
+                else nullBitMap.set(columnIndex, (byte)1);
+                
+                updatedRecord = new Record(recData, record.getSize()+sizeAdded-sizeRemoved, nullBitMap);
+                // if (!addRecord(catalog, updatedRecord, tableSchema.gettableNumber())) {
+                //     record.getData().set(columnIndex, oldValue);
+                //     addRecord(catalog, record, tableSchema.gettableNumber());
+                //     return false;
+                // }
+            }
+            bPlusTree.update(updatedRecord, updatedValue, primaryKeyValue);  // TODO: pointer; need a way to duplicate current record with new data
         }
         else {  // I don't think this is needed
             // Update all records (no condition specified)

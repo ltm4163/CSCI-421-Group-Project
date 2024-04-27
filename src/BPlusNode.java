@@ -33,6 +33,10 @@ public class BPlusNode {
         this.pointers = new LinkedList<>();
     }
 
+    public LinkedList<Pair<Integer, Integer>> getPointers() {
+        return pointers;
+    }
+
     // increments index of subsequent pointers sharing same pagenumber as added record
     // returns true if ended early, false otherwise
     public boolean incrementPointerIndexes(int pageNum, int indexInPointerList) {
@@ -277,7 +281,7 @@ public class BPlusNode {
      * @param intoInternal      Indicates if the key is being deleted from an intenral node
      */
 
-    public void delete(Object searchKey, boolean intoInternal) {
+    public Record delete(Object searchKey, boolean intoInternal) {
          if(isLeaf || intoInternal) {
              // FOR BUG TESTING
 
@@ -289,10 +293,11 @@ public class BPlusNode {
             Record record = page.getRecords().get(pointer.getIndex());
             page.deleteRecord(record, pointer.getIndex());
             if (page.getNumRecords() == 0) Main.getCatalog().getTableSchema(tableNumber).dropPage(page.getPageNumber());
+            else Main.getBuffer().updatePage(page);
              // if the node becomes underfull, borrow. If you can't borrow, merge.
             if(children.size() > (int)Math.ceil(order/2) || (isRoot && children.size() > 0)) {
                 if(borrowFrom()) {
-                    return;
+                    return record;
                 }
                 if(isRoot) {
                     children.get(0).merge();
@@ -300,10 +305,11 @@ public class BPlusNode {
                 } else { merge(); }
 
             }
+            return record;
         } else {
             search(searchKey).delete(searchKey, false);
         }
-
+        return null;
     }
 
     // returns the right sibling of a node
@@ -477,9 +483,9 @@ public class BPlusNode {
         return true;
     }
 
-    public void update(Object keyToUpdate, Object key) {
-        delete(keyToUpdate, false);
-        insert(null, key, 0, false);
+    public void update(Record record, Object keyToUpdate, Object key) {
+        delete(key, false);
+        insert(record, keyToUpdate, 0, false);
     }
 
     public int getPageNumber() {
