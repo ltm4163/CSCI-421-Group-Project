@@ -1,8 +1,5 @@
 import java.io.IOException;
 import java.util.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -73,8 +70,11 @@ public class parser {
         attributesLine = attributesLine.substring(1, attributesLine.length() - 2); // Remove surrounding '()' from attribute definitions
         String[] attributeTokens = attributesLine.split(",\\s*");
         ArrayList<AttributeSchema> attributes = new ArrayList<>();
+        AttributeSchema primaryKey = null; // used for BPlusTree creation
         for (String token : attributeTokens) {
-            attributes.add(AttributeSchema.parse(token.trim()));
+            AttributeSchema attr = AttributeSchema.parse(token.trim());
+            attributes.add(attr);
+            if (attr.getprimarykey()) primaryKey = attr;
         }
 
         List<AttributeSchema> attributesWithPrimaryKey = attributes.stream().filter(attr -> attr.getprimarykey() == true)
@@ -97,6 +97,14 @@ public class parser {
     
         TableSchema table = new TableSchema(attributes.size(), tableName, catalog.getNextTableNumber(), attributes.toArray(new AttributeSchema[0]));
         catalog.addTable(table);
+
+        // if indexing turned on, create BPlusTree for table
+        if (Main.getIndexing()) {
+            ArrayList<BPlusTree> trees = Main.getTrees();
+            BPlusTree newTree = new BPlusTree(primaryKey, table.gettableNumber());
+            trees.add(newTree);
+        }
+
         System.out.println("Table " + tableName + " created successfully.");
     }
     
@@ -213,6 +221,7 @@ public class parser {
     
             ArrayList<Byte> nullBitMap = new ArrayList<>(table.getnumAttributes());
             ArrayList<Object> recordValues = new ArrayList<>();
+            Object primaryKeyValue = null; // used for inserting into BPlusTree
             for (int i = 0; i < values.length; i++) {
                 String value = values[i].trim();
                 AttributeSchema attribute = table.getattributes()[i];
@@ -247,13 +256,28 @@ public class parser {
                 }
                 recordValues.add(parsedValue);
                 nullBitMap.add((byte)0);
+
+                // get key for BPlusTree insertion
+                if (attribute.getprimarykey()) primaryKeyValue = parsedValue;
             }
     
             int recordSize = calculateRecordSize(recordValues, table.getattributes()); // calc the record size
             Record newRecord = new Record(recordValues, recordSize, nullBitMap);
-            boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
-            if (!worked) {
-                return;
+
+            // choose insert operation based on if indexing is on or not
+            if (Main.getIndexing()) {
+                BPlusTree bPlusTree = Main.getTrees().get(table.gettableNumber());
+                boolean success = bPlusTree.insert(newRecord, primaryKeyValue, recordSize); //TODO: pointer probably shouldn't be a param
+                if (!success) {
+                    System.out.println("Insert failed: duplicate primary key");
+                    return;
+                }
+            }
+            else {
+                boolean worked = storageManager.addRecord(catalog, newRecord, table.gettableNumber());
+                if (!worked) {
+                    return;
+                }
             }
         }
     
@@ -742,10 +766,12 @@ public class parser {
 
         // Match WHERE clause if present
         Matcher whereMatcher = wherePattern.matcher(inputLine);
+        String value = null;
         if (whereMatcher.find()) {
             String whereClause = whereMatcher.group(1);
             System.out.println("Where conditions: " + whereClause);
             whereClause = whereClause.trim().replaceAll(";$", "");
+            value = whereClause;
             whereRoot = WhereParse.parseWhereClause(whereClause, tableSchemas); //TODO: change this to WhereParse version after merge
             // whereClauseList = WhereParse.parseWhereClause(whereClause);
         } else {
@@ -754,6 +780,19 @@ public class parser {
 
         assert tableSchemas != null;
         TableSchema tableSchema = tableSchemas.get(0);
+        if (Main.getIndexing() && value != null) {  // If there is no where clause, there is no need to use the tree
+            Object primaryKeyValue = null;
+            for (AttributeSchema attributeSchema : tableSchema.getattributes()) {
+                if (attributeSchema.getprimarykey()) {
+                    value = value.replaceAll("\\s", "");
+                    value = value.substring(value.indexOf('=') + 1);
+                    primaryKeyValue = parseValueBasedOnType(value, attributeSchema);
+                }
+            }
+            BPlusTree bPlusTree = Main.getTrees().get(tableSchema.gettableNumber());
+            bPlusTree.delete(primaryKeyValue);
+            return;
+        }
         storageManager.deleteRecords(tableSchema, whereRoot);
     }
 
@@ -806,7 +845,7 @@ public class parser {
         final WhereCondition finalWhereRoot = whereRoot;
 
         Object objectValue = value;
-        if (whereRoot != null) {
+        if (whereRoot != null && !Main.getIndexing()) {
             // Update records based on the condition
             boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
             if (success) {
@@ -814,7 +853,85 @@ public class parser {
             } else {
                 System.out.println("Update failed");
             }
-        } else {
+        }
+        else if (whereRoot != null) {
+            Object primaryKeyValue = null;
+            AttributeSchema[] attributeSchemas = tableSchema.getattributes();
+            String conditionValue =  whereRoot.value;
+            for (AttributeSchema attributeSchema : attributeSchemas) {
+                if (attributeSchema.getprimarykey()) {
+                    conditionValue = conditionValue.replaceAll("\\s", "");
+                    conditionValue = conditionValue.substring(conditionValue.indexOf('=') + 1);
+                    primaryKeyValue = parseValueBasedOnType(conditionValue, attributeSchema);
+                }
+            }
+            BPlusTree bPlusTree = Main.getTrees().get(tableSchema.gettableNumber());
+            BPlusNode node = bPlusTree.search(primaryKeyValue);
+            LinkedList<Object> keys = node.getKeys();
+            Record record = null;
+            for (int i = 0; i < keys.size(); i++) {
+                Object key = keys.get(i);
+                if (key.equals(primaryKeyValue)) {
+                    BPlusNode.Pair<Integer, Integer> pointer = node.getPointers().get(i);
+                    Page page = Main.getStorageManager().getPage(tableSchema.gettableNumber(), pointer.getPageNumber());
+                    record = page.getRecords().get(pointer.getIndex());
+                }
+            }
+            Object oldValue = record.getAttributeValue(columnName, attributeSchemas);
+            Record updatedRecord = record;
+            Object updatedValue = value;
+            if (whereRoot.evaluate(record, tableSchema)) {
+                ArrayList<Object> recData = record.getData();
+                
+                // calculate size change in record
+                ArrayList<Byte> nullBitMap = record.getNullBitMap();
+                AttributeSchema attr = tableSchema.getAttributeByName(columnName);
+                int sizeRemoved = (oldValue == null) ? 0 : attr.getsize();
+                int sizeAdded = (primaryKeyValue == null) ? 0 : attr.getsize();
+                if (attr.gettype().equals("varchar")) {
+                    sizeAdded = (primaryKeyValue == null) ? 0 : ((String)primaryKeyValue).length() + Integer.BYTES;
+                    sizeRemoved = (oldValue == null) ? 0 : ((String)oldValue).length() + Integer.BYTES;
+                }
+
+                int columnIndex = -1;
+                for(int i = 0; i < attributeSchemas.length; i++) {
+                    if(attributeSchemas[i].getname().equals(columnName)) {
+                        columnIndex = i;
+                        break;
+                    }
+                }
+                
+                // Convert to appropriate data type (to avoid casting errors)
+                switch (attr.gettype()) {
+                    case "double":
+                        updatedValue = Double.parseDouble((String) value);
+                        break;
+                    case "integer":
+                        updatedValue = Integer.parseInt((String)value);
+                        break;
+                    case "boolean":
+                        updatedValue = Boolean.parseBoolean((String)value);
+                        if (attr.isPrimaryKey()) {
+                            //TODO: revisit this after checking if above works
+                        }
+                        break;
+                }
+                recData.set(columnIndex, updatedValue); // Update the value of the specified column
+
+                // update record's nullBitMap
+                if (updatedValue == null) nullBitMap.set(columnIndex, (byte)0);
+                else nullBitMap.set(columnIndex, (byte)1);
+                
+                updatedRecord = new Record(recData, record.getSize()+sizeAdded-sizeRemoved, nullBitMap);
+                // if (!addRecord(catalog, updatedRecord, tableSchema.gettableNumber())) {
+                //     record.getData().set(columnIndex, oldValue);
+                //     addRecord(catalog, record, tableSchema.gettableNumber());
+                //     return false;
+                // }
+            }
+            bPlusTree.update(updatedRecord, updatedValue, primaryKeyValue);  // TODO: pointer; need a way to duplicate current record with new data
+        }
+        else {  // I don't think this is needed
             // Update all records (no condition specified)
             boolean success = storageManager.updateRecord(tableName, columnName, objectValue, whereRoot);
             if (success) {

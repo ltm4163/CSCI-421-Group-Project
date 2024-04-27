@@ -13,6 +13,8 @@ public class TableSchema {
     private int numPages;
     private int numAttributes;
     private int[] pageLocations; //index: location; value: pageNum
+    private int numNodes; //number of nodes in index tree
+    private ArrayList<Integer> freeSpaces; //open locations in index file for nodes (resulting from deleted nodes)
     
     public TableSchema(int numAttributes, String name, int tableNumber, AttributeSchema[] attributes) {
         this.numAttributes = numAttributes;
@@ -21,6 +23,32 @@ public class TableSchema {
         this.attributes = attributes;
         this.numPages=0;
         this.pageLocations = new int[0];
+        this.numNodes = 0;
+        this.freeSpaces = new ArrayList<>();
+    }
+
+    public void addTreeNode() {
+        this.numNodes++;
+    }
+
+    public void deleteTreeNode() {
+        this.numNodes--;
+    }
+
+    public int getNumNodes() {
+        return this.numNodes;
+    }
+
+    public void setNumNodes(int numNodes) {
+        this.numNodes = numNodes;
+    }
+
+    private void setFreeSpaces(ArrayList<Integer> freeSpacesList) {
+        this.freeSpaces = freeSpacesList;
+    }
+    
+    public ArrayList<Integer> getFreeSpaces() {
+        return freeSpaces;
     }
     
     public void setnumAttributes(int numAttributes){
@@ -243,6 +271,9 @@ public class TableSchema {
         for (int location : this.pageLocations) {
             dos.writeInt(location);
         }
+        dos.writeInt(numNodes);
+        dos.writeInt(freeSpaces.size());
+        for (int location : freeSpaces) dos.writeInt(location);
     }
 
     public static TableSchema readFromStream(DataInputStream dis) throws IOException {
@@ -259,6 +290,13 @@ public class TableSchema {
         table.pageLocations = new int[numPages];
         for (int i = 0; i < numPages; i++) {
             table.pageLocations[i] = dis.readInt();
+        }
+        int numNodes = dis.readInt();
+        table.setNumNodes(numNodes);
+        ArrayList<Integer> freeSpacesList = new ArrayList<>();
+        int freeSpaces = dis.readInt();
+        for (int i = 0; i < freeSpaces; i++) {
+            freeSpacesList.add(dis.readInt());
         }
         return table;
     }

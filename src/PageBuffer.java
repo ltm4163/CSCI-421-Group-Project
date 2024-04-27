@@ -74,13 +74,13 @@ public class PageBuffer {
         for(Pair<Integer, Integer> key : this.pages.keySet()) {
             Page page = this.pages.get(key);
             int tableNum = page.getTableNumber();
-            if (tableUpdatedArray[tableNum-1] == (byte)0) {
+            if (tableUpdatedArray[tableNum] == (byte)0) {
                 TableSchema tableSchema = catalog.getTableSchema(tableNum);
                 try {
                     String fileName = Main.getDbDirectory() + "/tables/" + tableNum + ".bin";
                     RandomAccessFile fileOut = new RandomAccessFile(fileName, "rw");
                     fileOut.write(tableSchema.getNumPages());
-                    tableUpdatedArray[tableNum-1] = (byte)1;
+                    tableUpdatedArray[tableNum] = (byte)1;
                 } catch(IOException e) {
                     e.printStackTrace();
                 }

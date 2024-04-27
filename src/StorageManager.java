@@ -155,7 +155,7 @@ public class StorageManager {
             targetPage = new Page(0, tableNumber, true);
             targetPage.addRecord(record);
             table.addPage(targetPage);
-            buffer.addPage(targetPage.getPageNumber(), targetPage);
+            //buffer.addPage(targetPage.getPageNumber(), targetPage);
         }
         else if (indexFound) {
             targetPage = getPage(tableNumber, pageIndex);
@@ -168,11 +168,10 @@ public class StorageManager {
         }
         
         // Check if the page is overfull and handle splitting if necessary
-        // if (targetPage.isOverfull()) {
-        //     splitPage(targetPage);
-        // }
-        //else
-        buffer.updatePage(targetPage);
+        if (targetPage.isOverfull()) {
+            splitPage(targetPage);
+        }
+        else buffer.updatePage(targetPage);
         
         // Update the catalog and buffer as necessary
         //updateCatalogAndBufferAfterInsertion(catalog, table, targetPage);
@@ -267,10 +266,10 @@ public class StorageManager {
 
 
     // Split page into two
-    public void splitPage(Page page) {
+    public Record splitPage(Page page) {
+        Record firstRecInNewPage = null;
         List<Record> records = page.getRecords();
 
-        // TODO: Change this implementation from list to arraylist (dont think this is necessary)
         int midIndex = page.getNumRecords() / 2;
     
         // Use List interface for declaration, ArrayList for instantiation
@@ -287,6 +286,9 @@ public class StorageManager {
         }
         for (int i = midIndex; i < page.getNumRecords(); i++) {
             Record record = records.get(i);
+            if (i == midIndex) {
+                firstRecInNewPage = record;
+            }
             secondHalf.add(record);
             secondPageSize += record.getSize();
         }
@@ -317,6 +319,8 @@ public class StorageManager {
         else buffer.updatePage(page);
         if (newPage.isOverfull()) splitPage(newPage);
         else buffer.addPage(newPage.getPageNumber(), newPage);
+
+        return firstRecInNewPage;
     }
     
     // Tells findInsertionPage if current location is where to insert record
