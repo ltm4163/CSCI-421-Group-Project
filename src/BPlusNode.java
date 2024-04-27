@@ -270,6 +270,18 @@ public class BPlusNode {
             return parent.children.get(index + 1);
         }
         return null;
+
+    }
+
+    public BPlusNode getRightSiblingInclusive() {
+        if (parent == null) return null;
+        int index = parent.children.indexOf(this);
+        if(index + 1 < parent.children.size()) {
+            return parent.children.get(index + 1);
+        } else {
+            return parent.getRightSiblingInclusive().children.get(0);
+        }
+
     }
 
     // returns the left sibling of a node
@@ -280,6 +292,17 @@ public class BPlusNode {
             return parent.children.get(index - 1);
         }
         return null;
+    }
+
+    public BPlusNode getLeftSiblingInclusive() {
+        if (parent == null) return null;
+        int index = parent.children.indexOf(this);
+        if(index - 1 >= 0) {
+            return parent.children.get(index - 1);
+        } else {
+            int size = parent.getRightSiblingInclusive().children.size();
+            return parent.getLeftSiblingInclusive().children.get(size - 1);
+        }
     }
 
     // merges a node with its right sibling
