@@ -44,6 +44,29 @@ public class BPlusNode {
         return false;
     }
 
+    public int incrementPointers(int pageNum, Object searchKey, int newIndex) {
+        int offset = 0;
+        for (int i = 0; i < pointers.size(); i++) {
+            Pair<Integer, Integer> pointer = pointers.get(i);
+            if (pointer.getPageNumber() > pageNum) pointers.set(i, new Pair<Integer,Integer>(pointer.getPageNumber()+1, pointer.getIndex()));
+            if (pointer.getPageNumber() == pageNum) {
+                if (compare(keys.get(i), searchKey) > 0) {
+                    pointers.set(i, new Pair<Integer,Integer>(pointer.getPageNumber()+1, newIndex + offset));
+                    offset++;
+                }
+            }
+        }
+
+        return offset;
+    }
+
+    public boolean doesNodeSharePage(int pageNum) {
+        for (int i = 0; i < pointers.size(); i++) {
+            if (pointers.get(i).getPageNumber() == pageNum) return true;
+        }
+        return false;
+    }
+
     /*
      * BPlusTree insert function
      *
@@ -89,33 +112,30 @@ public class BPlusNode {
                                     AttributeSchema[] attributeSchemas = Main.getCatalog().getTableSchema(tableNumber).getattributes();
                                     Object firstValInNewPage = firstRecInNewPage.getAttributeValue(attr.getname(), attributeSchemas);
 
-                                    rightNeighbor = getRightSibling();
-                                    while (rightNeighbor != null) {
-                                        if(!rightNeighbor.incrementPointerIndexes(nextPointer.getPageNumber(), 0)) {
-                                            rightNeighbor = rightNeighbor.getRightSibling();
+                                    // find first leaf node with entries in split page
+                                    BPlusNode neighbor = getLeftSiblingInclusive();
+                                    while (neighbor != null) {
+                                        if (neighbor.pointers.get(0).getPageNumber() == nextPointer.getPageNumber()) {
+                                            neighbor = neighbor.getLeftSiblingInclusive();
+                                        }
+                                        else {
+                                            if (doesNodeSharePage(nextPointer.getPageNumber())) break;
+                                            else {
+                                                neighbor = neighbor.getRightSiblingInclusive();
+                                                break;
+                                            }
                                         }
                                     }
-//                                    for (BPlusNode node : leafNodes) {
-//                                        for (int j = 0; j < node.pointers.size(); j++) {
-//                                            Pair<Integer, Integer> pointerForAdjustment = node.pointers.get(j);
-//                                            if (pointerForAdjustment.getPageNumber() >= page.getPageNumber()) {
-//                                                pointerForAdjustment.setPageNumber(pointerForAdjustment.getPageNumber() + 1);
-//                                            }
-//                                            else if (pointerForAdjustment.getPageNumber() == page.getPageNumber()) {
-//                                                Object keyForAdjustment = node.keys.get(i);
-//                                                if (compare(keyForAdjustment, firstValInNewPage) >= 0) {
-//                                                    pointerForAdjustment.setPageNumber(pointerForAdjustment.getPageNumber() + 1);
-//                                                }
-//                                            }
-//                                        }
-//                                    }
-                                    //TODO: adjust pointers accordingly
-                                    // go through each leaf node. for each entry, check if its pagenum (in table, NOT tree) >= pagenum
-                                    // of split page. if >, increase its pagenum of pointer by 1. if =, check if searchkey value >
-                                    // firstValInNewPage. if it is, increase pagenum of pointer by 1 and update index (this part im
-                                    // not sure exactly how to do, I imagine you just set the first changed one to 0 and increment
-                                    // from there though)
-                                    // EDIT: I think we also need to figure out the pointers for the parent node on a split
+
+                                    // iterate through leaf nodes, increment pointers as necessary
+                                    int newIndex = 0;
+                                    while (neighbor != null) {
+                                        int offset = incrementPointers(nextPointer.getPageNumber(), firstValInNewPage, newIndex);
+                                        newIndex += offset;
+                                        neighbor = neighbor.getRightSiblingInclusive();
+                                    }
+
+                                    // TODO: I think we also need to figure out the pointers for the parent node on a split
                                 }
                             }
                             System.out.println("adding: " + searchKey);
@@ -141,8 +161,32 @@ public class BPlusNode {
                         page.addRecord(record);
                         pointers.add(new Pair<Integer, Integer>(prevPointer.pageNumber, prevPointer.index+1));
                         if (page.isOverfull()) {
-                            storageManager.splitPage(page);
-                            //TODO: adjust pointers accordingly
+                            Record firstRecInNewPage = storageManager.splitPage(page);
+                            AttributeSchema[] attributeSchemas = Main.getCatalog().getTableSchema(tableNumber).getattributes();
+                            Object firstValInNewPage = firstRecInNewPage.getAttributeValue(attr.getname(), attributeSchemas);
+
+                            // find first leaf node with entries in split page
+                            BPlusNode neighbor = getLeftSiblingInclusive();
+                            while (neighbor != null) {
+                                if (neighbor.pointers.get(0).getPageNumber() == prevPointer.getPageNumber()) {
+                                    neighbor = neighbor.getLeftSiblingInclusive();
+                                }
+                                else {
+                                    if (doesNodeSharePage(prevPointer.getPageNumber())) break;
+                                    else {
+                                        neighbor = neighbor.getRightSiblingInclusive();
+                                        break;
+                                    }
+                                }
+                            }
+
+                            // iterate through leaf nodes, increment pointers as necessary
+                            int newIndex = 0;
+                            while (neighbor != null) {
+                                int offset = incrementPointers(prevPointer.getPageNumber(), firstValInNewPage, newIndex);
+                                newIndex += offset;
+                                neighbor = neighbor.getRightSiblingInclusive();
+                            }
                         }
                     }
                 }
@@ -246,7 +290,7 @@ public class BPlusNode {
             page.deleteRecord(record, pointer.getIndex());
             if (page.getNumRecords() == 0) Main.getCatalog().getTableSchema(tableNumber).dropPage(page.getPageNumber());
              // if the node becomes underfull, borrow. If you can't borrow, merge.
-            if(children.size() < (int)Math.ceil(order/2)) {
+            if(children.size() > (int)Math.ceil(order/2) || (isRoot && children.size() > 0)) {
                 if(borrowFrom()) {
                     return;
                 }
@@ -274,14 +318,24 @@ public class BPlusNode {
     }
 
     public BPlusNode getRightSiblingInclusive() {
-        if (parent == null) return null;
+        if (parent == null) return null; // No parent, hence no siblings
         int index = parent.children.indexOf(this);
-        if(index + 1 < parent.children.size()) {
-            return parent.children.get(index + 1);
+        if (index + 1 < parent.children.size()) {
+            // If there's a right sibling, return its leftmost child
+            return parent.children.get(index + 1).getLeftmostLeaf();
         } else {
-            return parent.getRightSiblingInclusive().children.get(0);
+            // If there's no right sibling, recursively call on the parent
+            return parent.getRightSiblingInclusive();
         }
-
+    }
+    
+    private BPlusNode getLeftmostLeaf() {
+        BPlusNode current = this;
+        // Descend to the leftmost leaf
+        while (!current.isLeaf()) {
+            current = current.children.get(0);
+        }
+        return current;
     }
 
     // returns the left sibling of a node
@@ -295,14 +349,24 @@ public class BPlusNode {
     }
 
     public BPlusNode getLeftSiblingInclusive() {
-        if (parent == null) return null;
+        if (parent == null) return null; // No parent, hence no siblings
         int index = parent.children.indexOf(this);
-        if(index - 1 >= 0) {
-            return parent.children.get(index - 1);
+        if (index > 0) {
+            // If there's a left sibling, return its rightmost leaf
+            return parent.children.get(index - 1).getRightmostLeaf();
         } else {
-            int size = parent.getRightSiblingInclusive().children.size();
-            return parent.getLeftSiblingInclusive().children.get(size - 1);
+            // If there's no left sibling, recursively call on the parent
+            return parent.getLeftSiblingInclusive();
         }
+    }
+    
+    private BPlusNode getRightmostLeaf() {
+        BPlusNode current = this;
+        // Descend to the rightmost leaf
+        while (!current.isLeaf()) {
+            current = current.children.get(current.children.size() - 1);
+        }
+        return current;
     }
 
     // merges a node with its right sibling
